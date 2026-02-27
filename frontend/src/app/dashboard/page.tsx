@@ -529,11 +529,19 @@ export default function DashboardPage() {
         fetch(`${API}/api/qbo/customers?firmId=${id}`),
         fetch(`${API}/api/qbo/locations?firmId=${id}`)
       ])
-      if (cRes.ok) setCustomers(await cRes.json())
-      else addToast(`QBO Customers: ${cRes.status} ${cRes.statusText}`, 'error')
+      if (cRes.ok) {
+        setCustomers(await cRes.json())
+      } else {
+        const errData = await cRes.json().catch(() => ({}))
+        addToast(`QBO Customers: ${errData.details || errData.error || cRes.statusText}`, 'error')
+      }
 
-      if (lRes.ok) setLocations(await lRes.json())
-      else addToast(`QBO Locations: ${lRes.status} ${lRes.statusText}`, 'error')
+      if (lRes.ok) {
+        setLocations(await lRes.json())
+      } else {
+        const errData = await lRes.json().catch(() => ({}))
+        addToast(`QBO Locations: ${errData.details || errData.error || lRes.statusText}`, 'error')
+      }
     } catch (e: any) {
       console.error('Failed to fetch QBO data:', e)
       addToast(`QBO Data Error: ${e.message || 'Unknown network error'}`, 'error')

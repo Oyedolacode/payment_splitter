@@ -1742,6 +1742,60 @@
   .livePill {
     align-self: flex-start;
   }
+
+  /* Rules & Tables responsiveness */
+  .tableContainer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -24px;
+    padding: 0 24px;
+  }
+
+  .table {
+    min-width: 650px;
+    /* Force scroll on mobile */
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .cardHeader .secondaryBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Settings responsiveness */
+  .settingsRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .settingsRow .primaryBtn {
+    width: 100%;
+  }
+
+  /* Rule Builder Modal tweaks */
+  .weightRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .weightRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .weightInputGroup {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 /* ── Onboarding Checklist ────────────────────────────────────────────────── */
