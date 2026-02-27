@@ -488,10 +488,14 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`${API}/api/jobs?firmId=${id}`)
       const data = await res.json()
-      setJobs(Array.isArray(data) ? data : [])
-    } catch (e) {
+      if (res.ok) {
+        setJobs(Array.isArray(data) ? data : [])
+      } else {
+        addToast(`Failed to fetch jobs: ${data.details || data.error || res.statusText}`, 'error')
+      }
+    } catch (e: any) {
       console.error('Failed to fetch jobs:', e)
-      addToast('Failed to fetch jobs', 'error')
+      addToast(`Jobs Fetch Error: ${e.message || 'Unknown network error'}`, 'error')
     } finally {
       setLoading(false)
     }

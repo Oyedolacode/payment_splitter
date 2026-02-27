@@ -15,13 +15,21 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       const { firmId, limit = '50' } = request.query
       if (!firmId) return reply.status(400).send({ error: 'firmId required' })
 
-      const jobs = await prisma.paymentJob.findMany({
-        where: { firmId },
-        include: { auditEntries: true, rule: true },
-        orderBy: { createdAt: 'desc' },
-        take: parseInt(limit, 10),
-      })
-      return jobs
+      try {
+        const jobs = await prisma.paymentJob.findMany({
+          where: { firmId },
+          include: { auditEntries: true, rule: true },
+          orderBy: { createdAt: 'desc' },
+          take: parseInt(limit, 10),
+        })
+        return jobs
+      } catch (err: any) {
+        console.error('[Jobs List Error]:', err)
+        return reply.status(500).send({
+          error: err.message || 'Failed to fetch jobs',
+          details: err.message || err
+        })
+      }
     }
   )
 
