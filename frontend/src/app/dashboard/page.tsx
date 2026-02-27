@@ -484,6 +484,11 @@ export default function DashboardPage() {
     }
   }
 
+  function handleLogout() {
+    localStorage.removeItem('ps_firm_id')
+    window.location.href = '/'
+  }
+
   return (
     <div className={styles.root}>
       {/* Background */}
@@ -532,6 +537,13 @@ export default function DashboardPage() {
               <span className={styles.qboDot} />
               QBO Connected
             </div>
+            <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Log out" title="Log out">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -629,168 +641,170 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : (
-                <table className={styles.table}>
-                  <colgroup>
-                    <col /><col /><col /><col /><col /><col /><col />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>Payment ID</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Splits</th>
-                      <th>Rule</th>
-                      <th>When</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobs.map((job, i) => {
-                      const isOpen = selected === job.id
-                      return (
-                        <>
-                          <tr
-                            key={job.id}
-                            className={`${styles.row} ${isOpen ? styles.rowSelected : ''}`}
-                            onClick={() => toggleRow(job.id)}
-                            style={{ animationDelay: `${i * 35}ms` }}
-                            aria-expanded={isOpen}
-                          >
-                            <td>
-                              <span className={styles.mono}>
-                                {job.paymentId.length > 24
-                                  ? job.paymentId.slice(0, 24) + '…'
-                                  : job.paymentId}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={styles.amountCell}>${fmt(job.totalAmount)}</span>
-                            </td>
-                            <td>
-                              <StatusBadge status={job.status} />
-                            </td>
-                            <td>
-                              <span className={styles.splitCount}>
-                                {job.auditEntries.length} invoice{job.auditEntries.length !== 1 ? 's' : ''}
-                              </span>
-                            </td>
-                            <td>
-                              {job.rule?.ruleType
-                                ? <span className={styles.ruleType}>{job.rule.ruleType}</span>
-                                : <span className={styles.mono}>—</span>
-                              }
-                            </td>
-                            <td>
-                              <span className={styles.timeCell}>{timeAgo(job.createdAt)}</span>
-                            </td>
-                            <td>
-                              <div className={styles.rowActions}>
-                                {(job.status === 'FAILED' || job.status === 'ROLLED_BACK') && (
-                                  <button
-                                    className={styles.retryBtn}
-                                    onClick={e => retryJob(e, job.id)}
-                                    disabled={retrying === job.id}
-                                  >
-                                    {retrying === job.id ? '···' : 'Retry'}
-                                  </button>
-                                )}
-                                <Chevron open={isOpen} />
-                              </div>
-                            </td>
-                          </tr>
-
-                          {/* Audit trail expansion */}
-                          {isOpen && (
-                            <tr key={`${job.id}-audit`} className={styles.auditRow}>
-                              <td colSpan={7}>
-                                <div className={styles.auditPanel}>
-
-                                  {job.errorMessage && (
-                                    <div className={styles.errorBox}>
-                                      <span>⚠</span>
-                                      <span>{job.errorMessage}</span>
-                                    </div>
+                <div className={styles.tableContainer}>
+                  <table className={styles.table}>
+                    <colgroup>
+                      <col /><col /><col /><col /><col /><col /><col />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Payment ID</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Splits</th>
+                        <th>Rule</th>
+                        <th>When</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {jobs.map((job, i) => {
+                        const isOpen = selected === job.id
+                        return (
+                          <>
+                            <tr
+                              key={job.id}
+                              className={`${styles.row} ${isOpen ? styles.rowSelected : ''}`}
+                              onClick={() => toggleRow(job.id)}
+                              style={{ animationDelay: `${i * 35}ms` }}
+                              aria-expanded={isOpen}
+                            >
+                              <td>
+                                <span className={styles.mono}>
+                                  {job.paymentId.length > 24
+                                    ? job.paymentId.slice(0, 24) + '…'
+                                    : job.paymentId}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={styles.amountCell}>${fmt(job.totalAmount)}</span>
+                              </td>
+                              <td>
+                                <StatusBadge status={job.status} />
+                              </td>
+                              <td>
+                                <span className={styles.splitCount}>
+                                  {job.auditEntries.length} invoice{job.auditEntries.length !== 1 ? 's' : ''}
+                                </span>
+                              </td>
+                              <td>
+                                {job.rule?.ruleType
+                                  ? <span className={styles.ruleType}>{job.rule.ruleType}</span>
+                                  : <span className={styles.mono}>—</span>
+                                }
+                              </td>
+                              <td>
+                                <span className={styles.timeCell}>{timeAgo(job.createdAt)}</span>
+                              </td>
+                              <td>
+                                <div className={styles.rowActions}>
+                                  {(job.status === 'FAILED' || job.status === 'ROLLED_BACK') && (
+                                    <button
+                                      className={styles.retryBtn}
+                                      onClick={e => retryJob(e, job.id)}
+                                      disabled={retrying === job.id}
+                                    >
+                                      {retrying === job.id ? '···' : 'Retry'}
+                                    </button>
                                   )}
+                                  <Chevron open={isOpen} />
+                                </div>
+                              </td>
+                            </tr>
 
-                                  <div className={styles.auditGrid}>
-                                    <div>
-                                      <div className={styles.auditTitle}>Audit Trail</div>
-                                      <table className={styles.auditTable}>
-                                        <thead>
-                                          <tr>
-                                            <th>Sub-Location</th>
-                                            <th>Invoice</th>
-                                            <th>Amount Applied</th>
-                                            <th>QBO Payment ID</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {job.auditEntries.map(entry => (
-                                            <tr key={entry.id}>
-                                              <td><span className={styles.mono}>{entry.subLocationId}</span></td>
-                                              <td><span className={styles.mono}>{entry.invoiceId}</span></td>
-                                              <td>
-                                                <span style={{ color: '#10b981', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                                                  ${fmt(entry.amountApplied)}
-                                                </span>
-                                              </td>
-                                              <td>
-                                                <span className={styles.mono} style={{ color: 'var(--text-3)' }}>
-                                                  {entry.qboPaymentId ?? '—'}
-                                                </span>
-                                              </td>
+                            {/* Audit trail expansion */}
+                            {isOpen && (
+                              <tr key={`${job.id}-audit`} className={styles.auditRow}>
+                                <td colSpan={7}>
+                                  <div className={styles.auditPanel}>
+
+                                    {job.errorMessage && (
+                                      <div className={styles.errorBox}>
+                                        <span>⚠</span>
+                                        <span>{job.errorMessage}</span>
+                                      </div>
+                                    )}
+
+                                    <div className={styles.auditGrid}>
+                                      <div>
+                                        <div className={styles.auditTitle}>Audit Trail</div>
+                                        <table className={styles.auditTable}>
+                                          <thead>
+                                            <tr>
+                                              <th>Sub-Location</th>
+                                              <th>Invoice</th>
+                                              <th>Amount Applied</th>
+                                              <th>QBO Payment ID</th>
                                             </tr>
-                                          ))}
-                                        </tbody>
-                                        <tfoot>
-                                          <tr>
-                                            <td colSpan={2} style={{ color: 'var(--text-3)', fontSize: 11 }}>
-                                              Total allocated
-                                            </td>
-                                            <td>
-                                              <span style={{ color: '#10b981', fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '-0.3px' }}>
-                                                ${fmt(job.auditEntries.reduce((s, e) => s + Number(e.amountApplied), 0))}
-                                              </span>
-                                            </td>
-                                            <td />
-                                          </tr>
-                                        </tfoot>
-                                      </table>
-                                    </div>
+                                          </thead>
+                                          <tbody>
+                                            {job.auditEntries.map(entry => (
+                                              <tr key={entry.id}>
+                                                <td><span className={styles.mono}>{entry.subLocationId}</span></td>
+                                                <td><span className={styles.mono}>{entry.invoiceId}</span></td>
+                                                <td>
+                                                  <span style={{ color: '#10b981', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                                    ${fmt(entry.amountApplied)}
+                                                  </span>
+                                                </td>
+                                                <td>
+                                                  <span className={styles.mono} style={{ color: 'var(--text-3)' }}>
+                                                    {entry.qboPaymentId ?? '—'}
+                                                  </span>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr>
+                                              <td colSpan={2} style={{ color: 'var(--text-3)', fontSize: 11 }}>
+                                                Total allocated
+                                              </td>
+                                              <td>
+                                                <span style={{ color: '#10b981', fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '-0.3px' }}>
+                                                  ${fmt(job.auditEntries.reduce((s, e) => s + Number(e.amountApplied), 0))}
+                                                </span>
+                                              </td>
+                                              <td />
+                                            </tr>
+                                          </tfoot>
+                                        </table>
+                                      </div>
 
-                                    <div>
-                                      <div className={styles.auditTitle}>Job Details</div>
-                                      <div className={styles.metaPanel}>
-                                        {[
-                                          ['Job ID', job.id.slice(0, 8) + '…'],
-                                          ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? '…' : '')],
-                                          ['Rule type', job.rule?.ruleType ?? '—'],
-                                          ['Created', new Date(job.createdAt).toLocaleString()],
-                                          ...(job.completedAt
-                                            ? [['Completed', new Date(job.completedAt).toLocaleString()]]
-                                            : []),
-                                        ].map(([k, v]) => (
-                                          <div key={k} className={styles.metaRow}>
-                                            <span className={styles.metaKey}>{k}</span>
-                                            <span className={styles.metaVal}>{v}</span>
+                                      <div>
+                                        <div className={styles.auditTitle}>Job Details</div>
+                                        <div className={styles.metaPanel}>
+                                          {[
+                                            ['Job ID', job.id.slice(0, 8) + '…'],
+                                            ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? '…' : '')],
+                                            ['Rule type', job.rule?.ruleType ?? '—'],
+                                            ['Created', new Date(job.createdAt).toLocaleString()],
+                                            ...(job.completedAt
+                                              ? [['Completed', new Date(job.completedAt).toLocaleString()]]
+                                              : []),
+                                          ].map(([k, v]) => (
+                                            <div key={k} className={styles.metaRow}>
+                                              <span className={styles.metaKey}>{k}</span>
+                                              <span className={styles.metaVal}>{v}</span>
+                                            </div>
+                                          ))}
+                                          <div className={styles.metaRow}>
+                                            <span className={styles.metaKey}>Total amount</span>
+                                            <span className={styles.metaAmount}>${fmt(job.totalAmount)}</span>
                                           </div>
-                                        ))}
-                                        <div className={styles.metaRow}>
-                                          <span className={styles.metaKey}>Total amount</span>
-                                          <span className={styles.metaAmount}>${fmt(job.totalAmount)}</span>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </>
@@ -818,57 +832,59 @@ export default function DashboardPage() {
                 <div className={styles.emptySub}>Rules determine how payments are split between your branch locations.</div>
               </div>
             ) : (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Parent Customer</th>
-                    <th>Type</th>
-                    <th>Weights / Order</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rules.map(rule => {
-                    const parent = customers.find(c => c.Id === rule.parentCustomerId)
-                    return (
-                      <tr key={rule.id} className={styles.row}>
-                        <td>
-                          <div className={styles.customerName}>{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
-                        </td>
-                        <td><span className={styles.ruleType}>{rule.ruleType}</span></td>
-                        <td>
-                          <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {rule.ruleType === 'proportional'
-                              ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
-                                const loc = locations.find(l => String(l.Id) === String(id))
-                                return `${loc?.Name || `Location ${id}`}: ${w}%`
-                              }).join(', ')
-                              : 'Oldest first waterfall'
-                            }
-                          </div>
-                        </td>
-                        <td>
-                          <button
-                            className={`${styles.statusToggle} ${rule.isActive ? styles.toggleOn : styles.toggleOff}`}
-                            onClick={() => toggleRule(rule.id, !rule.isActive)}
-                          >
-                            {rule.isActive ? 'Active' : 'Disabled'}
-                          </button>
-                        </td>
-                        <td><span className={styles.timeCell}>{new Date(rule.createdAt).toLocaleDateString()}</span></td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className={styles.secondaryBtn} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => alert('Editing coming soon')}>Edit</button>
-                            <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+              <div className={styles.tableContainer}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Parent Customer</th>
+                      <th>Type</th>
+                      <th>Weights / Order</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rules.map(rule => {
+                      const parent = customers.find(c => c.Id === rule.parentCustomerId)
+                      return (
+                        <tr key={rule.id} className={styles.row}>
+                          <td>
+                            <div className={styles.customerName}>{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
+                          </td>
+                          <td><span className={styles.ruleType}>{rule.ruleType}</span></td>
+                          <td>
+                            <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {rule.ruleType === 'proportional'
+                                ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
+                                  const loc = locations.find(l => String(l.Id) === String(id))
+                                  return `${loc?.Name || `Location ${id}`}: ${w}%`
+                                }).join(', ')
+                                : 'Oldest first waterfall'
+                              }
+                            </div>
+                          </td>
+                          <td>
+                            <button
+                              className={`${styles.statusToggle} ${rule.isActive ? styles.toggleOn : styles.toggleOff}`}
+                              onClick={() => toggleRule(rule.id, !rule.isActive)}
+                            >
+                              {rule.isActive ? 'Active' : 'Disabled'}
+                            </button>
+                          </td>
+                          <td><span className={styles.timeCell}>{new Date(rule.createdAt).toLocaleDateString()}</span></td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button className={styles.secondaryBtn} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => alert('Editing coming soon')}>Edit</button>
+                              <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}

@@ -30,7 +30,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--header-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
@@ -144,6 +144,27 @@
   border-radius: 6px;
   letter-spacing: 0.5px;
   box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.logoutBtn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--text-2);
 }
 
 /* ── Main ─────────────────────────────────────────────────────────────────── */
@@ -403,10 +424,16 @@
 }
 
 /* ── Table ────────────────────────────────────────────────────────────────── */
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  min-width: 800px;
 }
 
 /* Column widths — consistent alignment between header and rows */
@@ -1358,4 +1385,57 @@
 
 .upgradeLink:hover {
   opacity: 0.8;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pricingGrid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 768px) {
+  .headerInner {
+    padding: 0 24px;
+  }
+
+  .headerNav {
+    display: none;
+  }
+
+  .main {
+    padding: 32px 24px 80px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricingGrid {
+    grid-template-columns: 1fr;
+    max-width: 440px;
+  }
+
+  .auditGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .titleRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .livePill {
+    align-self: flex-start;
+  }
 }

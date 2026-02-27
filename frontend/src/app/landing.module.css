@@ -30,7 +30,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(251, 251, 249, 0.85);
+  background: var(--header-bg);
   backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border);
 }

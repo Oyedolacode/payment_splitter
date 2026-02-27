@@ -10,6 +10,7 @@
   --text: #1a1a1e;
   --text-2: #6c6c72;
   --text-3: #909098;
+  --header-bg: rgba(255, 255, 255, 0.85);
   --accent: #2d31fa;
   --accent-glow: rgba(45, 49, 250, 0.08);
   --accent-2: #10b981;
@@ -40,6 +41,7 @@
   --text: #ffffff;
   --text-2: #a1a1aa;
   --text-3: #71717a;
+  --header-bg: rgba(26, 26, 30, 0.85);
 }
 
 
