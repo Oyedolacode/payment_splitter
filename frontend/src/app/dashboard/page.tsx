@@ -474,15 +474,15 @@ export default function DashboardPage() {
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
+  const removeToast = useCallback((id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
+
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now()
     setToasts(prev => [...prev, { id, message, type }])
     setTimeout(() => removeToast(id), 5000)
-  }, [])
-
-  const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
+  }, [removeToast])
 
   const fetchJobs = useCallback(async (id: string) => {
     if (!id) return
