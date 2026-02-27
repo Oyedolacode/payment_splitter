@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import styles from './dashboard.module.css'
+import { ThemeToggle } from '../../components/ThemeToggle'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type RuleType = 'proportional' | 'oldest_first' | 'location_priority'
@@ -520,6 +521,7 @@ export default function DashboardPage() {
           </nav>
 
           <div className={styles.headerRight}>
+            <ThemeToggle />
             {firm?.isSubscribed && (
               <div className={styles.proBadge}>PRO</div>
             )}
@@ -538,7 +540,7 @@ export default function DashboardPage() {
       <main className={styles.main}>
 
         {/* Connected toast */}
-        {connected && (
+        {connected && tab === 'reconciliation' && (
           <div className={styles.toast} role="status">
             <span className={styles.toastIcon}>✓</span>
             QuickBooks Online connected — payment monitoring is now active.
@@ -798,8 +800,14 @@ export default function DashboardPage() {
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>Active Split Rules</span>
-              <button className={styles.primaryBtn} onClick={() => setShowRuleModal(true)}>
-                <span style={{ fontSize: '18px', fontWeight: 400 }}>+</span> New Rule
+              {!firm?.isSubscribed && (
+                <span className={styles.cardCount} style={{ marginLeft: '12px' }}>
+                  {rules.length} of 3 rules used
+                </span>
+              )}
+              <div style={{ flex: 1 }} />
+              <button className={styles.secondaryBtn} onClick={() => setShowRuleModal(true)}>
+                <span style={{ fontSize: '16px', fontWeight: 600, marginRight: '4px' }}>+</span> New Rule
               </button>
             </div>
 
@@ -827,16 +835,15 @@ export default function DashboardPage() {
                     return (
                       <tr key={rule.id} className={styles.row}>
                         <td>
-                          <div className={styles.customerName}>{parent?.DisplayName || `Cust #${rule.parentCustomerId}`}</div>
-                          <div className={styles.settingsSub} style={{ fontSize: '10px' }}>ID: {rule.parentCustomerId}</div>
+                          <div className={styles.customerName}>{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
                         </td>
                         <td><span className={styles.ruleType}>{rule.ruleType}</span></td>
                         <td>
                           <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {rule.ruleType === 'proportional'
                               ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
-                                const loc = locations.find(l => l.Id === id)
-                                return `${loc?.Name || id}: ${w}%`
+                                const loc = locations.find(l => String(l.Id) === String(id))
+                                return `${loc?.Name || `Location ${id}`}: ${w}%`
                               }).join(', ')
                               : 'Oldest first waterfall'
                             }
@@ -852,7 +859,10 @@ export default function DashboardPage() {
                         </td>
                         <td><span className={styles.timeCell}>{new Date(rule.createdAt).toLocaleDateString()}</span></td>
                         <td>
-                          <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className={styles.secondaryBtn} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => alert('Editing coming soon')}>Edit</button>
+                            <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
+                          </div>
                         </td>
                       </tr>
                     )

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import styles from './landing.module.css'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -194,6 +195,7 @@ export default function LandingPage() {
             <a href="#how" className={styles.navLink}>How it works</a>
             <a href="#pricing" className={styles.navLink}>Pricing</a>
             <a href="/dashboard" className={styles.navLink}>Sign in</a>
+            <ThemeToggle />
           </div>
           <button className={styles.navCta} onClick={() => setShowModal(true)}>
             Start free trial

@@ -30,6 +30,19 @@
   --font-mono: 'DM Mono', monospace;
 }
 
+[data-theme="dark"] {
+  --bg: #121214;
+  --surface: #1a1a1e;
+  --surface-2: #222226;
+  --surface-3: #2d2d34;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #ffffff;
+  --text-2: #a1a1aa;
+  --text-3: #71717a;
+}
+
+
 * {
   box-sizing: border-box;
   margin: 0;
