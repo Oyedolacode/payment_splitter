@@ -661,7 +661,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Onboarding checklist — shown until dismissed */}
-            {!checklistDismissed && jobs.length === 0 && (
+            {!loading && !checklistDismissed && jobs.length === 0 && (
               <div className={styles.checklist}>
                 <div className={styles.checklistHeader}>
                   <div>
