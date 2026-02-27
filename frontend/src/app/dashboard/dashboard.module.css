@@ -1612,6 +1612,14 @@
     padding: 0 16px;
   }
 
+  .headerRightDesktop {
+    display: none;
+  }
+
+  .headerRightMobile {
+    display: flex;
+  }
+
   .headerNav {
     position: fixed;
     top: 60px;
@@ -1946,12 +1954,44 @@
 
   .upgradeBanner {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     text-align: center;
+    padding: 32px 24px;
+    background: linear-gradient(135deg, var(--accent-glow) 0%, rgba(45, 49, 250, 0.04) 100%);
+    border: 1px solid var(--accent);
+    position: relative;
+    overflow: hidden;
+    margin-top: 16px;
   }
 
   .upgradeContent {
     flex-direction: column;
     text-align: center;
+    gap: 16px;
+    z-index: 1;
+  }
+
+  .upgradeIcon {
+    font-size: 32px;
+  }
+
+  .upgradeTitle {
+    font-size: 24px;
+    letter-spacing: -1px;
+    margin-bottom: 4px;
+  }
+
+  .upgradeText {
+    font-size: 14px;
+    max-width: 300px;
+    margin: 0 auto;
+    opacity: 0.8;
+  }
+
+  .upgradeBtn {
+    margin-top: 8px;
+    width: 100%;
+    max-width: 200px;
+    z-index: 1;
   }
 }
