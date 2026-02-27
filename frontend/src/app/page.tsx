@@ -274,9 +274,10 @@ const TESTIMONIALS = [
 
 export default function LandingPage() {
   const [showModal, setShowModal] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${showMobileMenu ? styles.menuOpen : ''}`}>
       <div className={styles.gridBg} />
       <div className={styles.glowTL} />
       <div className={styles.glowBR} />
@@ -293,16 +294,31 @@ export default function LandingPage() {
             </svg>
             PaySplit
           </div>
-          <div className={styles.navLinks}>
-            <a href="#how" className={styles.navLink}>How it works</a>
-            <a href="#pricing" className={styles.navLink}>Pricing</a>
-            <a href="#faq" className={styles.navLink}>FAQ</a>
-            <a href="/dashboard" className={styles.navLink}>Sign in</a>
-            <ThemeToggle />
+          <div className={`${styles.navLinks} ${showMobileMenu ? styles.navLinksMobile : ''}`}>
+            <a href="#how" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>How it works</a>
+            <a href="#pricing" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>Pricing</a>
+            <a href="#faq" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>FAQ</a>
+            <a href="/dashboard" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>Sign in</a>
+            <div className={styles.navMobileFooter}>
+              <ThemeToggle />
+            </div>
           </div>
-          <button className={styles.navCta} onClick={() => setShowModal(true)}>
-            Start free trial
-          </button>
+
+          <div className={styles.navActions}>
+            <div className={styles.hideMobile}>
+              <ThemeToggle />
+            </div>
+            <button className={styles.navCta} onClick={() => setShowModal(true)}>
+              Start free trial
+            </button>
+            <button
+              className={styles.menuToggle}
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              aria-label="Toggle menu"
+            >
+              {showMobileMenu ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
       </nav>
 

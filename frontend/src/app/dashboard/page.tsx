@@ -316,6 +316,7 @@ export default function DashboardPage() {
   const [connected, setConnected] = useState(false)
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [loadingQBO, setLoadingQBO] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const fetchJobs = useCallback(async (id: string) => {
     if (!id) return
@@ -527,56 +528,76 @@ export default function DashboardPage() {
       <div className={styles.glowGreen} aria-hidden="true" />
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className={styles.header}>
+      <header className={`${styles.header} ${showMobileMenu ? styles.headerMenuOpen : ''}`}>
         <div className={styles.headerInner}>
           <div className={styles.logo}>
             <LogoIcon />
             PaySplit
           </div>
 
-          <nav className={styles.headerNav}>
+          <nav className={`${styles.headerNav} ${showMobileMenu ? styles.headerNavMobile : ''}`}>
             <button
               className={`${styles.navItem} ${tab === 'reconciliation' ? styles.navItemActive : ''}`}
-              onClick={() => setTab('reconciliation')}
+              onClick={() => { setTab('reconciliation'); setShowMobileMenu(false) }}
             >
               Reconciliation
             </button>
             <button
               className={`${styles.navItem} ${tab === 'rules' ? styles.navItemActive : ''}`}
-              onClick={() => setTab('rules')}
+              onClick={() => { setTab('rules'); setShowMobileMenu(false) }}
             >
               Rules
             </button>
             <button
               className={`${styles.navItem} ${tab === 'settings' ? styles.navItemActive : ''}`}
-              onClick={() => setTab('settings')}
+              onClick={() => { setTab('settings'); setShowMobileMenu(false) }}
             >
               Settings
             </button>
+            <div className={styles.navMobileOnly}>
+              <div className={styles.firmNameMobile}>
+                {firm?.name || 'Loading...'}
+              </div>
+              <button className={styles.logoutBtnMobile} onClick={confirmLogout}>
+                Sign Out
+              </button>
+            </div>
           </nav>
 
           <div className={styles.headerRight}>
-            <ThemeToggle />
-            {firm?.plan === 'PROFESSIONAL' && (
-              <div className={styles.proBadge}>PRO</div>
-            )}
-            {firm?.plan === 'PRACTICE' && (
-              <div className={styles.practiceBadge}>PRACTICE</div>
-            )}
-            <div className={styles.firmName}>
-              {firm?.name || 'Loading firm...'}
+            <div className={styles.headerRightDesktop}>
+              <ThemeToggle />
+              {firm?.plan === 'PROFESSIONAL' && (
+                <div className={styles.proBadge}>PRO</div>
+              )}
+              {firm?.plan === 'PRACTICE' && (
+                <div className={styles.practiceBadge}>PRACTICE</div>
+              )}
+              <div className={styles.firmName}>
+                {firm?.name || 'Loading firm...'}
+              </div>
+              <div className={styles.qboBadge}>
+                <span className={styles.qboDot} />
+                QBO Connected
+              </div>
+              <button className={styles.logoutBtn} onClick={confirmLogout} aria-label="Log out" title="Log out">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </button>
             </div>
-            <div className={styles.qboBadge}>
-              <span className={styles.qboDot} />
-              QBO Connected
+            <div className={styles.headerRightMobile}>
+              <ThemeToggle />
+              <button
+                className={styles.menuToggle}
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                aria-label="Toggle menu"
+              >
+                {showMobileMenu ? '✕' : '☰'}
+              </button>
             </div>
-            <button className={styles.logoutBtn} onClick={confirmLogout} aria-label="Log out" title="Log out">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </div>
       </header>
@@ -618,6 +639,26 @@ export default function DashboardPage() {
             Live
           </div>
         </div>
+
+        {/* Upgrade Banner for TRIAL/STANDARD */}
+        {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
+          <div className={styles.upgradeBanner}>
+            <div className={styles.upgradeContent}>
+              <span className={styles.upgradeIcon}>💎</span>
+              <div>
+                <div className={styles.upgradeTitle}>
+                  Upgrade to Professional
+                </div>
+                <div className={styles.upgradeText}>
+                  Unlock unlimited rules and waterfall allocation logic.
+                </div>
+              </div>
+            </div>
+            <button className={styles.upgradeBtn} onClick={() => setTab('settings')}>
+              View Plans
+            </button>
+          </div>
+        )}
 
         {/* ── Tab Content ────────────────────────────────────────────────── */}
 
@@ -1037,78 +1078,35 @@ export default function DashboardPage() {
                 <p className={styles.subtitle} style={{ padding: '0 24px 24px' }}>Webhooks and email alerts are active for all failed jobs.</p>
               </div>
             </div>
+
+            {/* Billing Section in Settings */}
+            {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
+              <div className={styles.billingCard}>
+                <div className={styles.cardHeader}>
+                  <span className={styles.cardTitle}>Subscription Plans</span>
+                </div>
+                <div className={styles.billingGrid}>
+                  <div className={styles.planMini}>
+                    <div className={styles.planMiniName}>Standard</div>
+                    <div className={styles.planMiniPrice}>$149<span>/mo</span></div>
+                    <button className={styles.planMiniBtn} onClick={() => handleUpgrade('standard')}>Choose</button>
+                  </div>
+                  <div className={`${styles.planMini} ${styles.planMiniFeatured}`}>
+                    <div className={styles.planMiniName}>Professional</div>
+                    <div className={styles.planMiniPrice}>$349<span>/mo</span></div>
+                    <button className={styles.primaryBtn} onClick={() => handleUpgrade('professional')}>Upgrade</button>
+                  </div>
+                  <div className={styles.planMini}>
+                    <div className={styles.planMiniName}>Practice</div>
+                    <div className={styles.planMiniPrice}>$799<span>/mo</span></div>
+                    <button className={styles.planMiniBtn} onClick={() => handleUpgrade('practice')}>Choose</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Stripe paywall for TRIAL */}
-        {firm?.plan === 'TRIAL' && (
-          <div className={styles.pricingSection}>
-            <div className={styles.pricingHeader}>
-              <h2 className={styles.pricingTitle}>Ready to Scale Your Practice?</h2>
-              <p className={styles.pricingSub}>Select a plan to unlock automated payment reconciliation and auditing.</p>
-            </div>
-
-            <div className={styles.pricingGrid}>
-              {/* Standard */}
-              <div className={styles.planCard}>
-                <div className={styles.planName}>Standard</div>
-                <div className={styles.planPrice}>$149<span>/mo</span></div>
-                <div className={styles.planFeature}>Essential splitting</div>
-                <button
-                  className={styles.planBtn}
-                  onClick={() => handleUpgrade('standard')}
-                >
-                  Choose Standard
-                </button>
-              </div>
-
-              {/* Professional */}
-              <div className={`${styles.planCard} ${styles.planActive}`}>
-                <div className={styles.planBadge}>RECOMMENDED</div>
-                <div className={styles.planName}>Professional</div>
-                <div className={styles.planPrice}>$349<span>/mo</span></div>
-                <div className={styles.planFeature}>Full automation & audits</div>
-                <button
-                  className={styles.primaryBtn}
-                  style={{ width: '100%', marginTop: 'auto' }}
-                  onClick={() => handleUpgrade('professional')}
-                >
-                  Upgrade Now
-                </button>
-              </div>
-
-              {/* Practice */}
-              <div className={styles.planCard}>
-                <div className={styles.planName}>Practice</div>
-                <div className={styles.planPrice}>$799<span>/mo</span></div>
-                <div className={styles.planFeature}>Enterprise-grade features</div>
-                <button
-                  className={styles.planBtn}
-                  onClick={() => handleUpgrade('practice')}
-                >
-                  Go Practice
-                </button>
-              </div>
-            </div>
-
-            <p className={styles.trialNotice}>
-              30 days free trial · No credit card required to start
-            </p>
-          </div>
-        )}
-
-        {/* Upgrade Banner for STANDARD */}
-        {firm?.plan === 'STANDARD' && (
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: '4px' }}>Upgrade to Professional</div>
-              <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>Unlock unlimited rules and the Oldest First waterfall algorithm.</div>
-            </div>
-            <button className={styles.primaryBtn} onClick={() => handleUpgrade('professional')}>
-              Upgrade Now
-            </button>
-          </div>
-        )}
 
         {showRuleModal && (
           <RuleBuilderModal

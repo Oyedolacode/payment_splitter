@@ -180,6 +180,65 @@
   border-color: var(--text-2);
 }
 
+.headerMenuOpen {
+  height: 100vh;
+  background: var(--bg);
+}
+
+.headerRightDesktop {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerRightMobile {
+  display: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.menuToggle {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.navMobileOnly {
+  display: none;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.firmNameMobile {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.logoutBtnMobile {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--red);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 /* ── Logout Modal ─────────────────────────────────────────────────────────── */
 .logoutOverlay {
   position: fixed;
@@ -299,6 +358,61 @@
   font-size: 10px;
   font-weight: 800;
   flex-shrink: 0;
+}
+
+/* ── Upgrade Banner ───────────────────────────────────────────────────────── */
+.upgradeBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  animation: fadeUp 0.3s ease both;
+  gap: 20px;
+}
+
+.upgradeContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.upgradeIcon {
+  font-size: 24px;
+}
+
+.upgradeTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.upgradeText {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.upgradeBtn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 18px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.upgradeBtn:hover {
+  opacity: 0.9;
 }
 
 /* ── Page title row ───────────────────────────────────────────────────────── */
@@ -1495,11 +1609,25 @@
 
 @media (max-width: 768px) {
   .headerInner {
-    padding: 0 24px;
+    padding: 0 16px;
   }
 
   .headerNav {
-    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg);
+    flex-direction: column;
+    padding: 24px;
+    gap: 8px;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    align-items: stretch;
+    display: flex;
+    /* Ensure it's display flex when visible */
   }
 
   .main {
@@ -1712,5 +1840,118 @@
   .auditTable td {
     color: #000 !important;
     border-color: #ddd !important;
+    white-space: normal !important;
+    /* Allow wrapping when printing */
+  }
+}
+
+/* ── Billing Card ─────────────────────────────────────────────────────────── */
+.billingCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  grid-column: span 2;
+  margin-top: 24px;
+}
+
+.billingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+
+.planMini {
+  background: var(--surface);
+  padding: 32px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.planMiniFeatured {
+  background: var(--accent-glow);
+}
+
+.planMiniName {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.planMiniPrice {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -1px;
+}
+
+.planMiniPrice span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.planMiniBtn {
+  width: 100%;
+  padding: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.planMiniBtn:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* ── Banner Additions ─────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .billingCard {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .billingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerNavMobile {
+    transform: translateX(0);
+  }
+
+  .navItem {
+    padding: 16px 20px;
+    font-size: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .navMobileOnly {
+    display: flex;
+  }
+
+  .upgradeBanner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .upgradeContent {
+    flex-direction: column;
+    text-align: center;
   }
 }
