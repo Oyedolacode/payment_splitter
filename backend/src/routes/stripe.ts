@@ -37,8 +37,22 @@ export async function stripeRoutes(fastify: FastifyInstance) {
 
         // Check if or create Stripe customer
         let customerId = (firm as any).stripeCustomerId
-        if (!customerId) {
+        let validCustomer = false
+
+        if (customerId) {
+            try {
+                const customer = await stripe.customers.retrieve(customerId)
+                if (!customer.deleted) {
+                    validCustomer = true
+                }
+            } catch (err: any) {
+                fastify.log.warn(`Stripe customer ${customerId} not found or deleted! Recreating seamless customer...`)
+            }
+        }
+
+        if (!validCustomer) {
             const customer = await stripe.customers.create({
+                email: 'hello@divvybooks.com', // fallback for portal testing, normally firm email
                 name: firm.name,
                 metadata: { firmId: firm.id },
             })
