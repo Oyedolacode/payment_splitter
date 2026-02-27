@@ -109,6 +109,29 @@ function StatusBadge({ status }: { status: JobStatus }) {
   )
 }
 
+function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 5000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  const icons = {
+    success: '✓',
+    error: '✕',
+    info: 'ℹ'
+  }
+
+  return (
+    <div
+      className={`${styles.toast} ${styles[`toast_${toast.type}`]}`}
+      onClick={onClose}
+    >
+      <div className={styles.toastIcon}>{icons[toast.type]}</div>
+      <div className={styles.toastMessage}>{toast.message}</div>
+    </div>
+  )
+}
+
 // ── Chevron icon ──────────────────────────────────────────────────────────────
 
 function Chevron({ open }: { open: boolean }) {
@@ -196,7 +219,8 @@ function RuleBuilderModal({
   plan,
   firmId,
   editingRule,
-  addToast
+  addToast,
+  setShowPricingModal
 }: {
   customers: any[],
   locations: any[],
@@ -206,7 +230,8 @@ function RuleBuilderModal({
   plan: string,
   firmId: string,
   editingRule: Rule | null,
-  addToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+  addToast: (msg: string, type?: 'success' | 'error' | 'info') => void,
+  setShowPricingModal: (show: boolean) => void
 }) {
   const isStandard = plan === 'STANDARD' || plan === 'TRIAL'
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
@@ -343,7 +368,7 @@ function RuleBuilderModal({
                 </div>
                 {isStandard && (
                   <div className={styles.planNoticeSmall}>
-                    {plan === 'TRIAL' ? 'Trial' : 'Standard'} plan only supports Proportional spltting. <span className={styles.upgradeLink} onClick={onClose}>Upgrade to Pro</span> for Waterfall logic.
+                    {plan === 'TRIAL' ? 'Trial' : 'Standard'} plan only supports Proportional spltting. <span className={styles.upgradeLink} onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to Pro</span> for Waterfall logic.
                   </div>
                 )}
               </div>
@@ -445,6 +470,7 @@ export default function DashboardPage() {
   const [loadingQBO, setLoadingQBO] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showPricingModal, setShowPricingModal] = useState(false)
+  const [showRuleModal, setShowRuleModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -1297,8 +1323,9 @@ export default function DashboardPage() {
             loading={loadingQBO}
             plan={firm?.plan || 'trial'}
             firmId={firmId}
-            editingRule={editingRule}
             addToast={addToast}
+            setShowPricingModal={setShowPricingModal}
+            editingRule={editingRule}
           />
         )}
 
