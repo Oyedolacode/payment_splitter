@@ -308,6 +308,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [connected, setConnected] = useState(false)
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [loadingQBO, setLoadingQBO] = useState(false)
@@ -489,6 +490,10 @@ export default function DashboardPage() {
     window.location.href = '/'
   }
 
+  function confirmLogout() {
+    setShowLogoutModal(true)
+  }
+
   return (
     <div className={styles.root}>
       {/* Background */}
@@ -537,7 +542,7 @@ export default function DashboardPage() {
               <span className={styles.qboDot} />
               QBO Connected
             </div>
-            <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Log out" title="Log out">
+            <button className={styles.logoutBtn} onClick={confirmLogout} aria-label="Log out" title="Log out">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -1006,6 +1011,31 @@ export default function DashboardPage() {
             plan={firm?.plan || 'trial'}
             firmId={firmId}
           />
+        )}
+
+        {showLogoutModal && (
+          <div className={styles.overlay} onClick={() => setShowLogoutModal(false)}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+              <h2 className={styles.modalTitle} style={{ fontSize: '18px', marginBottom: '8px' }}>Sign Out</h2>
+              <p className={styles.modalSub}>Are you sure you want to log out of your account?</p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                <button
+                  className={styles.secondaryBtn}
+                  style={{ flex: 1, padding: '12px', fontSize: '13px' }}
+                  onClick={() => setShowLogoutModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.primaryBtn}
+                  style={{ flex: 1, padding: '12px', fontSize: '13px', background: 'var(--red)', borderColor: 'var(--red)', color: 'white' }}
+                  onClick={handleLogout}
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
