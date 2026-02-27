@@ -123,11 +123,11 @@ function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
 
   return (
     <div
-      className={`${styles.toast} ${styles[`toast_${toast.type}`]}`}
+      className={`${styles.globToast} ${styles[`globToast_${toast.type}`]}`}
       onClick={onClose}
     >
-      <div className={styles.toastIcon}>{icons[toast.type]}</div>
-      <div className={styles.toastMessage}>{toast.message}</div>
+      <div className={styles.globToastIcon}>{icons[toast.type]}</div>
+      <div className={styles.globToastMessage}>{toast.message}</div>
     </div>
   )
 }
@@ -530,12 +530,13 @@ export default function DashboardPage() {
         fetch(`${API}/api/qbo/locations?firmId=${id}`)
       ])
       if (cRes.ok) setCustomers(await cRes.json())
-      else addToast('Failed to fetch QBO customers', 'error')
+      else addToast(`QBO Customers: ${cRes.status} ${cRes.statusText}`, 'error')
+
       if (lRes.ok) setLocations(await lRes.json())
-      else addToast('Failed to fetch QBO locations', 'error')
-    } catch (e) {
+      else addToast(`QBO Locations: ${lRes.status} ${lRes.statusText}`, 'error')
+    } catch (e: any) {
       console.error('Failed to fetch QBO data:', e)
-      addToast('Failed to fetch QBO data', 'error')
+      addToast(`QBO Data Error: ${e.message || 'Unknown network error'}`, 'error')
     } finally {
       setLoadingQBO(false)
     }
