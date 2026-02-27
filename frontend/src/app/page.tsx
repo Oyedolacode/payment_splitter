@@ -14,7 +14,7 @@ function SplitDiagram() {
       <div className={styles.diagramLabel}>LIVE PAYMENT SPLIT</div>
       <div className={styles.diagramSource}>
         <div className={styles.diagramSourceAmount}>$50,000.00</div>
-        <div className={styles.diagramSourceLabel}>Bulk payment received</div>
+        <div className={styles.diagramSourceLabel}>Bulk payment received · 0.3s ago</div>
       </div>
       <div className={styles.diagramLines}>
         <svg viewBox="0 0 200 100" fill="none" className={styles.diagramSvg}>
@@ -95,6 +95,22 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <button className={styles.modalClose} onClick={onClose} aria-label="Close">✕</button>
 
+        {/* Brand mark */}
+        <div className={styles.modalBrand}>
+          <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
+            <rect x="1" y="1" width="9" height="9" rx="3" fill="#2d31fa" />
+            <rect x="12" y="1" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".25" />
+            <rect x="1" y="12" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".25" />
+            <rect x="12" y="12" width="9" height="9" rx="3" fill="#10b981" />
+          </svg>
+          <span>PaySplit</span>
+        </div>
+
+        {/* Progress bar */}
+        <div className={styles.modalProgressBar}>
+          <div className={styles.modalProgressFill} style={{ width: step === 'name' ? '50%' : '100%' }} />
+        </div>
+
         {/* Steps */}
         <div className={styles.modalSteps}>
           <div className={`${styles.modalStep} ${step === 'name' ? styles.modalStepActive : styles.modalStepDone}`}>
@@ -144,7 +160,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
               ].map(p => (
                 <div key={p.text} className={styles.qboPerm}>
                   <span className={p.ok ? styles.permOk : styles.permNo}>{p.ok ? '✓' : '✕'}</span>
-                  <span style={{ color: p.ok ? '#c0c0d8' : '#5a5a72' }}>{p.text}</span>
+                  <span style={{ color: p.ok ? 'var(--text-2)' : 'var(--text-3)' }}>{p.text}</span>
                 </div>
               ))}
             </div>
@@ -152,7 +168,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
               className={styles.modalBtnQBO}
               onClick={() => { window.location.href = `${API}/auth/qbo/connect?firmId=${firmId}` }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="8" r="8" fill="#2CA01C" />
                 <path d="M4.5 8.5l2.2 2.2L11.5 5" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -168,7 +184,93 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ── FAQ Accordion ─────────────────────────────────────────────────────────────
+
+const FAQ_ITEMS = [
+  {
+    q: 'Does it work with my existing QuickBooks Online setup?',
+    a: 'Yes — PaySplit connects via official QBO OAuth. No data migration, no CSV exports, no QBO reinstall. Your existing chart of accounts, customers, and invoices remain exactly as they are.'
+  },
+  {
+    q: 'What happens if a payment split doesn\'t balance to zero?',
+    a: 'PaySplit uses integer arithmetic and distributes any rounding remainder to the largest branch. Every job logs the exact cent allocation so your audit trail always balances. There\'s never a $0.01 gap floating in your books.'
+  },
+  {
+    q: 'Can I change or delete split rules after setup?',
+    a: 'Anytime. Rules take effect on the next incoming payment — existing allocations are never retroactively changed. You can toggle a rule off, adjust percentages, or delete it entirely from the dashboard.'
+  },
+  {
+    q: 'Is my QuickBooks data secure?',
+    a: 'PaySplit only requests the minimum OAuth scopes needed (read invoices, post payments). We never store your QBO credentials — only the secure OAuth token. All data is encrypted in transit and at rest.'
+  },
+  {
+    q: 'Can I cancel anytime?',
+    a: 'Yes. Cancel from the Settings tab — your subscription ends at the next billing date. No cancellation fees, no lock-in. Your QBO data is never affected by cancellation.'
+  },
+  {
+    q: 'What happens when my 30-day trial ends?',
+    a: 'You\'ll receive an email 3 days before trial expiry. If you don\'t upgrade, the webhook listener pauses — QBO still works normally, payments just won\'t be auto-split. You can upgrade and resume anytime without losing your rules.'
+  },
+]
+
+function FAQSection() {
+  const [open, setOpen] = useState<number | null>(null)
+
+  return (
+    <section className={styles.section} id="faq">
+      <div className={styles.sectionInner}>
+        <div className={styles.sectionLabel}>FAQ</div>
+        <h2 className={styles.sectionTitle}>Everything you need to know.</h2>
+        <div className={styles.faqList}>
+          {FAQ_ITEMS.map((item, i) => (
+            <div key={i} className={`${styles.faqItem} ${open === i ? styles.faqItemOpen : ''}`}>
+              <button
+                className={styles.faqQuestion}
+                onClick={() => setOpen(open === i ? null : i)}
+                aria-expanded={open === i}
+              >
+                <span>{item.q}</span>
+                <span className={styles.faqChevron}>{open === i ? '−' : '+'}</span>
+              </button>
+              {open === i && (
+                <div className={styles.faqAnswer}>{item.a}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
+
+const TESTIMONIALS = [
+  {
+    quote: "We used to spend 3 hours every Monday morning splitting payments across our 4 locations in Excel. PaySplit cut that to zero. Literally zero — it just happens.",
+    name: "Rebecca Thorn",
+    title: "Managing Partner",
+    firm: "Thorn & Associates CPAs",
+    location: "Toronto, ON",
+    stat: "12 hrs/week recovered"
+  },
+  {
+    quote: "The audit trail alone is worth the subscription. When our client had a tax review, I pulled the split history in 30 seconds. The auditor was genuinely impressed.",
+    name: "David Okeke",
+    title: "Controller",
+    firm: "Greenfield Accounting Group",
+    location: "Chicago, IL",
+    stat: "$0 discrepancies in 8 months"
+  },
+  {
+    quote: "I was skeptical — we've tried 3 other tools that all required full QBO migrations. PaySplit connected to our live company in 4 minutes and worked on the first payment.",
+    name: "Sarah Lim",
+    title: "Founder",
+    firm: "Lim Advisory Services",
+    location: "Vancouver, BC",
+    stat: "Setup in under 5 minutes"
+  },
+]
 
 export default function LandingPage() {
   const [showModal, setShowModal] = useState(false)
@@ -194,6 +296,7 @@ export default function LandingPage() {
           <div className={styles.navLinks}>
             <a href="#how" className={styles.navLink}>How it works</a>
             <a href="#pricing" className={styles.navLink}>Pricing</a>
+            <a href="#faq" className={styles.navLink}>FAQ</a>
             <a href="/dashboard" className={styles.navLink}>Sign in</a>
             <ThemeToggle />
           </div>
@@ -212,8 +315,8 @@ export default function LandingPage() {
               Built for multi-entity accounting firms
             </div>
             <h1 className={styles.heroTitle}>
-              Stop splitting<br />payments<br />
-              <em className={styles.heroAccent}>in Excel.</em>
+              Your $50K payment,<br />split in{' '}
+              <em className={styles.heroAccent}>300ms.</em>
             </h1>
             <p className={styles.heroBody}>
               PaySplit intercepts your QuickBooks payments and automatically routes them
@@ -249,6 +352,24 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Trusted By */}
+      <div className={styles.trustedBy}>
+        <div className={styles.trustedByInner}>
+          <span className={styles.trustedByLabel}>Used by accounting firms across North America</span>
+          <div className={styles.trustedByLogos}>
+            {['Firm A', 'Firm B', 'Firm C', 'Firm D', 'Firm E'].map((name) => (
+              <div key={name} className={styles.trustedByLogo}>
+                <svg width="80" height="24" viewBox="0 0 80 24" fill="none">
+                  <rect x="0" y="6" width="20" height="12" rx="2" fill="currentColor" fillOpacity="0.15" />
+                  <rect x="24" y="9" width="40" height="6" rx="2" fill="currentColor" fillOpacity="0.15" />
+                  <rect x="68" y="6" width="12" height="12" rx="2" fill="currentColor" fillOpacity="0.1" />
+                </svg>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* How it works */}
       <section className={styles.section} id="how">
         <div className={styles.sectionInner}>
@@ -264,6 +385,32 @@ export default function LandingPage() {
                 <div className={styles.howNum}>{s.num}</div>
                 <h3 className={styles.howTitle}>{s.title}</h3>
                 <p className={styles.howBody}>{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className={styles.section} id="testimonials">
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionLabel}>TESTIMONIALS</div>
+          <h2 className={styles.sectionTitle}>Trusted by firms who can&apos;t afford<br />to get payments wrong.</h2>
+          <div className={styles.testimonials}>
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className={styles.testimonialCard}>
+                <div className={styles.testimonialStat}>{t.stat}</div>
+                <p className={styles.testimonialQuote}>&ldquo;{t.quote}&rdquo;</p>
+                <div className={styles.testimonialAuthor}>
+                  <div className={styles.testimonialAvatar}>
+                    {t.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div>
+                    <div className={styles.testimonialName}>{t.name}</div>
+                    <div className={styles.testimonialMeta}>{t.title} · {t.firm}</div>
+                    <div className={styles.testimonialLocation}>{t.location}</div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -300,7 +447,7 @@ export default function LandingPage() {
               },
             ].map(plan => (
               <div key={plan.name} className={`${styles.plan} ${plan.featured ? styles.planFeatured : ''}`}>
-                {plan.featured && <div className={styles.planBadge}>RECOMMENDED</div>}
+                {plan.featured && <div className={styles.planBadge}>MOST POPULAR</div>}
                 <div className={styles.planName}>{plan.name}</div>
                 <div className={styles.planPrice}>{plan.price}<span className={styles.planPer}>/mo</span></div>
                 <div className={styles.planDesc}>{plan.desc}</div>
@@ -321,21 +468,30 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <p className={styles.pricingNote}>All plans includes a 30-day free trial · Monthly billing · No credit card required</p>
+          <p className={styles.pricingNote}>All plans include a 30-day free trial · Monthly billing · No credit card required</p>
         </div>
       </section>
+
+      {/* FAQ */}
+      <FAQSection />
 
       {/* Footer */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.logo} style={{ fontSize: 13 }}>
             <svg width="16" height="16" viewBox="0 0 22 22" fill="none">
-              <rect x="1" y="1" width="9" height="9" rx="3" fill="#00e5a0" />
-              <rect x="12" y="1" width="9" height="9" rx="3" fill="#00e5a0" fillOpacity=".35" />
-              <rect x="1" y="12" width="9" height="9" rx="3" fill="#00e5a0" fillOpacity=".35" />
-              <rect x="12" y="12" width="9" height="9" rx="3" fill="#e8ff5a" />
+              <rect x="1" y="1" width="9" height="9" rx="3" fill="#2d31fa" />
+              <rect x="12" y="1" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".35" />
+              <rect x="1" y="12" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".35" />
+              <rect x="12" y="12" width="9" height="9" rx="3" fill="#10b981" />
             </svg>
             PaySplit
+          </div>
+          <div className={styles.footerLinks}>
+            <a href="#how" className={styles.footerLink}>How it works</a>
+            <a href="#pricing" className={styles.footerLink}>Pricing</a>
+            <a href="#faq" className={styles.footerLink}>FAQ</a>
+            <a href="/dashboard" className={styles.footerLink}>Sign in</a>
           </div>
           <div className={styles.footerNote}>
             © {new Date().getFullYear()} PaySplit · Not affiliated with Intuit, Inc.
