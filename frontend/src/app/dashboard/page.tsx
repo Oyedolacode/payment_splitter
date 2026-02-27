@@ -816,6 +816,24 @@ export default function DashboardPage() {
       {/* ── Main ────────────────────────────────────────────────────────── */}
       <main className={styles.main}>
 
+        {/* New Issues & Bug Fixes */}
+        {/*
+- [ ] Debug 500 error in QBO data fetch <!-- id: 25 -->
+    - [ ] Enhance backend logging for QBO routes <!-- id: 26 -->
+    - [ ] Add detailed frontend diagnostics to toasts <!-- id: 27 -->
+- [x] Improve responsiveness for Rules and Settings pages <!-- id: 28 -->
+    - [x] Add media queries for Rules table and controls <!-- id: 29 -->
+    - [x] Add media queries for Settings tab and sections <!-- id: 30 -->
+
+## Verification
+- [x] Verify landing page on mobile, tablet, and desktop breakpoints <!-- id: 12 -->
+- [x] Verify dashboard on mobile, tablet, and desktop breakpoints <!-- id: 13 -->
+- [x] Record walkthrough of responsive changes <!-- id: 14 -->
+- [x] Verify pricing modal and rule editing functionality <!-- id: 24 -->
+- [ ] Verify fix for QBO 500 error (Requires user feedback) <!-- id: 31 -->
+- [x] Verify responsiveness of Rules and Settings pages <!-- id: 32 -->
+        */}
+
         {/* Connected toast */}
         {connected && tab === 'reconciliation' && (
           <div className={styles.toast} role="status">
