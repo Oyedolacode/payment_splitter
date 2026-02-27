@@ -502,10 +502,11 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firmId, tier })
       })
-      const { url } = await res.json()
-      if (url) window.location.href = url
-    } catch (e) {
-      alert('Failed to start checkout')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to start checkout')
+      if (data.url) window.location.href = data.url
+    } catch (e: any) {
+      alert(e.message || 'Failed to start checkout')
     }
   }
 
