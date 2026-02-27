@@ -130,6 +130,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const firm = await (prisma.firm as any).create({
         data: {
           name: body.name,
+          plan: 'TRIAL',
           trialEndsAt,
         },
       })
@@ -160,6 +161,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           qboRealmId: true,
           tokenExpiresAt: true,
           isSubscribed: true,
+          plan: true,
           trialEndsAt: true,
         },
       })
@@ -172,6 +174,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         connected: !!firm.qboRealmId,
         tokenExpiresAt: firm.tokenExpiresAt,
         isSubscribed: (firm as any).isSubscribed,
+        plan: (firm as any).plan,
         trialEndsAt: (firm as any).trialEndsAt,
       }
     } catch (err) {

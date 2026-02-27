@@ -46,18 +46,18 @@ export async function rulesRoutes(fastify: FastifyInstance) {
     const plan = firm.plan
 
     // 1. Enforce Rule Count Limits
-    if (plan === 'standard') {
+    if (plan === 'STANDARD' || plan === 'TRIAL') {
       const count = await prisma.splitRule.count({ where: { firmId: body.firmId } })
       if (count >= 3) {
-        return reply.status(403).send({ error: 'Standard plan is limited to 3 rules. Upgrade to Professional for unlimited rules.' })
+        return reply.status(403).send({ error: `${plan} plan is limited to 3 rules. Upgrade to Professional for unlimited rules.` })
       }
     }
 
     // 2. Enforce Rule Type Restrictions
-    if (plan === 'standard' && body.ruleConfig.type !== 'proportional') {
-      return reply.status(403).send({ error: 'Standard plan only supports Proportional splitting. Upgrade for Oldest First logic.' })
+    if ((plan === 'STANDARD' || plan === 'TRIAL') && body.ruleConfig.type !== 'proportional') {
+      return reply.status(403).send({ error: `${plan} plan only supports Proportional splitting. Upgrade for Oldest First logic.` })
     }
-    if (plan === 'professional' && body.ruleConfig.type === 'location_priority') {
+    if (plan === 'PROFESSIONAL' && body.ruleConfig.type === 'location_priority') {
       return reply.status(403).send({ error: 'Priority-based splitting requires the Practice plan.' })
     }
 

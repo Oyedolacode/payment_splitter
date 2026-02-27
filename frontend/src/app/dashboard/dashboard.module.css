@@ -146,6 +146,19 @@
   box-shadow: 0 2px 8px var(--accent-glow);
 }
 
+.practiceBadge {
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  background: #eab308;
+  /* Gold color */
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.3);
+}
+
+
 .logoutBtn {
   display: flex;
   align-items: center;

@@ -19,7 +19,7 @@ model Firm {
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
   isSubscribed     Boolean      @default(false) @map("is_subscribed")
-  plan             String       @default("trial")
+  plan             String       @default("TRIAL")
   stripeCustomerId String?      @unique @map("stripe_customer_id")
   subscriptionId   String?      @unique @map("subscription_id")
   trialEndsAt      DateTime?    @map("trial_ends_at")

@@ -136,7 +136,7 @@ function RuleBuilderModal({
   plan: string,
   firmId: string
 }) {
-  const isStandard = plan === 'standard' || plan === 'trial'
+  const isStandard = plan === 'STANDARD' || plan === 'TRIAL'
   const [parentCustomerId, setParentCustomerId] = useState('')
   const [ruleType, setRuleType] = useState<RuleType>('proportional')
   const [weights, setWeights] = useState<Record<string, number>>({})
@@ -233,7 +233,7 @@ function RuleBuilderModal({
                 </div>
                 {isStandard && (
                   <div className={styles.planNoticeSmall}>
-                    Standard plan only supports Proportional spltting. <span className={styles.upgradeLink} onClick={onClose}>Upgrade to Pro</span> for Waterfall logic.
+                    {plan === 'TRIAL' ? 'Trial' : 'Standard'} plan only supports Proportional spltting. <span className={styles.upgradeLink} onClick={onClose}>Upgrade to Pro</span> for Waterfall logic.
                   </div>
                 )}
               </div>
@@ -556,8 +556,11 @@ export default function DashboardPage() {
 
           <div className={styles.headerRight}>
             <ThemeToggle />
-            {firm?.isSubscribed && (
+            {firm?.plan === 'PROFESSIONAL' && (
               <div className={styles.proBadge}>PRO</div>
+            )}
+            {firm?.plan === 'PRACTICE' && (
+              <div className={styles.practiceBadge}>PRACTICE</div>
             )}
             <div className={styles.firmName}>
               {firm?.name || 'Loading firm...'}
@@ -895,14 +898,23 @@ export default function DashboardPage() {
         {tab === 'rules' && (
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Active Split Rules</span>
-              {!firm?.isSubscribed && (
+              <span className={styles.cardTitle}>Payment Routing Rules</span>
+              {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
                 <span className={styles.cardCount} style={{ marginLeft: '12px' }}>
                   {rules.length} of 3 rules used
                 </span>
               )}
               <div style={{ flex: 1 }} />
-              <button className={styles.secondaryBtn} onClick={() => setShowRuleModal(true)}>
+              <button
+                className={styles.secondaryBtn}
+                onClick={() => {
+                  if ((firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && rules.length >= 3) {
+                    alert(`${firm?.plan} plan allows a maximum of 3 rules. Upgrade to Professional to unlock unlimited rules.`)
+                    return
+                  }
+                  setShowRuleModal(true)
+                }}
+              >
                 <span style={{ fontSize: '16px', fontWeight: 600, marginRight: '4px' }}>+</span> New Rule
               </button>
             </div>
@@ -994,11 +1006,17 @@ export default function DashboardPage() {
                 <div className={styles.settingsRow}>
                   <div>
                     <div className={styles.settingsLabel}>Subscription Plan</div>
-                    <div className={styles.settingsSub}>Current status: {firm?.isSubscribed ? 'Premium' : 'Free Trial'}</div>
+                    <div className={styles.settingsSub}>Current tier: {firm?.plan || 'TRIAL'}</div>
                   </div>
-                  <div className={styles.mono} style={{ color: firm?.isSubscribed ? '#10b981' : undefined }}>
-                    {firm?.isSubscribed ? '★ PRO ACTIVE' : 'BASIC'}
-                  </div>
+                  {firm?.plan !== 'TRIAL' ? (
+                    <button className={styles.primaryBtn} onClick={() => alert('Manage billing coming soon')} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                      Manage billing →
+                    </button>
+                  ) : (
+                    <div className={styles.mono} style={{ color: 'var(--text-3)' }}>
+                      BASIC
+                    </div>
+                  )}
                 </div>
                 <div className={styles.settingsRow}>
                   <div>
@@ -1021,8 +1039,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Stripe paywall */}
-        {!firm?.isSubscribed && (
+        {/* Stripe paywall for TRIAL */}
+        {firm?.plan === 'TRIAL' && (
           <div className={styles.pricingSection}>
             <div className={styles.pricingHeader}>
               <h2 className={styles.pricingTitle}>Ready to Scale Your Practice?</h2>
@@ -1075,6 +1093,19 @@ export default function DashboardPage() {
             <p className={styles.trialNotice}>
               30 days free trial · No credit card required to start
             </p>
+          </div>
+        )}
+
+        {/* Upgrade Banner for STANDARD */}
+        {firm?.plan === 'STANDARD' && (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: '4px' }}>Upgrade to Professional</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>Unlock unlimited rules and the Oldest First waterfall algorithm.</div>
+            </div>
+            <button className={styles.primaryBtn} onClick={() => handleUpgrade('professional')}>
+              Upgrade Now
+            </button>
           </div>
         )}
 

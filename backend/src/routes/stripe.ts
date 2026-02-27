@@ -18,25 +18,17 @@ export async function stripeRoutes(fastify: FastifyInstance) {
             return reply.status(400).send({ error: 'firmId is required' })
         }
 
-        const pricing: Record<string, { name: string, amount: number, desc: string }> = {
-            standard: {
-                name: 'PaySplit Standard',
-                amount: 14900,
-                desc: 'Essential payment splitting for small firms'
-            },
-            professional: {
-                name: 'PaySplit Professional',
-                amount: 34900,
-                desc: 'Full automation and audit history'
-            },
-            practice: {
-                name: 'PaySplit Practice',
-                amount: 79900,
-                desc: 'Enterprise-grade features for large practices'
-            }
+        const pricing: Record<string, string> = {
+            standard: process.env.STRIPE_PRICE_STANDARD || '',
+            professional: process.env.STRIPE_PRICE_PROFESSIONAL || '',
+            practice: process.env.STRIPE_PRICE_PRACTICE || ''
         }
 
-        const selectedPricing = pricing[tier] || pricing.professional
+        const priceId = pricing[tier.toLowerCase()] || pricing.professional
+
+        if (!priceId) {
+            return reply.status(500).send({ error: 'Stripe price ID not configured for this tier' })
+        }
 
         const firm = await prisma.firm.findUnique({ where: { id: firmId } })
         if (!firm) {
@@ -62,15 +54,7 @@ export async function stripeRoutes(fastify: FastifyInstance) {
             payment_method_types: ['card'],
             line_items: [
                 {
-                    price_data: {
-                        currency: 'usd',
-                        product_data: {
-                            name: `${selectedPricing.name} — Monthly Subscription`,
-                            description: selectedPricing.desc,
-                        },
-                        unit_amount: selectedPricing.amount,
-                        recurring: { interval: 'month' },
-                    },
+                    price: priceId,
                     quantity: 1,
                 },
             ],
@@ -125,11 +109,11 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                     where: { id: firmId },
                     data: {
                         isSubscribed: true,
-                        plan: tier,
+                        plan: tier.toUpperCase(),
                         subscriptionId: subscriptionId,
                     } as any,
                 })
-                fastify.log.info(`Stripe: Firm ${firmId} is now subscribed to ${tier} tier.`)
+                fastify.log.info(`Stripe: Firm ${firmId} is now subscribed to ${tier.toUpperCase()} tier.`)
             }
         }
 
