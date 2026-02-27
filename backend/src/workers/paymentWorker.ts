@@ -3,6 +3,7 @@ import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest } from '../services/qboClient'
 import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/splitCalculator'
+import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/email'
 import { JobStatus } from '@prisma/client'
 
 export const QUEUE_NAME = 'payment-processing'
@@ -41,10 +42,11 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
 
   // Track posted QBO payment IDs for rollback
   const postedPayments: Array<{ id: string; syncToken: string }> = []
+  let firm: any = null
 
   try {
     // ── Check subscription status ──────────────────────────────────────────
-    const firm = (await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })) as any
+    firm = (await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })) as any
     const isTrialing = firm.trialEndsAt && firm.trialEndsAt > new Date()
 
     if (!firm.isSubscribed && !isTrialing) {
@@ -168,6 +170,19 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     })
 
     console.log(`✅ Job ${jobId} complete — split $${paymentAmount} across ${splitResult.allocations.length} invoices`)
+
+    // ── Send completion email ─────────────────────────────────────────────────
+    if (firm.notificationEmail) {
+      await sendJobCompleteEmail({
+        to: firm.notificationEmail,
+        firmName: firm.name,
+        jobId,
+        totalAmount: paymentAmount,
+        splitCount: splitResult.allocations.length,
+        completedAt: new Date(),
+        ruleType: activeRule.ruleType,
+      })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error(`❌ Job ${jobId} failed: ${message}`)
@@ -180,6 +195,17 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       await prisma.paymentJob.update({
         where: { id: jobId },
         data: { status: JobStatus.FAILED, errorMessage: message },
+      })
+    }
+
+    // ── Send failure email ────────────────────────────────────────────────────
+    if (firm?.notificationEmail) {
+      await sendJobFailedEmail({
+        to: firm.notificationEmail,
+        firmName: firm.name,
+        jobId,
+        errorMessage: message,
+        failedAt: new Date(),
       })
     }
 

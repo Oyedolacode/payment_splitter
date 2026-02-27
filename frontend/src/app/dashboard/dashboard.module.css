@@ -1520,3 +1520,184 @@
     align-self: flex-start;
   }
 }
+
+/* ── Onboarding Checklist ────────────────────────────────────────────────── */
+.checklist {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  animation: fadeUp 0.3s ease both;
+}
+
+.checklistHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.checklistTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  margin-bottom: 3px;
+}
+
+.checklistSub {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.checklistDismiss {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.checklistDismiss:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.checklistItems {
+  display: flex;
+  flex-direction: column;
+}
+
+.checklistItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.checklistItem:last-child {
+  border-bottom: none;
+}
+
+.checklistItemDone {
+  opacity: 0.55;
+}
+
+.checklistItemClickable {
+  cursor: pointer;
+}
+
+.checklistItemClickable:hover {
+  background: var(--surface-2);
+}
+
+.checklistIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+}
+
+.checklistItemDone .checklistIcon {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.checklistLabel {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.checklistItemDone .checklistLabel {
+  text-decoration: line-through;
+  color: var(--text-3);
+}
+
+.checklistArrow {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── Print / PDF export ───────────────────────────────────────────────────── */
+.printBtn {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.printBtn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+@media print {
+
+  /* Hide everything except the audit panel when printing */
+  .header,
+  .tabs,
+  .stats,
+  .checklist,
+  .cardHeader,
+  .retryBtn,
+  .rowActions,
+  .gridBg,
+  .glowPurple,
+  .glowGreen,
+  .pricingSection {
+    display: none !important;
+  }
+
+  .root {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+
+  .main {
+    padding: 20px !important;
+    max-width: 100% !important;
+  }
+
+  .auditPanel {
+    box-shadow: none !important;
+    border: 1px solid #e5e5e7 !important;
+    page-break-inside: avoid;
+  }
+
+  .auditTable th,
+  .auditTable td {
+    color: #000 !important;
+    border-color: #ddd !important;
+  }
+}

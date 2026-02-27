@@ -309,6 +309,10 @@ export default function DashboardPage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [checklistDismissed, setChecklistDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('ps_checklist_dismissed') === '1'
+  })
   const [connected, setConnected] = useState(false)
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [loadingQBO, setLoadingQBO] = useState(false)
@@ -471,6 +475,26 @@ export default function DashboardPage() {
   const totalSplits = complete.reduce((s, j) => s + j.auditEntries.length, 0)
   const successRate = jobs.length ? Math.round((complete.length / jobs.length) * 100) : null
 
+  // Month-over-month comparison
+  const now = new Date()
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const thisMonthJobs = complete.filter(j => new Date(j.createdAt) >= startOfThisMonth)
+  const lastMonthJobs = complete.filter(j => {
+    const d = new Date(j.createdAt)
+    return d >= startOfLastMonth && d < startOfThisMonth
+  })
+  const thisMonthTotal = thisMonthJobs.reduce((s, j) => s + Number(j.totalAmount), 0)
+  const lastMonthTotal = lastMonthJobs.reduce((s, j) => s + Number(j.totalAmount), 0)
+  const momDelta = lastMonthTotal > 0
+    ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
+    : null
+
+  function dismissChecklist() {
+    localStorage.setItem('ps_checklist_dismissed', '1')
+    setChecklistDismissed(true)
+  }
+
   async function handleUpgrade(tier: string) {
     try {
       const res = await fetch(`${API}/api/stripe/checkout`, {
@@ -600,7 +624,19 @@ export default function DashboardPage() {
               <div className={styles.stat}>
                 <div className={styles.statLabel}>Total Processed</div>
                 <div className={styles.statValue} style={{ color: '#10b981' }}>${fmt(totalProcessed)}</div>
-                <div className={styles.statSub}>{complete.length} payment{complete.length !== 1 ? 's' : ''}</div>
+                <div className={styles.statSub} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{complete.length} payment{complete.length !== 1 ? 's' : ''}</span>
+                  {momDelta !== null && (
+                    <span style={{
+                      fontSize: '10px', fontWeight: 700, padding: '1px 5px',
+                      borderRadius: '4px',
+                      background: momDelta >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                      color: momDelta >= 0 ? '#10b981' : '#ef4444'
+                    }}>
+                      {momDelta >= 0 ? '▲' : '▼'} {Math.abs(momDelta)}% vs last mo.
+                    </span>
+                  )}
+                </div>
               </div>
               <div className={styles.stat}>
                 <div className={styles.statLabel}>Invoice Splits</div>
@@ -623,6 +659,37 @@ export default function DashboardPage() {
                 <div className={styles.statSub}>failed / rolled back</div>
               </div>
             </div>
+
+            {/* Onboarding checklist — shown until dismissed */}
+            {!checklistDismissed && jobs.length === 0 && (
+              <div className={styles.checklist}>
+                <div className={styles.checklistHeader}>
+                  <div>
+                    <div className={styles.checklistTitle}>Getting started with PaySplit</div>
+                    <div className={styles.checklistSub}>Complete these steps to start splitting payments automatically</div>
+                  </div>
+                  <button className={styles.checklistDismiss} onClick={dismissChecklist} aria-label="Dismiss">✕</button>
+                </div>
+                <div className={styles.checklistItems}>
+                  {[
+                    { label: 'Create your account', done: true },
+                    { label: 'Connect QuickBooks Online', done: !!firm?.connected },
+                    { label: 'Create your first split rule', done: rules.length > 0, action: () => setTab('rules') },
+                    { label: 'Receive your first payment split', done: false },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className={`${styles.checklistItem} ${item.done ? styles.checklistItemDone : ''} ${item.action && !item.done ? styles.checklistItemClickable : ''}`}
+                      onClick={item.action && !item.done ? item.action : undefined}
+                    >
+                      <span className={styles.checklistIcon}>{item.done ? '✓' : `${i + 1}`}</span>
+                      <span className={styles.checklistLabel}>{item.label}</span>
+                      {item.action && !item.done && <span className={styles.checklistArrow}>→</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Jobs table */}
             <div className={styles.card}>
@@ -732,7 +799,17 @@ export default function DashboardPage() {
 
                                     <div className={styles.auditGrid}>
                                       <div>
-                                        <div className={styles.auditTitle}>Audit Trail</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                          <div className={styles.auditTitle} style={{ marginBottom: 0 }}>Audit Trail</div>
+                                          <button className={styles.printBtn} onClick={() => window.print()} title="Export to PDF">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                              <polyline points="7 10 12 15 17 10" />
+                                              <line x1="12" y1="15" x2="12" y2="3" />
+                                            </svg>
+                                            PDF
+                                          </button>
+                                        </div>
                                         <table className={styles.auditTable}>
                                           <thead>
                                             <tr>
