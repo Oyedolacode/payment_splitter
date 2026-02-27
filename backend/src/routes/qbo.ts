@@ -14,9 +14,10 @@ export async function qboRoutes(fastify: FastifyInstance) {
 
             const customers = await fetchAllCustomers(firmId, firm.qboRealmId)
             return customers
-        } catch (err) {
+        } catch (err: any) {
+            console.error('[QBO Customers Error]:', err)
             const message = err instanceof Error ? err.message : 'Failed to fetch customers'
-            return reply.status(500).send({ error: message })
+            return reply.status(500).send({ error: message, details: err.message || err })
         }
     })
 
@@ -31,9 +32,10 @@ export async function qboRoutes(fastify: FastifyInstance) {
 
             const locations = await fetchAllLocations(firmId, firm.qboRealmId)
             return locations
-        } catch (err) {
+        } catch (err: any) {
+            console.error('[QBO Locations Error]:', err)
             const message = err instanceof Error ? err.message : 'Failed to fetch locations'
-            return reply.status(500).send({ error: message })
+            return reply.status(500).send({ error: message, details: err.message || err })
         }
     })
 }
