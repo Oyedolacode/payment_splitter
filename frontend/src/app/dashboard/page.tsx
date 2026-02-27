@@ -472,6 +472,8 @@ export default function DashboardPage() {
   const [showPricingModal, setShowPricingModal] = useState(false)
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const removeToast = useCallback((id: number) => {
@@ -638,21 +640,30 @@ export default function DashboardPage() {
     }
   }
 
-  async function deleteRule(ruleId: string) {
-    if (!confirm('Are you sure you want to delete this rule?')) return
+  const deleteRule = async (id: string) => {
+    setDeletingRuleId(id)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingRuleId) return
     try {
-      const res = await fetch(`${API}/api/rules/${ruleId}`, { method: 'DELETE' })
+      const res = await fetch(`${API}/api/rules/${deletingRuleId}`, {
+        method: 'DELETE'
+      })
       const data = await res.json()
       if (!res.ok) {
         addToast(data.error || 'Failed to delete rule', 'error')
-        return
+      } else {
+        setRules(prev => prev.filter(r => r.id !== deletingRuleId))
+        addToast('Rule deleted successfully', 'success')
       }
-
-      addToast('Rule deleted successfully', 'success')
-      setRules(prev => prev.filter(r => r.id !== ruleId))
     } catch (e) {
       console.error('Failed to delete rule:', e)
       addToast('An unexpected error occurred while deleting the rule', 'error')
+    } finally {
+      setShowDeleteModal(false)
+      setDeletingRuleId(null)
     }
   }
 
@@ -1212,20 +1223,20 @@ export default function DashboardPage() {
                             <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px' }}>
                               {rule.ruleType === 'proportional'
                                 ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
-                                  const loc = locations.find(l => String(l.Id) === String(id))
+                                  const loc = locations.find(l => String(l.Id) === String(id) || String(l.id) === String(id))
                                   return (
                                     <span key={id} className={styles.priorityPill} style={{ marginRight: '4px', marginBottom: '4px', display: 'inline-block' }}>
-                                      {loc?.Name || id}: {w}%
+                                      {loc?.Name || loc?.name || `Location ${id}`}: {w}%
                                     </span>
                                   )
                                 })
                                 : (
                                   <div className={styles.badgePriority}>
                                     {(rule.ruleConfig.locationIds as string[]).map((locId, idx) => {
-                                      const loc = locations.find(l => String(l.Id) === String(locId))
+                                      const loc = locations.find(l => String(l.Id) === String(locId) || String(l.id) === String(locId))
                                       return (
                                         <span key={locId} className={styles.priorityPill}>
-                                          {idx + 1}. {loc?.Name || locId}
+                                          {idx + 1}. {loc?.Name || loc?.name || `Location ${locId}`}
                                         </span>
                                       )
                                     })}
@@ -1359,25 +1370,25 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {showLogoutModal && (
-          <div className={styles.overlay} onClick={() => setShowLogoutModal(false)}>
+        {showDeleteModal && (
+          <div className={styles.overlay} onClick={() => setShowDeleteModal(false)}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
-              <h2 className={styles.modalTitle} style={{ fontSize: '18px', marginBottom: '8px' }}>Sign Out</h2>
-              <p className={styles.modalSub}>Are you sure you want to log out of your account?</p>
+              <h2 className={styles.modalTitle} style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--red)' }}>Delete Rule</h2>
+              <p className={styles.modalSub}>Are you sure you want to permanently delete this rule? This cannot be undone.</p>
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                 <button
                   className={styles.secondaryBtn}
                   style={{ flex: 1, padding: '12px', fontSize: '13px' }}
-                  onClick={() => setShowLogoutModal(false)}
+                  onClick={() => setShowDeleteModal(false)}
                 >
                   Cancel
                 </button>
                 <button
                   className={styles.primaryBtn}
-                  style={{ flex: 1, padding: '12px', fontSize: '13px', background: 'var(--red)', borderColor: 'var(--red)', color: 'white' }}
-                  onClick={handleLogout}
+                  style={{ flex: 1, padding: '12px', fontSize: '13px', background: 'var(--red)', border: 'none', color: 'white' }}
+                  onClick={confirmDelete}
                 >
-                  Sign Out
+                  Delete
                 </button>
               </div>
             </div>
