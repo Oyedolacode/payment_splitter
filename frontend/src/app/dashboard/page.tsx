@@ -40,6 +40,12 @@ interface PaymentJob {
   rule?: { ruleType: string; parentCustomerId: string }
 }
 
+interface Toast {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'info'
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 // FIRM_ID is now handled dynamically in the component
@@ -118,6 +124,68 @@ function Chevron({ open }: { open: boolean }) {
     </svg>
   )
 }
+function PricingModal({
+  onClose,
+  onUpgrade,
+  currentPlan
+}: {
+  onClose: () => void
+  onUpgrade: (plan: string) => void
+  currentPlan: string
+}) {
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={`${styles.modal} ${styles.pricingModal}`} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>Upgrade Your Splitter</h2>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+        </div>
+        <div className={styles.pricingGridModal}>
+          <div className={styles.planCard}>
+            <div className={styles.planName}>Standard</div>
+            <div className={styles.planPrice}>$149<span>/mo</span></div>
+            <div className={styles.planFeature}>Up to 3 rules</div>
+            <button
+              className={styles.planBtn}
+              onClick={() => onUpgrade('standard')}
+              disabled={currentPlan === 'STANDARD'}
+            >
+              {currentPlan === 'STANDARD' ? 'Current Plan' : 'Select Standard'}
+            </button>
+          </div>
+
+          <div className={`${styles.planCard} ${styles.planActive}`}>
+            <div className={styles.planBadge}>RECOMMENDED</div>
+            <div className={styles.planName}>Professional</div>
+            <div className={styles.planPrice}>$349<span>/mo</span></div>
+            <div className={styles.planFeature}>Unlimited rules & Waterfall</div>
+            <button
+              className={styles.primaryBtn}
+              style={{ width: '100%', marginTop: 'auto' }}
+              onClick={() => onUpgrade('professional')}
+              disabled={currentPlan === 'PROFESSIONAL'}
+            >
+              {currentPlan === 'PROFESSIONAL' ? 'Current Plan' : 'Upgrade to Pro'}
+            </button>
+          </div>
+
+          <div className={styles.planCard}>
+            <div className={styles.planName}>Practice</div>
+            <div className={styles.planPrice}>$799<span>/mo</span></div>
+            <div className={styles.planFeature}>Practice-wide automation</div>
+            <button
+              className={styles.planBtn}
+              onClick={() => onUpgrade('practice')}
+              disabled={currentPlan === 'PRACTICE'}
+            >
+              {currentPlan === 'PRACTICE' ? 'Current Plan' : 'Go Practice'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function RuleBuilderModal({
   customers,
@@ -126,44 +194,86 @@ function RuleBuilderModal({
   onSave,
   loading,
   plan,
-  firmId
+  firmId,
+  editingRule,
+  addToast
 }: {
   customers: any[],
   locations: any[],
   onClose: () => void,
-  onSave: (rule: any) => Promise<void>,
+  onSave: (rule: any) => void,
   loading: boolean,
   plan: string,
-  firmId: string
+  firmId: string,
+  editingRule: Rule | null,
+  addToast: (msg: string, type?: 'success' | 'error' | 'info') => void
 }) {
   const isStandard = plan === 'STANDARD' || plan === 'TRIAL'
-  const [parentCustomerId, setParentCustomerId] = useState('')
-  const [ruleType, setRuleType] = useState<RuleType>('proportional')
-  const [weights, setWeights] = useState<Record<string, number>>({})
+  const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
+  const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
+  const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
+  const [order, setOrder] = useState<string[]>(editingRule?.ruleConfig?.locationIds || locations.map(l => String(l.Id)))
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (editingRule) {
+      setParentCustomerId(editingRule.parentCustomerId)
+      setRuleType(editingRule.ruleType)
+      if (editingRule.ruleType === 'proportional') {
+        setWeights(editingRule.ruleConfig.weights || {})
+      } else {
+        setOrder(editingRule.ruleConfig.locationIds || locations.map(l => String(l.Id)))
+      }
+    }
+  }, [editingRule, locations])
+
+  const moveOrder = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...order]
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= newOrder.length) return
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]]
+    setOrder(newOrder)
+  }
 
   const handleWeightChange = (locId: string, val: string) => {
     setWeights(prev => ({ ...prev, [locId]: Number(val) }))
   }
 
   const handleSave = async () => {
-    if (!parentCustomerId) return alert('Select a parent customer')
+    if (!parentCustomerId) return addToast('Select a parent customer', 'error')
 
     const ruleConfig: any = { type: ruleType }
     if (ruleType === 'proportional') {
       const total = Object.values(weights).reduce((s, w) => s + w, 0)
-      if (Math.abs(total - 100) > 0.01) return alert(`Weights must sum to 100% (currently ${total}%)`)
+      if (Math.abs(total - 100) > 0.01) return addToast(`Weights must sum to 100% (currently ${total}%)`, 'error')
       ruleConfig.weights = weights
     } else {
-      ruleConfig.locationIds = locations.map(l => l.Id)
+      ruleConfig.locationIds = order
     }
 
     setSaving(true)
     try {
-      await onSave({ firmId, parentCustomerId, ruleConfig })
+      const method = editingRule ? 'PATCH' : 'POST'
+      const url = editingRule ? `${API}/api/rules/${editingRule.id}` : `${API}/api/rules`
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firmId, parentCustomerId, ruleConfig })
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        addToast(data.error || `Failed to ${editingRule ? 'update' : 'create'} rule`, 'error')
+        return
+      }
+
+      addToast(`Rule ${editingRule ? 'updated' : 'created'} successfully!`, 'success')
+      onSave(data) // Refetch rules in parent
       onClose()
     } catch (e) {
       console.error(e)
+      addToast('An unexpected error occurred', 'error')
     } finally {
       setSaving(false)
     }
@@ -176,7 +286,7 @@ function RuleBuilderModal({
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>New Split Rule</h2>
+          <h2 className={styles.modalTitle}>{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -259,37 +369,55 @@ function RuleBuilderModal({
                 </div>
               )}
 
-              {ruleType === 'oldest_first' && (
-                <div className={styles.infoBox}>
-                  <strong>Waterfall Strategy:</strong> Payments will be applied to the oldest open invoices across all active sub-locations until the balance is zero.
-                </div>
-              )}
 
-              {ruleType === 'proportional' && (
-                <div className={styles.summary}>
-                  <div className={styles.summaryValue}>
-                    <span className={styles.totalLabel}>Total Allocation</span>
-                    <span className={styles.totalVal} style={{ color: totalWeight === 100 ? '#10b981' : '#ef4444' }}>
-                      {totalWeight}%
-                    </span>
+              {ruleType === 'oldest_first' && (
+                <div className={styles.orderSection}>
+                  <label className={styles.label}>Settlement Priority (Waterfall Order)</label>
+                  <p className={styles.settingsSub} style={{ marginBottom: '12px' }}>Payments will fully cover the oldest invoices at Location 1 first, then Location 2, etc.</p>
+                  <div className={styles.orderList}>
+                    {order.map((locId, idx) => {
+                      const loc = locations.find(l => String(l.Id) === String(locId))
+                      return (
+                        <div key={locId} className={styles.orderItem}>
+                          <div className={styles.orderBadge}>{idx + 1}</div>
+                          <div className={styles.orderName}>{loc?.Name || `Location ${locId}`}</div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              className={styles.secondaryBtn}
+                              style={{ padding: '4px', fontSize: '10px' }}
+                              onClick={() => moveOrder(idx, 'up')}
+                              disabled={idx === 0}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              className={styles.secondaryBtn}
+                              style={{ padding: '4px', fontSize: '10px' }}
+                              onClick={() => moveOrder(idx, 'down')}
+                              disabled={idx === order.length - 1}
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
+
+              <div className={styles.modalFooter}>
+                <button className={styles.secondaryBtn} onClick={onClose} disabled={saving}>Cancel</button>
+                <button
+                  className={styles.primaryBtn}
+                  onClick={handleSave}
+                  disabled={saving || loading || isEmpty || (ruleType === 'proportional' && Math.abs(totalWeight - 100) > 0.01)}
+                >
+                  {saving ? 'Saving...' : editingRule ? 'Update Rule' : 'Create Rule'}
+                </button>
+              </div>
             </>
           )}
-        </div>
-
-        <div className={styles.modalFooter}>
-          <button className={styles.secondaryBtn} onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button
-            className={styles.primaryBtn}
-            onClick={handleSave}
-            disabled={saving || loading || isEmpty || (ruleType === 'proportional' && totalWeight !== 100)}
-          >
-            {saving ? 'Creating...' : 'Create Rule'}
-          </button>
         </div>
       </div>
     </div>
@@ -314,9 +442,20 @@ export default function DashboardPage() {
     return localStorage.getItem('ps_checklist_dismissed') === '1'
   })
   const [connected, setConnected] = useState(false)
-  const [showRuleModal, setShowRuleModal] = useState(false)
   const [loadingQBO, setLoadingQBO] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showPricingModal, setShowPricingModal] = useState(false)
+  const [editingRule, setEditingRule] = useState<Rule | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
+
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }
 
   const fetchJobs = useCallback(async (id: string) => {
     if (!id) return
@@ -326,10 +465,11 @@ export default function DashboardPage() {
       setJobs(Array.isArray(data) ? data : [])
     } catch (e) {
       console.error('Failed to fetch jobs:', e)
+      addToast('Failed to fetch jobs', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [addToast])
 
   const fetchRules = useCallback(async (id: string) => {
     if (!id) return
@@ -339,8 +479,9 @@ export default function DashboardPage() {
       setRules(data)
     } catch (e) {
       console.error('Failed to fetch rules:', e)
+      addToast('Failed to fetch rules', 'error')
     }
-  }, [])
+  }, [addToast])
 
   const fetchFirm = useCallback(async (id: string) => {
     if (!id) return
@@ -350,8 +491,9 @@ export default function DashboardPage() {
       setFirm(data)
     } catch (e) {
       console.error('Failed to fetch firm status:', e)
+      addToast('Failed to fetch firm status', 'error')
     }
-  }, [])
+  }, [addToast])
 
   const fetchQBOData = useCallback(async (id: string) => {
     if (!id) return
@@ -362,13 +504,16 @@ export default function DashboardPage() {
         fetch(`${API}/api/qbo/locations?firmId=${id}`)
       ])
       if (cRes.ok) setCustomers(await cRes.json())
+      else addToast('Failed to fetch QBO customers', 'error')
       if (lRes.ok) setLocations(await lRes.json())
+      else addToast('Failed to fetch QBO locations', 'error')
     } catch (e) {
       console.error('Failed to fetch QBO data:', e)
+      addToast('Failed to fetch QBO data', 'error')
     } finally {
       setLoadingQBO(false)
     }
-  }, [])
+  }, [addToast])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -419,6 +564,10 @@ export default function DashboardPage() {
     try {
       await fetch(`${API}/api/jobs/${jobId}/retry`, { method: 'POST' })
       await fetchJobs(firmId)
+      addToast('Job retry initiated', 'success')
+    } catch (e) {
+      console.error('Failed to retry job:', e)
+      addToast('Failed to retry job', 'error')
     } finally {
       setRetrying(null)
     }
@@ -430,24 +579,40 @@ export default function DashboardPage() {
 
   async function toggleRule(ruleId: string, isActive: boolean) {
     try {
-      await fetch(`${API}/api/rules/${ruleId}`, {
+      const res = await fetch(`${API}/api/rules/${ruleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive })
       })
-      await fetchRules(firmId)
+      const data = await res.json()
+      if (!res.ok) {
+        addToast(data.error || 'Failed to update rule', 'error')
+        return
+      }
+
+      addToast(`Rule ${isActive ? 'enabled' : 'disabled'} successfully`, 'success')
+      setRules(prev => prev.map(r => r.id === ruleId ? { ...r, isActive } : r))
     } catch (e) {
       console.error('Failed to toggle rule:', e)
+      addToast('An unexpected error occurred while toggling the rule', 'error')
     }
   }
 
   async function deleteRule(ruleId: string) {
     if (!confirm('Are you sure you want to delete this rule?')) return
     try {
-      await fetch(`${API}/api/rules/${ruleId}`, { method: 'DELETE' })
-      await fetchRules(firmId)
+      const res = await fetch(`${API}/api/rules/${ruleId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        addToast(data.error || 'Failed to delete rule', 'error')
+        return
+      }
+
+      addToast('Rule deleted successfully', 'success')
+      setRules(prev => prev.filter(r => r.id !== ruleId))
     } catch (e) {
       console.error('Failed to delete rule:', e)
+      addToast('An unexpected error occurred while deleting the rule', 'error')
     }
   }
 
@@ -460,12 +625,14 @@ export default function DashboardPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Failed to create rule')
+        addToast(err.error || 'Failed to create rule', 'error')
+        return
       }
       await fetchRules(firmId)
-      alert('Rule created successfully!')
+      addToast('Rule created successfully!', 'success')
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to create rule')
+      console.error('Failed to create rule:', e)
+      addToast(e instanceof Error ? e.message : 'Failed to create rule', 'error')
     }
   }
 
@@ -504,10 +671,19 @@ export default function DashboardPage() {
         body: JSON.stringify({ firmId, tier })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message || data.error || 'Failed to start checkout')
-      if (data.url) window.location.href = data.url
+      if (!res.ok) {
+        addToast(data.message || data.error || 'Failed to start checkout', 'error')
+        return
+      }
+      const checkoutUrl = data.url
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
+      } else {
+        addToast('Checkout session failed to initialize', 'error')
+      }
     } catch (e: any) {
-      alert(e.message || 'Failed to start checkout')
+      console.error('Failed to start checkout:', e)
+      addToast(e.message || 'Failed to start checkout', 'error')
     }
   }
 
@@ -654,7 +830,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            <button className={styles.upgradeBtn} onClick={() => setTab('settings')}>
+            <button className={styles.upgradeBtn} onClick={() => setShowPricingModal(true)}>
               View Plans
             </button>
           </div>
@@ -951,9 +1127,11 @@ export default function DashboardPage() {
                 className={styles.secondaryBtn}
                 onClick={() => {
                   if ((firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && rules.length >= 3) {
-                    alert(`${firm?.plan} plan allows a maximum of 3 rules. Upgrade to Professional to unlock unlimited rules.`)
+                    addToast(`Your ${firm?.plan} plan allows up to 3 rules. Upgrade for more.`, 'info')
+                    setShowPricingModal(true)
                     return
                   }
+                  setEditingRule(null)
                   setShowRuleModal(true)
                 }}
               >
@@ -990,13 +1168,28 @@ export default function DashboardPage() {
                           </td>
                           <td><span className={styles.ruleType}>{rule.ruleType}</span></td>
                           <td>
-                            <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px' }}>
                               {rule.ruleType === 'proportional'
                                 ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
                                   const loc = locations.find(l => String(l.Id) === String(id))
-                                  return `${loc?.Name || `Location ${id}`}: ${w}%`
-                                }).join(', ')
-                                : 'Oldest first waterfall'
+                                  return (
+                                    <span key={id} className={styles.priorityPill} style={{ marginRight: '4px', marginBottom: '4px', display: 'inline-block' }}>
+                                      {loc?.Name || id}: {w}%
+                                    </span>
+                                  )
+                                })
+                                : (
+                                  <div className={styles.badgePriority}>
+                                    {(rule.ruleConfig.locationIds as string[]).map((locId, idx) => {
+                                      const loc = locations.find(l => String(l.Id) === String(locId))
+                                      return (
+                                        <span key={locId} className={styles.priorityPill}>
+                                          {idx + 1}. {loc?.Name || locId}
+                                        </span>
+                                      )
+                                    })}
+                                  </div>
+                                )
                               }
                             </div>
                           </td>
@@ -1011,7 +1204,16 @@ export default function DashboardPage() {
                           <td><span className={styles.timeCell}>{new Date(rule.createdAt).toLocaleDateString()}</span></td>
                           <td>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <button className={styles.secondaryBtn} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => alert('Editing coming soon')}>Edit</button>
+                              <button
+                                className={styles.secondaryBtn}
+                                style={{ padding: '4px 8px', fontSize: '10px' }}
+                                onClick={() => {
+                                  setEditingRule(rule);
+                                  setShowRuleModal(true);
+                                }}
+                              >
+                                Edit
+                              </button>
                               <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
                             </div>
                           </td>
@@ -1051,13 +1253,13 @@ export default function DashboardPage() {
                     <div className={styles.settingsSub}>Current tier: {firm?.plan || 'TRIAL'}</div>
                   </div>
                   {firm?.plan !== 'TRIAL' ? (
-                    <button className={styles.primaryBtn} onClick={() => alert('Manage billing coming soon')} style={{ padding: '8px 12px', fontSize: '12px' }}>
-                      Manage billing →
+                    <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                      Change plan →
                     </button>
                   ) : (
-                    <div className={styles.mono} style={{ color: 'var(--text-3)' }}>
-                      BASIC
-                    </div>
+                    <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                      Upgrade →
+                    </button>
                   )}
                 </div>
                 <div className={styles.settingsRow}>
@@ -1079,31 +1281,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Billing Section in Settings */}
-            {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
-              <div className={styles.billingCard}>
-                <div className={styles.cardHeader}>
-                  <span className={styles.cardTitle}>Subscription Plans</span>
-                </div>
-                <div className={styles.billingGrid}>
-                  <div className={styles.planMini}>
-                    <div className={styles.planMiniName}>Standard</div>
-                    <div className={styles.planMiniPrice}>$149<span>/mo</span></div>
-                    <button className={styles.planMiniBtn} onClick={() => handleUpgrade('standard')}>Choose</button>
-                  </div>
-                  <div className={`${styles.planMini} ${styles.planMiniFeatured}`}>
-                    <div className={styles.planMiniName}>Professional</div>
-                    <div className={styles.planMiniPrice}>$349<span>/mo</span></div>
-                    <button className={styles.primaryBtn} onClick={() => handleUpgrade('professional')}>Upgrade</button>
-                  </div>
-                  <div className={styles.planMini}>
-                    <div className={styles.planMiniName}>Practice</div>
-                    <div className={styles.planMiniPrice}>$799<span>/mo</span></div>
-                    <button className={styles.planMiniBtn} onClick={() => handleUpgrade('practice')}>Choose</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -1112,13 +1289,33 @@ export default function DashboardPage() {
           <RuleBuilderModal
             customers={customers}
             locations={locations}
-            onClose={() => setShowRuleModal(false)}
-            onSave={createRule}
+            onClose={() => {
+              setShowRuleModal(false);
+              setEditingRule(null);
+            }}
+            onSave={() => fetchRules(firmId)} // Corrected to just refetch
             loading={loadingQBO}
             plan={firm?.plan || 'trial'}
             firmId={firmId}
+            editingRule={editingRule}
+            addToast={addToast}
           />
         )}
+
+        {showPricingModal && (
+          <PricingModal
+            currentPlan={firm?.plan || 'TRIAL'}
+            onClose={() => setShowPricingModal(false)}
+            onUpgrade={handleUpgrade}
+          />
+        )}
+
+        {/* Toast Container */}
+        <div className={styles.toastContainer}>
+          {toasts.map(t => (
+            <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
+          ))}
+        </div>
 
         {showLogoutModal && (
           <div className={styles.overlay} onClick={() => setShowLogoutModal(false)}>
