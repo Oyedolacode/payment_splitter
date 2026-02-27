@@ -1038,6 +1038,38 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Logout confirmation modal */}
+      {showLogoutModal && (
+        <div className={styles.logoutOverlay} onClick={() => setShowLogoutModal(false)}>
+          <div className={styles.logoutModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.logoutModalIcon}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </div>
+            <h2 className={styles.logoutModalTitle}>Sign Out</h2>
+            <p className={styles.logoutModalBody}>Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
+            <div className={styles.logoutModalActions}>
+              <button
+                className={styles.secondaryBtn}
+                style={{ flex: 1, padding: '11px' }}
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.logoutConfirmBtn}
+                onClick={handleLogout}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
