@@ -1,45 +1,50 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy init — only created when actually needed, prevents crash on missing key
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 const FROM = 'PaySplit <onboarding@resend.dev>'
 
 interface JobCompleteEmailParams {
-    to: string
-    firmName: string
-    jobId: string
-    totalAmount: number
-    splitCount: number
-    completedAt: Date
-    ruleType?: string
+  to: string
+  firmName: string
+  jobId: string
+  totalAmount: number
+  splitCount: number
+  completedAt: Date
+  ruleType?: string
 }
 
 interface JobFailedEmailParams {
-    to: string
-    firmName: string
-    jobId: string
-    errorMessage: string
-    failedAt: Date
+  to: string
+  firmName: string
+  jobId: string
+  errorMessage: string
+  failedAt: Date
 }
 
 export async function sendJobCompleteEmail(params: JobCompleteEmailParams) {
-    if (!process.env.RESEND_API_KEY) {
-        console.log('ℹ️  RESEND_API_KEY not set — skipping email notification')
-        return
-    }
+  if (!process.env.RESEND_API_KEY) {
+    console.log('ℹ️  RESEND_API_KEY not set — skipping email notification')
+    return
+  }
 
-    const { to, firmName, jobId, totalAmount, splitCount, completedAt, ruleType } = params
+  const { to, firmName, jobId, totalAmount, splitCount, completedAt, ruleType } = params
 
-    const shortId = jobId.slice(0, 8).toUpperCase()
-    const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)
-    const formattedDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(completedAt)
+  const shortId = jobId.slice(0, 8).toUpperCase()
+  const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)
+  const formattedDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(completedAt)
 
-    try {
-        await resend.emails.send({
-            from: FROM,
-            to,
-            subject: `✅ Payment split complete — ${formattedAmount} across ${splitCount} invoice${splitCount !== 1 ? 's' : ''}`,
-            html: `
+  try {
+    await getResend().emails.send({
+      from: FROM,
+      to,
+      subject: `✅ Payment split complete — ${formattedAmount} across ${splitCount} invoice${splitCount !== 1 ? 's' : ''}`,
+      html: `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -91,13 +96,13 @@ export async function sendJobCompleteEmail(params: JobCompleteEmailParams) {
                 <!-- CTA -->
                 <tr>
                   <td style="padding:0 36px 36px;">
-                    <a href="${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="display:inline-block;background:#2d31fa;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;padding:13px 24px;border-radius:9px;letter-spacing:-0.2px;">View Audit Trail →</a>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="display:inline-block;background:#2d31fa;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;padding:13px 24px;border-radius:9px;letter-spacing:-0.2px;">View Audit Trail →</a>
                   </td>
                 </tr>
                 <!-- Footer -->
                 <tr>
                   <td style="padding:20px 36px;border-top:1px solid #e5e5e7;">
-                    <p style="margin:0;font-size:11.5px;color:#909098;">Sent to ${to} · ${firmName} · <a href="${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="color:#909098;">Dashboard</a></p>
+                    <p style="margin:0;font-size:11.5px;color:#909098;">Sent to ${to} · ${firmName} · <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="color:#909098;">Dashboard</a></p>
                   </td>
                 </tr>
               </table>
@@ -106,27 +111,26 @@ export async function sendJobCompleteEmail(params: JobCompleteEmailParams) {
         </body>
         </html>
       `,
-        })
-        console.log(`📧 Job complete email sent to ${to} for job ${jobId}`)
-    } catch (err) {
-        // Never let email failures crash the job
-        console.error(`📧 Failed to send completion email for job ${jobId}:`, err)
-    }
+    })
+    console.log(`📧 Job complete email sent to ${to} for job ${jobId}`)
+  } catch (err) {
+    console.error(`📧 Failed to send completion email for job ${jobId}:`, err)
+  }
 }
 
 export async function sendJobFailedEmail(params: JobFailedEmailParams) {
-    if (!process.env.RESEND_API_KEY) return
+  if (!process.env.RESEND_API_KEY) return
 
-    const { to, firmName, jobId, errorMessage, failedAt } = params
-    const shortId = jobId.slice(0, 8).toUpperCase()
-    const formattedDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(failedAt)
+  const { to, firmName, jobId, errorMessage, failedAt } = params
+  const shortId = jobId.slice(0, 8).toUpperCase()
+  const formattedDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(failedAt)
 
-    try {
-        await resend.emails.send({
-            from: FROM,
-            to,
-            subject: `⚠️ Payment split failed — Job ${shortId} needs attention`,
-            html: `
+  try {
+    await getResend().emails.send({
+      from: FROM,
+      to,
+      subject: `⚠️ Payment split failed — Job ${shortId} needs attention`,
+      html: `
         <!DOCTYPE html>
         <html lang="en">
         <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1a1a1e;">
@@ -152,7 +156,7 @@ export async function sendJobFailedEmail(params: JobFailedEmailParams) {
                 </tr>
                 <tr>
                   <td style="padding:0 36px 36px;">
-                    <a href="${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="display:inline-block;background:#ef4444;color:#fff;text-decoration:none;font-size:13px;font-weight:800;padding:13px 24px;border-radius:9px;">View Failed Job →</a>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="display:inline-block;background:#ef4444;color:#fff;text-decoration:none;font-size:13px;font-weight:800;padding:13px 24px;border-radius:9px;">View Failed Job →</a>
                   </td>
                 </tr>
                 <tr>
@@ -166,9 +170,9 @@ export async function sendJobFailedEmail(params: JobFailedEmailParams) {
         </body>
         </html>
       `,
-        })
-        console.log(`📧 Job failed email sent to ${to} for job ${jobId}`)
-    } catch (err) {
-        console.error(`📧 Failed to send failure email for job ${jobId}:`, err)
-    }
+    })
+    console.log(`📧 Job failed email sent to ${to} for job ${jobId}`)
+  } catch (err) {
+    console.error(`📧 Failed to send failure email for job ${jobId}:`, err)
+  }
 }
