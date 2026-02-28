@@ -159,7 +159,7 @@ function PricingModal({
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={`${styles.modal} ${styles.pricingModal}`} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
+        <div className={styles.modalHeader} style={{ padding: '32px 32px 0' }}>
           <h2 className={styles.modalTitle}>Upgrade Your Splitter</h2>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>

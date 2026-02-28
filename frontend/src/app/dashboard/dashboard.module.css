@@ -2266,7 +2266,7 @@
     z-index: 1;
   }
 
-  /*  Pricing Modal  */
+  /*  Pricing Modal (Global)  */
   .pricingModal {
     max-width: 900px !important;
     padding: 0 !important;
@@ -2274,13 +2274,10 @@
   }
 
   .pricingGridModal {
-    display: flex;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
     background: var(--border);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 8px;
   }
 
   .pricingGridModal .planCard {
@@ -2290,10 +2287,15 @@
     flex-direction: column;
     gap: 20px;
     min-height: 400px;
-    min-width: 280px;
-    flex-shrink: 0;
-    scroll-snap-align: start;
   }
+
+  @media (max-width: 768px) {
+    .pricingGridModal {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+
 
   /* -- Waterfall Ordering ----------------------------------------------------- */
   .orderList {
@@ -2415,4 +2417,3 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
-}
