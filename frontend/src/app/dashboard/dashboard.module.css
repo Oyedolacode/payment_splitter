@@ -2267,8 +2267,7 @@
 .pricingModal {
   max-width: 900px !important;
   padding: 0 !important;
-  overflow-y: auto;
-  max-height: 90vh;
+  overflow: hidden;
 }
 
 .pricingGridModal {
@@ -2276,6 +2275,10 @@
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 16px;
   background: transparent;
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
 }
 
 .pricingGridModal .planCard {
