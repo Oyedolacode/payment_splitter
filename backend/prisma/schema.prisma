@@ -22,6 +22,7 @@ model Firm {
   plan             String       @default("TRIAL")
   stripeCustomerId String?      @unique @map("stripe_customer_id")
   subscriptionId   String?      @unique @map("subscription_id")
+  subscriptionStatus String?     @map("subscription_status")
   trialEndsAt      DateTime?    @map("trial_ends_at")
   paymentJobs      PaymentJob[]
   splitRules       SplitRule[]

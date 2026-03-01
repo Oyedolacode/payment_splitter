@@ -233,12 +233,28 @@ function RuleBuilderModal({
   addToast: (msg: string, type?: 'success' | 'error' | 'info') => void,
   setShowPricingModal: (show: boolean) => void
 }) {
-  const isStandard = plan === 'STANDARD' || plan === 'TRIAL'
+  const allowedStrategiesByPlan: Record<string, RuleType[]> = {
+    TRIAL: ['proportional'],
+    STANDARD: ['proportional'],
+    PROFESSIONAL: ['proportional', 'oldest_first', 'location_priority'],
+    PRACTICE: ['proportional', 'oldest_first', 'location_priority'],
+  }
+
+  const currentPlan = plan.toUpperCase()
+  const allowed = allowedStrategiesByPlan[currentPlan] || ['proportional']
+
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
-  const [order, setOrder] = useState<string[]>(editingRule?.ruleConfig?.locationIds || locations.map(l => String(l.Id)))
+  const [order, setOrder] = useState<string[]>(
+    editingRule?.ruleType === 'location_priority'
+      ? editingRule.ruleConfig.order
+      : (editingRule?.ruleConfig?.locationIds || locations.map(l => String(l.Id)))
+  )
   const [saving, setSaving] = useState(false)
+
+  // Downgrade check: is the current rule's type locked?
+  const isRuleTypeLocked = editingRule && !allowed.includes(editingRule.ruleType)
 
   useEffect(() => {
     if (editingRule) {
@@ -272,8 +288,10 @@ function RuleBuilderModal({
       const total = Object.values(weights).reduce((s, w) => s + w, 0)
       if (Math.abs(total - 100) > 0.01) return addToast(`Weights must sum to 100% (currently ${total}%)`, 'error')
       ruleConfig.weights = weights
-    } else {
+    } else if (ruleType === 'oldest_first') {
       ruleConfig.locationIds = order
+    } else if (ruleType === 'location_priority') {
+      ruleConfig.order = order
     }
 
     setSaving(true)
@@ -353,22 +371,42 @@ function RuleBuilderModal({
               <div className={styles.field}>
                 <label className={styles.label}>Allocation Strategy</label>
                 <div className={styles.tabsSmall}>
-                  <button
-                    className={`${styles.tabSmall} ${ruleType === 'proportional' ? styles.tabSmallActive : ''}`}
-                    onClick={() => setRuleType('proportional')}
-                  >
-                    Proportional (%)
-                  </button>
-                  <button
-                    className={`${styles.tabSmall} ${ruleType === 'oldest_first' ? styles.tabSmallActive : ''} ${isStandard ? styles.tabSmallDisabled : ''}`}
-                    onClick={() => !isStandard && setRuleType('oldest_first')}
-                  >
-                    Oldest First (Waterfall) {isStandard && '🔒'}
-                  </button>
+                  {[
+                    { id: 'proportional', label: 'Proportional (%)' },
+                    { id: 'oldest_first', label: 'Oldest First (Waterfall)' },
+                    { id: 'location_priority', label: 'Location Priority' }
+                  ].map((strat) => {
+                    const isLocked = !allowed.includes(strat.id as RuleType)
+                    const isActive = ruleType === strat.id
+
+                    return (
+                      <button
+                        key={strat.id}
+                        className={`${styles.tabSmall} ${isActive ? styles.tabSmallActive : ''} ${isLocked ? styles.tabSmallDisabled : ''}`}
+                        onClick={() => {
+                          if (isLocked) {
+                            addToast(`${strat.label} is locked on the ${currentPlan} plan.`, 'info')
+                            setShowPricingModal(true)
+                          } else {
+                            setRuleType(strat.id as RuleType)
+                          }
+                        }}
+                        disabled={isRuleTypeLocked && !isActive} // Prevent changing type if existing rule is locked
+                      >
+                        {strat.label} {isLocked && '🔒'}
+                      </button>
+                    )
+                  })}
                 </div>
-                {isStandard && (
+                {!allowed.includes(ruleType) && (
                   <div className={styles.planNoticeSmall}>
-                    {plan === 'TRIAL' ? 'Trial' : 'Standard'} plan only supports Proportional spltting. <span className={styles.upgradeLink} onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to Pro</span> for Waterfall logic.
+                    {currentPlan} plan does not support this strategy. <span className={styles.upgradeLink} onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to Professional</span> to edit or create new {ruleType.replace('_', ' ')} rules.
+                  </div>
+                )}
+                {isRuleTypeLocked && (
+                  <div className={styles.errorBox} style={{ marginTop: '12px', fontSize: '12px' }}>
+                    <span>⚠️</span>
+                    <span>This rule is currently <strong>locked</strong> due to a plan change. You can toggle it on/off, but cannot modify its configuration or strategy.</span>
                   </div>
                 )}
               </div>
@@ -395,10 +433,16 @@ function RuleBuilderModal({
               )}
 
 
-              {ruleType === 'oldest_first' && (
-                <div className={styles.orderSection}>
-                  <label className={styles.label}>Settlement Priority (Waterfall Order)</label>
-                  <p className={styles.settingsSub} style={{ marginBottom: '12px' }}>Payments will fully cover the oldest invoices at Location 1 first, then Location 2, etc.</p>
+              {(ruleType === 'oldest_first' || ruleType === 'location_priority') && (
+                <div className={styles.orderSection} style={{ opacity: isRuleTypeLocked ? 0.6 : 1, pointerEvents: isRuleTypeLocked ? 'none' : 'auto' }}>
+                  <label className={styles.label}>
+                    {ruleType === 'oldest_first' ? 'Settlement Priority (Waterfall Order)' : 'Location Priority Order'}
+                  </label>
+                  <p className={styles.settingsSub} style={{ marginBottom: '12px' }}>
+                    {ruleType === 'oldest_first'
+                      ? 'Payments will fully cover the oldest invoices at Location 1 first, then Location 2, etc.'
+                      : 'Each location listed will be fully cleared of all open invoices before any funds are applied to the next location.'}
+                  </p>
                   <div className={styles.orderList}>
                     {order.map((locId, idx) => {
                       const loc = locations.find(l => String(l.Id) === String(locId))
@@ -406,24 +450,26 @@ function RuleBuilderModal({
                         <div key={locId} className={styles.orderItem}>
                           <div className={styles.orderBadge}>{idx + 1}</div>
                           <div className={styles.orderName}>{loc?.Name || `Location ${locId}`}</div>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <button
-                              className={styles.secondaryBtn}
-                              style={{ padding: '4px', fontSize: '10px' }}
-                              onClick={() => moveOrder(idx, 'up')}
-                              disabled={idx === 0}
-                            >
-                              ↑
-                            </button>
-                            <button
-                              className={styles.secondaryBtn}
-                              style={{ padding: '4px', fontSize: '10px' }}
-                              onClick={() => moveOrder(idx, 'down')}
-                              disabled={idx === order.length - 1}
-                            >
-                              ↓
-                            </button>
-                          </div>
+                          {!isRuleTypeLocked && (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <button
+                                className={styles.secondaryBtn}
+                                style={{ padding: '4px', fontSize: '10px' }}
+                                onClick={() => moveOrder(idx, 'up')}
+                                disabled={idx === 0}
+                              >
+                                ↑
+                              </button>
+                              <button
+                                className={styles.secondaryBtn}
+                                style={{ padding: '4px', fontSize: '10px' }}
+                                onClick={() => moveOrder(idx, 'down')}
+                                disabled={idx === order.length - 1}
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -436,7 +482,7 @@ function RuleBuilderModal({
                 <button
                   className={styles.primaryBtn}
                   onClick={handleSave}
-                  disabled={saving || loading || isEmpty || (ruleType === 'proportional' && Math.abs(totalWeight - 100) > 0.01)}
+                  disabled={saving || loading || isEmpty || isRuleTypeLocked || (ruleType === 'proportional' && Math.abs(totalWeight - 100) > 0.01)}
                 >
                   {saving ? 'Saving...' : editingRule ? 'Update Rule' : 'Create Rule'}
                 </button>

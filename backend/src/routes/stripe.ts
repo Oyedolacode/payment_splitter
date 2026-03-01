@@ -75,7 +75,10 @@ export async function stripeRoutes(fastify: FastifyInstance) {
             mode: 'subscription',
             success_url: `${config.FRONTEND_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${config.FRONTEND_URL}/dashboard`,
-            metadata: { firmId: firm.id, tier },
+            metadata: { firmId: firm.id, tier: tier.toUpperCase() },
+            subscription_data: {
+                metadata: { firmId: firm.id, tier: tier.toUpperCase() }
+            }
         })
 
         return { url: session.url }
@@ -112,10 +115,11 @@ export async function stripeRoutes(fastify: FastifyInstance) {
             return reply.status(400).send(`Webhook Error: ${err.message}`)
         }
 
+        // 1. New subscription completed
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object as Stripe.Checkout.Session
             const firmId = session.metadata?.firmId
-            const tier = session.metadata?.tier || 'professional'
+            const tier = session.metadata?.tier || 'PROFESSIONAL'
             const subscriptionId = session.subscription as string
 
             if (firmId) {
@@ -125,12 +129,36 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                         isSubscribed: true,
                         plan: tier.toUpperCase(),
                         subscriptionId: subscriptionId,
+                        subscriptionStatus: 'active',
                     } as any,
                 })
                 fastify.log.info(`Stripe: Firm ${firmId} is now subscribed to ${tier.toUpperCase()} tier.`)
             }
         }
 
+        // 2. Subscription updated (e.g., plan change, payment success, past due)
+        if (event.type === 'customer.subscription.updated') {
+            const subscription = event.data.object as Stripe.Subscription
+            const firmId = subscription.metadata?.firmId
+            const tier = subscription.metadata?.tier
+            const status = subscription.status
+
+            if (firmId) {
+                const data: any = {
+                    subscriptionStatus: status,
+                    isSubscribed: status === 'active' || status === 'trialing'
+                }
+                if (tier) data.plan = tier.toUpperCase()
+
+                await prisma.firm.update({
+                    where: { id: firmId },
+                    data
+                })
+                fastify.log.info(`Stripe: Firm ${firmId} subscription updated to ${status}.`)
+            }
+        }
+
+        // 3. Subscription deleted (cancelled)
         if (event.type === 'customer.subscription.deleted') {
             const subscription = event.data.object as Stripe.Subscription
             const firmId = subscription.metadata?.firmId
@@ -141,9 +169,11 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                     data: {
                         isSubscribed: false,
                         subscriptionId: null,
+                        subscriptionStatus: 'canceled',
+                        plan: 'STANDARD' // Revert to standard on cancellation
                     } as any,
                 })
-                fastify.log.info(`Stripe: Firm ${firmId} subscription cancelled.`)
+                fastify.log.info(`Stripe: Firm ${firmId} subscription cancelled. Plan reverted to STANDARD.`)
             }
         }
 

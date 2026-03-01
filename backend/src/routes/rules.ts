@@ -23,6 +23,13 @@ const createRuleSchema = z.object({
   ruleConfig: ruleConfigSchema,
 })
 
+const allowedStrategiesByPlan: Record<string, string[]> = {
+  TRIAL: ['proportional'],
+  STANDARD: ['proportional'],
+  PROFESSIONAL: ['proportional', 'oldest_first', 'location_priority'],
+  PRACTICE: ['proportional', 'oldest_first', 'location_priority'],
+}
+
 export async function rulesRoutes(fastify: FastifyInstance) {
   // GET /api/rules?firmId=xxx — list all rules for a firm
   fastify.get<{ Querystring: { firmId: string } }>('/', async (request, reply) => {
@@ -45,7 +52,7 @@ export async function rulesRoutes(fastify: FastifyInstance) {
 
     const plan = firm.plan
 
-    // 1. Enforce Rule Count Limits
+    // 1. Enforce Rule Count Limits (3 for TRIAL/STANDARD)
     if (plan === 'STANDARD' || plan === 'TRIAL') {
       const count = await prisma.splitRule.count({ where: { firmId: body.firmId } })
       if (count >= 3) {
@@ -54,11 +61,11 @@ export async function rulesRoutes(fastify: FastifyInstance) {
     }
 
     // 2. Enforce Rule Type Restrictions
-    if ((plan === 'STANDARD' || plan === 'TRIAL') && body.ruleConfig.type !== 'proportional') {
-      return reply.status(403).send({ error: `${plan} plan only supports Proportional splitting. Upgrade for Oldest First logic.` })
-    }
-    if (plan === 'PROFESSIONAL' && body.ruleConfig.type === 'location_priority') {
-      return reply.status(403).send({ error: 'Priority-based splitting requires the Practice plan.' })
+    const allowed = allowedStrategiesByPlan[plan] || ['proportional']
+    if (!allowed.includes(body.ruleConfig.type)) {
+      return reply.status(403).send({
+        error: `Strategy '${body.ruleConfig.type}' is not available on the ${plan} plan. Upgrade to Professional to unlock.`
+      })
     }
 
     // Validate proportional weights sum to 100
@@ -80,15 +87,36 @@ export async function rulesRoutes(fastify: FastifyInstance) {
     return reply.status(201).send(rule)
   })
 
-  // PATCH /api/rules/:id — toggle active/inactive
-  fastify.patch<{ Params: { id: string }; Body: { isActive: boolean } }>(
+  // PATCH /api/rules/:id — update status or config
+  fastify.patch<{ Params: { id: string }; Body: { isActive?: boolean; ruleConfig?: any } }>(
     '/:id',
     async (request, reply) => {
-      const rule = await prisma.splitRule.update({
+      const rule = await prisma.splitRule.findUnique({ where: { id: request.params.id }, include: { firm: true } })
+      if (!rule) return reply.status(404).send({ error: 'Rule not found' })
+
+      const data: any = {}
+      if (request.body.isActive !== undefined) data.isActive = request.body.isActive
+
+      if (request.body.ruleConfig) {
+        // Enforce plan-based editing
+        const plan = rule.firm.plan
+        const type = request.body.ruleConfig.type || rule.ruleType
+        const allowed = allowedStrategiesByPlan[plan] || ['proportional']
+
+        if (!allowed.includes(type)) {
+          return reply.status(403).send({
+            error: `Strategy '${type}' is locked on the ${plan} plan. Upgrade to edit this rule.`
+          })
+        }
+        data.ruleConfig = request.body.ruleConfig
+        data.ruleType = type
+      }
+
+      const updated = await prisma.splitRule.update({
         where: { id: request.params.id },
-        data: { isActive: request.body.isActive },
+        data
       })
-      return rule
+      return updated
     }
   )
 
