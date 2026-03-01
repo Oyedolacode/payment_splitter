@@ -133,7 +133,7 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                         stripeSubscriptionId: subscriptionId,
                         subscriptionId: subscriptionId, // legacy sync
                         subscriptionStatus: 'active',
-                        currentPeriodEnd: new Date(sub.current_period_end * 1000),
+                        currentPeriodEnd: new Date((sub as any).current_period_end * 1000),
                     } as any,
                 })
                 await logActivity(firmId, 'PAYMENT_DETECTED', { action: 'SUBSCRIPTION_CREATED', tier, subscriptionId }, undefined, 'WEBHOOK', 'INFO')
@@ -153,7 +153,7 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                 const data: any = {
                     subscriptionStatus: status,
                     isSubscribed: status === 'active' || status === 'trialing' || isGracePeriod,
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
                 }
                 if (tier) data.plan = tier.toUpperCase()
 
@@ -192,7 +192,7 @@ export async function stripeRoutes(fastify: FastifyInstance) {
         // 4. Payment failed
         if (event.type === 'invoice.payment_failed') {
             const invoice = event.data.object as Stripe.Invoice
-            const firmId = invoice.subscription_details?.metadata?.firmId || (invoice.metadata?.firmId as string)
+            const firmId = (invoice as any).subscription_details?.metadata?.firmId || (invoice.metadata?.firmId as string)
 
             if (firmId) {
                 await logActivity(firmId, 'FAILED', { action: 'PAYMENT_FAILED', invoiceId: invoice.id }, undefined, 'WEBHOOK', 'ERROR')
