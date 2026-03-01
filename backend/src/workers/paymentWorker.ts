@@ -163,9 +163,7 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
 
     // ── Implementation Note: Journal Entry vs Payment ────────────────────────
     // Per TPS v1.0 Section 8, we should ideally use Journal Entries.
-    // For now, we continue with individual Payments to maintain    // ── Calculate split ──────────────────────────────────────────────────────
-    const splitResult = calculateSplit(paymentAmount, openInvoices, ruleConfig)
-    assertSplitInvariant(paymentAmount, splitResult)
+    // For now, we perform BOTH: Payments for AR sub-ledger sync, and a JE for consolidated revenue reporting.
 
     // ── Phase 4: Construct Journal Entry (Revenue Allocation) ────────────────
     // We'll also keep the Payment-Invoice link for AR, but JE is the "Accounting Safe" record.
@@ -182,12 +180,12 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
         },
         // Credits to Sub-Locations
         ...splitResult.allocations.map(alloc => ({
-          Amount: alloc.amount,
+          Amount: alloc.amountApplied,
           DetailType: 'JournalEntryLineDetail',
           JournalEntryLineDetail: {
             PostingType: 'Credit',
             AccountRef: { value: 'SERVICE_INCOME_BRANCH' }, // Replace with discovery logic or config
-            DepartmentRef: { value: alloc.subLocationId }
+            DepartmentRef: { value: alloc.locationCustomerId }
           }
         }))
       ],
@@ -210,12 +208,12 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
         bId: `alloc-${idx}`,
         operation: 'create',
         Payment: {
-          CustomerRef: { value: alloc.subLocationId },
-          TotalAmt: alloc.amount,
+          CustomerRef: { value: alloc.locationCustomerId, name: 'Allocated Location' },
+          TotalAmt: alloc.amountApplied,
           PrivateNote: `Split from Parent Payment ${paymentId}`,
           Line: [
             {
-              Amount: alloc.amount,
+              Amount: alloc.amountApplied,
               LinkedTxn: [{ TxnId: alloc.invoiceId, TxnType: 'Invoice' }],
             },
           ],
@@ -229,9 +227,9 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
           throw new Error(`Batch item ${idx} failed: ${res.Fault.Error[0].Message}`)
         }
         auditEntries.push({
-          subLocationId: splitResult.allocations[idx].subLocationId,
+          subLocationId: splitResult.allocations[idx].locationCustomerId,
           invoiceId: splitResult.allocations[idx].invoiceId,
-          amountApplied: splitResult.allocations[idx].amount.toString(),
+          amountApplied: splitResult.allocations[idx].amountApplied.toString(),
           qboPaymentId: res.Payment?.Id,
         })
       })
