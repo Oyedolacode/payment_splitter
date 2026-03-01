@@ -20,12 +20,19 @@ model Firm {
   updatedAt        DateTime     @updatedAt @map("updated_at")
   isSubscribed     Boolean      @default(false) @map("is_subscribed")
   plan             String       @default("TRIAL")
+  allocationMode   String       @default("AUTO") @map("allocation_mode")
   stripeCustomerId String?      @unique @map("stripe_customer_id")
-  subscriptionId   String?      @unique @map("subscription_id")
+  stripeSubscriptionId String?  @unique @map("stripe_subscription_id")
+  subscriptionId   String?      @unique @map("subscription_id") // Keep legacy for ref
   subscriptionStatus String?     @map("subscription_status")
   trialEndsAt      DateTime?    @map("trial_ends_at")
+  planLockedAt     DateTime?    @map("plan_locked_at")
+  currentPeriodEnd DateTime?    @map("current_period_end")
   paymentJobs      PaymentJob[]
   splitRules       SplitRule[]
+  activityLogs     ActivityLog[]
+  remittanceMapping RemittanceMapping?
+  remittanceUploads RemittanceUpload[]
 
   @@map("firms")
 }
@@ -50,12 +57,13 @@ model PaymentJob {
   firmId       String       @map("firm_id")
   ruleId       String?      @map("rule_id")
   paymentId    String       @map("payment_id")
-  status       JobStatus    @default(QUEUED)
-  totalAmount  Decimal      @map("total_amount") @db.Decimal(15, 2)
-  splitResult  Json?        @map("split_result")
-  errorMessage String?      @map("error_message")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  completedAt  DateTime?    @map("completed_at")
+  status           JobStatus    @default(QUEUED)
+  totalAmount      Decimal      @map("total_amount") @db.Decimal(15, 2)
+  journalEntryId   String?      @map("journal_entry_id")
+  splitResult      Json?        @map("split_result")
+  errorMessage     String?      @map("error_message")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  completedAt      DateTime?    @map("completed_at")
   auditEntries AuditEntry[]
   firm         Firm         @relation(fields: [firmId], references: [id], onDelete: Cascade)
   rule         SplitRule?   @relation(fields: [ruleId], references: [id])
@@ -80,7 +88,49 @@ model AuditEntry {
 enum JobStatus {
   QUEUED
   PROCESSING
+  REVIEW_REQUIRED
   COMPLETE
   FAILED
   ROLLED_BACK
+  ANOMALY_PAUSED
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  firmId      String   @map("firm_id")
+  type        String   @map("type") // PAYMENT_DETECTED, RULE_APPLIED, etc.
+  actorType   String   @default("SYSTEM") @map("actor_type") // SYSTEM, USER, WEBHOOK
+  severity    String   @default("INFO") @map("severity") // INFO, WARNING, ERROR
+  referenceId String?  @map("reference_id")
+  metadata    Json?    @map("metadata")
+  createdAt   DateTime @default(now()) @map("created_at")
+  firm        Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model RemittanceMapping {
+  id        String   @id @default(uuid())
+  firmId    String   @unique @map("firm_id")
+  columnMap Json     @map("column_map") // e.g. { "amount": "Column A", "customer": "Column B" }
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  firm      Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+
+  @@map("remittance_mappings")
+}
+
+model RemittanceUpload {
+  id             String   @id @default(uuid())
+  firmId         String   @map("firm_id")
+  filename       String
+  checksum       String?  // Prevent accidental re-uploads
+  status         String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  rowCount       Int      @default(0) @map("row_count")
+  processedCount Int      @default(0) @map("processed_count")
+  errorMessage   String?  @map("error_message")
+  createdAt      DateTime @default(now()) @map("created_at")
+  firm           Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+
+  @@map("remittance_uploads")
 }

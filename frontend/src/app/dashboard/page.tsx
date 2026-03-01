@@ -18,7 +18,7 @@ interface Rule {
 
 type Tab = 'reconciliation' | 'rules' | 'settings'
 
-type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK'
+type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED'
 
 interface AuditEntry {
   id: string
@@ -57,6 +57,7 @@ const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
   ROLLED_BACK: { label: 'Rolled Back', color: '#6366f1' },
   PROCESSING: { label: 'Processing', color: '#f59e0b' },
   QUEUED: { label: 'Queued', color: '#2d31fa' },
+  REVIEW_REQUIRED: { label: 'Manual Review', color: '#ec4899' }, // Pink for attention
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -646,18 +647,48 @@ export default function DashboardPage() {
     }
   }, [fetchJobs, fetchRules, fetchFirm, fetchQBOData])
 
-  async function retryJob(e: React.MouseEvent, jobId: string) {
+  const retryJob = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    setRetrying(jobId)
+    setRetrying(id)
     try {
-      await fetch(`${API}/api/jobs/${jobId}/retry`, { method: 'POST' })
-      await fetchJobs(firmId)
-      addToast('Job retry initiated', 'success')
-    } catch (e) {
-      console.error('Failed to retry job:', e)
-      addToast('Failed to retry job', 'error')
+      const resp = await fetch(`${API}/api/jobs/${id}/retry`, { method: 'POST' })
+      if (!resp.ok) throw new Error('Retry failed')
+      addToast('Job re-queued for processing', 'success')
+      fetchJobs(firmId)
+    } catch (err: any) {
+      addToast(err.message, 'error')
     } finally {
       setRetrying(null)
+    }
+  }
+
+  const approveJob = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setRetrying(id) // Reuse retrying state for loading indicator
+    try {
+      const resp = await fetch(`${API}/api/jobs/${id}/approve`, { method: 'POST' })
+      if (!resp.ok) throw new Error('Approval failed')
+      addToast('Job approved and moved to processing', 'success')
+      fetchJobs(firmId)
+    } catch (err: any) {
+      addToast(err.message, 'error')
+    } finally {
+      setRetrying(null)
+    }
+  }
+
+  const updateAllocationMode = async (mode: 'AUTO' | 'REVIEW') => {
+    try {
+      const resp = await fetch(`${API}/api/stripe/firm/${firmId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allocationMode: mode }),
+      })
+      if (!resp.ok) throw new Error('Failed to update settings')
+      addToast(`Allocation mode set to ${mode}`, 'success')
+      setFirm(prev => prev ? { ...prev, allocationMode: mode } : prev)
+    } catch (err: any) {
+      addToast(err.message, 'error')
     }
   }
 
@@ -1098,6 +1129,16 @@ export default function DashboardPage() {
                                       {retrying === job.id ? '···' : 'Retry'}
                                     </button>
                                   )}
+                                  {job.status === 'REVIEW_REQUIRED' && (
+                                    <button
+                                      className={styles.approveBtn}
+                                      onClick={e => approveJob(e, job.id)}
+                                      disabled={retrying === job.id}
+                                      style={{ background: '#ec4899', borderColor: '#db2777' }}
+                                    >
+                                      {retrying === job.id ? '···' : 'Approve'}
+                                    </button>
+                                  )}
                                   <Chevron open={isOpen} />
                                 </div>
                               </td>
@@ -1362,10 +1403,33 @@ export default function DashboardPage() {
                 </div>
                 <div className={styles.settingsRow}>
                   <div>
-                    <div className={styles.settingsLabel}>Firm Account</div>
-                    <div className={styles.settingsSub}>ID: {firm?.id}</div>
+                    <div className={styles.settingsLabel}>Allocation Enforcement</div>
+                    <div className={styles.settingsSub}>Choose how payments are posted to QBO.</div>
+                    <div className={styles.modeToggle} style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+                      <button
+                        className={`${styles.pillBtn} ${firm?.allocationMode === 'AUTO' ? styles.active : ''}`}
+                        onClick={() => updateAllocationMode('AUTO')}
+                        style={{
+                          background: firm?.allocationMode === 'AUTO' ? 'var(--accent)' : 'var(--bg-card)',
+                          color: firm?.allocationMode === 'AUTO' ? 'white' : 'var(--text-2)',
+                          padding: '6px 12px', borderRadius: '20px', fontSize: '12px', border: '1px solid var(--border)'
+                        }}
+                      >
+                        Auto-Post (Instant)
+                      </button>
+                      <button
+                        className={`${styles.pillBtn} ${firm?.allocationMode === 'REVIEW' ? styles.active : ''}`}
+                        onClick={() => updateAllocationMode('REVIEW')}
+                        style={{
+                          background: firm?.allocationMode === 'REVIEW' ? '#ec4899' : 'var(--bg-card)',
+                          color: firm?.allocationMode === 'REVIEW' ? 'white' : 'var(--text-2)',
+                          padding: '6px 12px', borderRadius: '20px', fontSize: '12px', border: '1px solid var(--border)'
+                        }}
+                      >
+                        Manual Review
+                      </button>
+                    </div>
                   </div>
-                  <div className={styles.mono}>{firm?.name}</div>
                 </div>
               </div>
             </div>

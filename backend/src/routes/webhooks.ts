@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma'
 import { config } from '../lib/config'
 import { QUEUE_NAME, PaymentJobData } from '../workers/paymentWorker'
 import { JobStatus } from '@prisma/client'
+import { logActivity } from '../lib/activityLogger'
 
 const paymentQueue = new Queue<PaymentJobData>(QUEUE_NAME, { connection: redis })
 
@@ -91,6 +92,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
             totalAmount: 0, // Will be updated when worker fetches the actual payment
           },
         })
+
+        // ── Log Activity ──────────────────────────────────────────────────────
+        await logActivity(firm.id, 'PAYMENT_DETECTED', { paymentId, qboRealmId: realmId }, dbJob.id)
 
         // ── Enqueue BullMQ job ────────────────────────────────────────────────
         await paymentQueue.add(

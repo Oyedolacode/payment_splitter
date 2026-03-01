@@ -189,6 +189,37 @@ export async function deletePayment(
 }
 
 /**
+ * Create a Journal Entry in QBO.
+ * This is the preferred method for revenue allocation per TPS v1.0.
+ */
+export async function createJournalEntry(
+  firmId: string,
+  realmId: string,
+  journal: any
+): Promise<any> {
+  const data = await qboRequest<{ JournalEntry: any }>(firmId, realmId, '/journalentry', {
+    method: 'POST',
+    body: JSON.stringify(journal),
+  })
+  return data.JournalEntry
+}
+
+/**
+ * Delete a Journal Entry (used in rollback/reversal if necessary).
+ */
+export async function deleteJournalEntry(
+  firmId: string,
+  realmId: string,
+  id: string,
+  syncToken: string
+): Promise<void> {
+  await qboRequest(firmId, realmId, `/journalentry?operation=delete`, {
+    method: 'POST',
+    body: JSON.stringify({ Id: id, SyncToken: syncToken }),
+  })
+}
+
+/**
  * Fetch all locations (Departments in QBO API).
  */
 export async function fetchAllLocations(

@@ -1,10 +1,11 @@
 import { Worker, Job } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
-import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest } from '../services/qboClient'
+import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry } from '../services/qboClient'
 import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/splitCalculator'
 import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/email'
 import { JobStatus } from '@prisma/client'
+import { logActivity } from '../lib/activityLogger'
 
 export const QUEUE_NAME = 'payment-processing'
 
@@ -14,6 +15,7 @@ export interface PaymentJobData {
   realmId: string
   paymentId: string   // QBO Payment.Id
   paymentAmount?: number // Optional: used for manual triggers to skip QBO fetch
+  bypassReview?: boolean // If true, skip the REVIEW_REQUIRED check
 }
 
 /**
@@ -66,7 +68,6 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
 
     if (paymentId.startsWith('MANUAL-') && manualAmount !== undefined) {
       paymentAmount = manualAmount
-      // For manual triggers, we assume the rule is already linked (it was set in /api/jobs/trigger)
       const dbJob = await prisma.paymentJob.findUniqueOrThrow({
         where: { id: jobId },
         include: { rule: true }
@@ -94,6 +95,19 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       activeRule = rule
     }
 
+    // ── Log Rule Application ──────────────────────────────────────────────────
+    await logActivity(firmId, 'RULE_APPLIED', { ruleId: activeRule.id, paymentId }, jobId, 'SYSTEM', 'INFO')
+
+    // ── Check Allocation Mode (AUTO vs REVIEW) ────────────────────────────────
+    if (firm.allocationMode === 'REVIEW' && !job.data.bypassReview) {
+      await prisma.paymentJob.update({
+        where: { id: jobId },
+        data: { status: JobStatus.REVIEW_REQUIRED },
+      })
+      console.log(`[PROCESSOR] Job ${jobId} paused for MANUAL REVIEW.`)
+      return // Stop here, user must approve via dashboard
+    }
+
     const ruleConfig = activeRule.ruleConfig as unknown as RuleConfig
 
     // ── Determine which sub-customer IDs to query ────────────────────────────
@@ -108,11 +122,28 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     // ── Assert invariant BEFORE writing anything to QBO ──────────────────────
     assertSplitInvariant(splitResult, paymentAmount)
 
+    // ── Rounding Safety: Adjust last location for perfect balance ────────────
+    const sumApplied = splitResult.allocations.reduce((s, a) => s + Number(a.amountApplied), 0)
+    const roundedSum = Math.round(sumApplied * 100) / 100
+    const roundedPayment = Math.round(paymentAmount * 100) / 100
+
+    if (roundedSum !== roundedPayment && splitResult.allocations.length > 0) {
+      const diff = Math.round((roundedPayment - roundedSum) * 100) / 100
+      const lastIndex = splitResult.allocations.length - 1
+      splitResult.allocations[lastIndex].amountApplied = Math.round((Number(splitResult.allocations[lastIndex].amountApplied) + diff) * 100) / 100
+      splitResult.totalAllocated = roundedPayment
+    }
+
     // ── Save split result snapshot to DB ─────────────────────────────────────
     await prisma.paymentJob.update({
       where: { id: jobId },
       data: { splitResult: splitResult as any },
     })
+
+    // ── Implementation Note: Journal Entry vs Payment ────────────────────────
+    // Per TPS v1.0 Section 8, we should ideally use Journal Entries.
+    // For now, we continue with individual Payments to maintain invoice balance sync,
+    // but we will add the journalEntryId record and Activity Log.
 
     // ── Build batch items ─────────────────────────────────────────────────────
     const batchItems: QBOBatchItemRequest[] = splitResult.allocations.map((alloc, idx) => ({
@@ -135,20 +166,14 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
 
     for (const batchChunk of chunks) {
       const response = await postBatch(firmId, realmId, batchChunk)
-
-      // Check each response item for errors
       for (const item of response.BatchItemResponse) {
         if (item.Fault) {
-          throw new Error(
-            `QBO batch error on bId ${item.bId}: ${item.Fault.Error[0]?.Message}`
-          )
+          throw new Error(`QBO batch error on bId ${item.bId}: ${item.Fault.Error[0]?.Message}`)
         }
         if (item.Payment) {
           postedPayments.push({ id: item.Payment.Id, syncToken: item.Payment.SyncToken })
         }
       }
-
-      // Brief pause between chunks to respect rate limits
       await sleep(500)
     }
 
@@ -162,6 +187,9 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
         qboPaymentId: postedPayments[idx]?.id ?? null,
       })),
     })
+
+    // ── Log Journal/Allocation Creation ───────────────────────────────────────
+    await logActivity(firmId, 'JOURNAL_CREATED', { paymentCount: postedPayments.length, totalAmount: paymentAmount }, jobId, 'SYSTEM', 'INFO')
 
     // ── Mark job complete ─────────────────────────────────────────────────────
     await prisma.paymentJob.update({
@@ -197,6 +225,8 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
         data: { status: JobStatus.FAILED, errorMessage: message },
       })
     }
+
+    await logActivity(firmId, 'FAILED', { error: message }, jobId, 'SYSTEM', 'ERROR')
 
     // ── Send failure email ────────────────────────────────────────────────────
     if (firm?.notificationEmail) {

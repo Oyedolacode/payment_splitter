@@ -4,6 +4,7 @@ import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { QUEUE_NAME, PaymentJobData } from '../workers/paymentWorker'
 import { JobStatus } from '@prisma/client'
+import { logActivity } from '../lib/activityLogger'
 
 const paymentQueue = new Queue<PaymentJobData>(QUEUE_NAME, { connection: redis })
 
@@ -105,7 +106,7 @@ export async function jobsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // POST /api/jobs/trigger — manually trigger a real job (writes to QBO)
+  // POST /api/jobs/:id/trigger — manually trigger a real job (writes to QBO)
   fastify.post<{ Body: { firmId: string; ruleId: string; paymentAmount: number } }>(
     '/trigger',
     async (request, reply) => {
@@ -152,4 +153,60 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       }
     }
   )
+
+  // POST /api/jobs/:id/approve — approve a job that is in REVIEW_REQUIRED
+  fastify.post<{ Params: { id: string } }>('/:id/approve', async (request, reply) => {
+    const job = await prisma.paymentJob.findUnique({
+      where: { id: request.params.id },
+      include: { firm: true }
+    })
+
+    if (!job) return reply.status(404).send({ error: 'Job not found' })
+    if (job.status !== JobStatus.REVIEW_REQUIRED) {
+      return reply.status(400).send({ error: `Cannot approve job with status ${job.status}` })
+    }
+
+    // Reset status back to queued
+    await prisma.paymentJob.update({
+      where: { id: job.id },
+      data: { status: JobStatus.QUEUED },
+    })
+
+    await paymentQueue.add(
+      'process-payment',
+      {
+        jobId: job.id,
+        firmId: job.firmId,
+        realmId: job.firm.qboRealmId!,
+        paymentId: job.paymentId,
+        bypassReview: true, // Crucial: tell the worker to ignore the REVIEW setting this time
+      },
+      { attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
+    )
+
+    await logActivity(job.firmId, 'RULE_APPLIED', { action: 'MANUAL_APPROVAL' }, job.id, 'USER', 'INFO')
+
+    return { message: 'Job approved and re-queued', jobId: job.id }
+  })
+
+  // POST /api/jobs/:id/reject — reject a job that is in REVIEW_REQUIRED
+  fastify.post<{ Params: { id: string } }>('/:id/reject', async (request, reply) => {
+    const job = await prisma.paymentJob.findUnique({
+      where: { id: request.params.id }
+    })
+
+    if (!job) return reply.status(404).send({ error: 'Job not found' })
+    if (job.status !== JobStatus.REVIEW_REQUIRED) {
+      return reply.status(400).send({ error: `Cannot reject job with status ${job.status}` })
+    }
+
+    await prisma.paymentJob.update({
+      where: { id: job.id },
+      data: { status: JobStatus.FAILED, errorMessage: 'Job rejected by user during review' },
+    })
+
+    await logActivity(job.firmId, 'FAILED', { action: 'MANUAL_REJECTION' }, job.id, 'USER', 'WARNING')
+
+    return { message: 'Job rejected', jobId: job.id }
+  })
 }

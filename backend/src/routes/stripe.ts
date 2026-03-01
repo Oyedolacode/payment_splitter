@@ -179,4 +179,26 @@ export async function stripeRoutes(fastify: FastifyInstance) {
 
         return { received: true }
     })
+
+    /**
+     * PATCH /api/stripe/firm/:id
+     * Update firm settings (e.g., allocationMode).
+     */
+    fastify.patch<{ Params: { id: string }, Body: { allocationMode?: string } }>('/firm/:id', async (request, reply) => {
+        const { id } = request.params
+        const { allocationMode } = request.body
+
+        try {
+            const firm = await prisma.firm.update({
+                where: { id },
+                data: {
+                    ...(allocationMode && { allocationMode })
+                } as any
+            })
+            return firm
+        } catch (err: any) {
+            fastify.log.error(`Failed to update firm ${id}: ${err.message}`)
+            return reply.status(500).send({ error: 'Failed to update firm settings' })
+        }
+    })
 }
