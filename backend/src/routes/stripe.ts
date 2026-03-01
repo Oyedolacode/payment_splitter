@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import Stripe from 'stripe'
 import { prisma } from '../lib/prisma'
 import { config } from '../lib/config'
+import { logActivity } from '../lib/activityLogger'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '')
 
@@ -123,15 +124,19 @@ export async function stripeRoutes(fastify: FastifyInstance) {
             const subscriptionId = session.subscription as string
 
             if (firmId) {
+                const sub = await stripe.subscriptions.retrieve(subscriptionId)
                 await prisma.firm.update({
                     where: { id: firmId },
                     data: {
                         isSubscribed: true,
                         plan: tier.toUpperCase(),
-                        subscriptionId: subscriptionId,
+                        stripeSubscriptionId: subscriptionId,
+                        subscriptionId: subscriptionId, // legacy sync
                         subscriptionStatus: 'active',
+                        currentPeriodEnd: new Date(sub.current_period_end * 1000),
                     } as any,
                 })
+                await logActivity(firmId, 'PAYMENT_DETECTED', { action: 'SUBSCRIPTION_CREATED', tier, subscriptionId }, undefined, 'WEBHOOK', 'INFO')
                 fastify.log.info(`Stripe: Firm ${firmId} is now subscribed to ${tier.toUpperCase()} tier.`)
             }
         }
@@ -144,9 +149,11 @@ export async function stripeRoutes(fastify: FastifyInstance) {
             const status = subscription.status
 
             if (firmId) {
+                const isGracePeriod = status === 'past_due'
                 const data: any = {
                     subscriptionStatus: status,
-                    isSubscribed: status === 'active' || status === 'trialing'
+                    isSubscribed: status === 'active' || status === 'trialing' || isGracePeriod,
+                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
                 }
                 if (tier) data.plan = tier.toUpperCase()
 
@@ -154,6 +161,9 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                     where: { id: firmId },
                     data
                 })
+
+                const severity = isGracePeriod ? 'WARNING' : 'INFO'
+                await logActivity(firmId, 'PAYMENT_DETECTED', { action: 'SUBSCRIPTION_UPDATED', status, tier }, undefined, 'WEBHOOK', severity)
                 fastify.log.info(`Stripe: Firm ${firmId} subscription updated to ${status}.`)
             }
         }
@@ -168,12 +178,25 @@ export async function stripeRoutes(fastify: FastifyInstance) {
                     where: { id: firmId },
                     data: {
                         isSubscribed: false,
+                        stripeSubscriptionId: null,
                         subscriptionId: null,
                         subscriptionStatus: 'canceled',
                         plan: 'STANDARD' // Revert to standard on cancellation
                     } as any,
                 })
+                await logActivity(firmId, 'FAILED', { action: 'SUBSCRIPTION_DELETED' }, undefined, 'WEBHOOK', 'ERROR')
                 fastify.log.info(`Stripe: Firm ${firmId} subscription cancelled. Plan reverted to STANDARD.`)
+            }
+        }
+
+        // 4. Payment failed
+        if (event.type === 'invoice.payment_failed') {
+            const invoice = event.data.object as Stripe.Invoice
+            const firmId = invoice.subscription_details?.metadata?.firmId || (invoice.metadata?.firmId as string)
+
+            if (firmId) {
+                await logActivity(firmId, 'FAILED', { action: 'PAYMENT_FAILED', invoiceId: invoice.id }, undefined, 'WEBHOOK', 'ERROR')
+                fastify.log.warn(`Stripe: Payment failed for firm ${firmId}.`)
             }
         }
 
