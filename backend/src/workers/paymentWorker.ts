@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
-import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry } from '../services/qboClient'
+import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations } from '../services/qboClient'
 import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/splitCalculator'
 import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/email'
 import { JobStatus } from '@prisma/client'
@@ -113,8 +113,29 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     // ── Determine which sub-customer IDs to query ────────────────────────────
     const locationIds = extractLocationIds(ruleConfig)
 
+    // ── Phase 8: Anomaly / Fraud Detection (Foundation) ──────────────────────
+    if (paymentAmount > 5000) {
+      await prisma.paymentJob.update({
+        where: { id: jobId },
+        data: { status: JobStatus.ANOMALY_PAUSED, errorMessage: 'High-value payment flagged for manual review (> $5,000)' },
+      })
+      await logActivity(firmId, 'ANOMALY_DETECTED', { reason: 'HIGH_VALUE_PAYMENT', amount: paymentAmount }, jobId, 'SYSTEM', 'WARNING')
+      return // BullMQ expects void or promise<any>
+    }
+
     // ── Fetch all open invoices across sub-locations ─────────────────────────
     const openInvoices = await fetchOpenInvoices(firmId, realmId, locationIds)
+
+    // ── Phase 4: Validate Location existence in QBO ──────────────────────────
+    const qboLocations = await fetchAllLocations(firmId, realmId)
+    const activeLocationIds = qboLocations.map(l => l.Id)
+
+    for (const locId of locationIds) {
+      if (!activeLocationIds.includes(locId)) {
+        await logActivity(firmId, 'ANOMALY_DETECTED', { reason: 'INACTIVE_LOCATION', locationId: locId }, jobId, 'SYSTEM', 'WARNING')
+        throw new Error(`Location ${locId} is no longer active in QuickBooks. Please update your split rules.`)
+      }
+    }
 
     // ── Calculate split ──────────────────────────────────────────────────────
     const splitResult = calculateSplit(paymentAmount, openInvoices, ruleConfig)
@@ -142,41 +163,101 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
 
     // ── Implementation Note: Journal Entry vs Payment ────────────────────────
     // Per TPS v1.0 Section 8, we should ideally use Journal Entries.
-    // For now, we continue with individual Payments to maintain invoice balance sync,
-    // but we will add the journalEntryId record and Activity Log.
+    // For now, we continue with individual Payments to maintain    // ── Calculate split ──────────────────────────────────────────────────────
+    const splitResult = calculateSplit(paymentAmount, openInvoices, ruleConfig)
+    assertSplitInvariant(paymentAmount, splitResult)
 
-    // ── Build batch items ─────────────────────────────────────────────────────
-    const batchItems: QBOBatchItemRequest[] = splitResult.allocations.map((alloc, idx) => ({
-      bId: `alloc-${idx}`,
-      operation: 'create',
-      Payment: {
-        CustomerRef: { value: alloc.locationCustomerId, name: 'Allocated Location' },
-        TotalAmt: alloc.amountApplied,
-        Line: [
-          {
-            Amount: alloc.amountApplied,
-            LinkedTxn: [{ TxnId: alloc.invoiceId, TxnType: 'Invoice' }],
-          },
-        ],
-      },
-    }))
-
-    // ── Dispatch in chunks of 30 (QBO hard limit) ─────────────────────────────
-    const chunks = chunk(batchItems, 30)
-
-    for (const batchChunk of chunks) {
-      const response = await postBatch(firmId, realmId, batchChunk)
-      for (const item of response.BatchItemResponse) {
-        if (item.Fault) {
-          throw new Error(`QBO batch error on bId ${item.bId}: ${item.Fault.Error[0]?.Message}`)
-        }
-        if (item.Payment) {
-          postedPayments.push({ id: item.Payment.Id, syncToken: item.Payment.SyncToken })
-        }
-      }
-      await sleep(500)
+    // ── Phase 4: Construct Journal Entry (Revenue Allocation) ────────────────
+    // We'll also keep the Payment-Invoice link for AR, but JE is the "Accounting Safe" record.
+    const journalEntryModel = {
+      Line: [
+        // Debit HQ Account (AR Parent)
+        {
+          Amount: paymentAmount,
+          DetailType: 'JournalEntryLineDetail',
+          JournalEntryLineDetail: {
+            PostingType: 'Debit',
+            AccountRef: { value: 'SERVICE_AR_PARENT' }, // Replace with discovery logic or config
+          }
+        },
+        // Credits to Sub-Locations
+        ...splitResult.allocations.map(alloc => ({
+          Amount: alloc.amount,
+          DetailType: 'JournalEntryLineDetail',
+          JournalEntryLineDetail: {
+            PostingType: 'Credit',
+            AccountRef: { value: 'SERVICE_INCOME_BRANCH' }, // Replace with discovery logic or config
+            DepartmentRef: { value: alloc.subLocationId }
+          }
+        }))
+      ],
+      PrivateNote: `PaySplit Allocation for Job ${jobId} (Original Payment ${paymentId})`
     }
 
+    // ── Phase 5/6: Process Allocations ───────────────────────────────────────
+    const auditEntries = []
+    let journalEntryId: string | null = null
+
+    try {
+      // 1. Create the Journal Entry first (Additive/Transparent)
+      // Note: In MVP, we might skip JEs if not configured, but here we'll simulate/implement
+      const je = await createJournalEntry(firmId, realmId, journalEntryModel)
+      journalEntryId = je.Id
+      await logActivity(firmId, 'JOURNAL_CREATED', { journalEntryId, jobId }, jobId, 'SYSTEM', 'INFO')
+
+      // 2. Post the Payment Applications (AR linkage)
+      const items: QBOBatchItemRequest[] = splitResult.allocations.map((alloc, idx) => ({
+        bId: `alloc-${idx}`,
+        operation: 'create',
+        Payment: {
+          CustomerRef: { value: alloc.subLocationId },
+          TotalAmt: alloc.amount,
+          PrivateNote: `Split from Parent Payment ${paymentId}`,
+          Line: [
+            {
+              Amount: alloc.amount,
+              LinkedTxn: [{ TxnId: alloc.invoiceId, TxnType: 'Invoice' }],
+            },
+          ],
+        },
+      }))
+
+      const batchResponse = await postBatch(firmId, realmId, items)
+      // Collect IDs for audit
+      batchResponse.BatchItemResponse.forEach((res, idx) => {
+        if (res.Fault) {
+          throw new Error(`Batch item ${idx} failed: ${res.Fault.Error[0].Message}`)
+        }
+        auditEntries.push({
+          subLocationId: splitResult.allocations[idx].subLocationId,
+          invoiceId: splitResult.allocations[idx].invoiceId,
+          amountApplied: splitResult.allocations[idx].amount.toString(),
+          qboPaymentId: res.Payment?.Id,
+        })
+      })
+    } catch (err: any) {
+      // ── Phase 6: Non-Destructive Rollback ──────────────────────────────────
+      await logActivity(firmId, 'FAILED', { action: 'ROLLBACK_TRIGGERED', error: err.message }, jobId, 'SYSTEM', 'ERROR')
+
+      if (journalEntryId) {
+        // Instead of deleting, we'd ideally create a Reversal JE. 
+        // For simplicity in this step, we'll reversal-create:
+        const reversalJE = {
+          ...journalEntryModel,
+          Line: journalEntryModel.Line.map(l => ({
+            ...l,
+            JournalEntryLineDetail: {
+              ...l.JournalEntryLineDetail,
+              PostingType: l.JournalEntryLineDetail.PostingType === 'Debit' ? 'Credit' : 'Debit'
+            }
+          })),
+          PrivateNote: `REVERSAL of PaySplit JE ${journalEntryId} (Job ${jobId})`
+        }
+        await createJournalEntry(firmId, realmId, reversalJE)
+        await logActivity(firmId, 'ROLLED_BACK', { action: 'JE_REVERSED', originalJE: journalEntryId }, jobId, 'SYSTEM', 'WARNING')
+      }
+      throw err // Re-throw to fail the job
+    }
     // ── Write audit entries ───────────────────────────────────────────────────
     await prisma.auditEntry.createMany({
       data: splitResult.allocations.map((alloc, idx) => ({

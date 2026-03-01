@@ -94,22 +94,40 @@ export async function rulesRoutes(fastify: FastifyInstance) {
       const rule = await prisma.splitRule.findUnique({ where: { id: request.params.id }, include: { firm: true } })
       if (!rule) return reply.status(404).send({ error: 'Rule not found' })
 
+      const plan = rule.firm.plan
+      const allowed = allowedStrategiesByPlan[plan] || ['proportional']
+      const currentType = rule.ruleType
+      const isCurrentlyLocked = !allowed.includes(currentType)
+
+      // If already violates plan, allow activation/deactivation but block config changes
+      if (isCurrentlyLocked && request.body.ruleConfig) {
+        // Automatically sync locked state to DB if not already set
+        if (!rule.isLocked) {
+          await prisma.splitRule.update({
+            where: { id: rule.id },
+            data: { isLocked: true, lockedReason: 'PLAN_DOWNGRADE' }
+          })
+        }
+        return reply.status(403).send({
+          error: `Strategy '${currentType}' is locked on the ${plan} plan due to a downgrade. Upgrade to Professional to edit.`
+        })
+      }
+
       const data: any = {}
       if (request.body.isActive !== undefined) data.isActive = request.body.isActive
 
       if (request.body.ruleConfig) {
-        // Enforce plan-based editing
-        const plan = rule.firm.plan
-        const type = request.body.ruleConfig.type || rule.ruleType
-        const allowed = allowedStrategiesByPlan[plan] || ['proportional']
-
-        if (!allowed.includes(type)) {
+        const newType = request.body.ruleConfig.type || rule.ruleType
+        if (!allowed.includes(newType)) {
           return reply.status(403).send({
-            error: `Strategy '${type}' is locked on the ${plan} plan. Upgrade to edit this rule.`
+            error: `Strategy '${newType}' is not available on the ${plan} plan.`
           })
         }
         data.ruleConfig = request.body.ruleConfig
-        data.ruleType = type
+        data.ruleType = newType
+        // If they updated to an allowed type, unlock
+        data.isLocked = false
+        data.lockedReason = null
       }
 
       const updated = await prisma.splitRule.update({

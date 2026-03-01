@@ -209,4 +209,20 @@ export async function jobsRoutes(fastify: FastifyInstance) {
 
     return { message: 'Job rejected', jobId: job.id }
   })
+
+  // GET /api/jobs/activity?firmId=xxx — fetch activity logs
+  fastify.get<{ Querystring: { firmId: string; limit?: string } }>(
+    '/activity',
+    async (request, reply) => {
+      const { firmId, limit = '100' } = request.query
+      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+      const logs = await prisma.activityLog.findMany({
+        where: { firmId },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit, 10),
+      })
+      return logs
+    }
+  )
 }

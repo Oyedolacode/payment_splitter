@@ -234,3 +234,19 @@ export async function fetchAllLocations(
   )
   return data.QueryResponse.Department ?? []
 }
+
+/**
+ * Fetch all active accounts.
+ */
+export async function fetchAllAccounts(
+  firmId: string,
+  realmId: string
+): Promise<any[]> {
+  const query = `SELECT * FROM Account WHERE Active = true MAXRESULTS 1000`
+  const data = await qboRequest<{ QueryResponse: { Account?: any[] } }>(
+    firmId,
+    realmId,
+    `/query?query=${encodeURIComponent(query)}`
+  )
+  return data.QueryResponse.Account ?? []
+}

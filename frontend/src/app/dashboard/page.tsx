@@ -13,12 +13,14 @@ interface Rule {
   ruleType: RuleType
   ruleConfig: any
   isActive: boolean
+  isLocked: boolean
+  lockedReason?: string
   createdAt: string
 }
 
-type Tab = 'reconciliation' | 'rules' | 'settings'
+type Tab = 'reconciliation' | 'rules' | 'settings' | 'audit'
 
-type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED'
+type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED' | 'ANOMALY_PAUSED'
 
 interface AuditEntry {
   id: string
@@ -26,6 +28,17 @@ interface AuditEntry {
   invoiceId: string
   amountApplied: string
   qboPaymentId?: string
+}
+
+interface ActivityLog {
+  id: string
+  firmId: string
+  type: string
+  details: any
+  jobId?: string
+  actorType: 'SYSTEM' | 'USER' | 'WEBHOOK'
+  severity: 'INFO' | 'WARNING' | 'ERROR'
+  createdAt: string
 }
 
 interface PaymentJob {
@@ -58,6 +71,7 @@ const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
   PROCESSING: { label: 'Processing', color: '#f59e0b' },
   QUEUED: { label: 'Queued', color: '#2d31fa' },
   REVIEW_REQUIRED: { label: 'Manual Review', color: '#ec4899' }, // Pink for attention
+  ANOMALY_PAUSED: { label: 'Anomaly Detected', color: '#f97316' }, // Orange for warning
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -502,6 +516,7 @@ export default function DashboardPage() {
   const [firmId, setFirmId] = useState<string>('')
   const [jobs, setJobs] = useState<PaymentJob[]>([])
   const [rules, setRules] = useState<Rule[]>([])
+  const [activity, setActivity] = useState<ActivityLog[]>([])
   const [firm, setFirm] = useState<any>(null)
   const [customers, setCustomers] = useState<any[]>([])
   const [locations, setLocations] = useState<any[]>([])
@@ -562,6 +577,17 @@ export default function DashboardPage() {
       addToast('Failed to fetch rules', 'error')
     }
   }, [addToast])
+
+  const fetchActivity = useCallback(async (id: string) => {
+    if (!id) return
+    try {
+      const res = await fetch(`${API}/api/jobs/activity?firmId=${id}`)
+      const data = await res.json()
+      setActivity(data)
+    } catch (e) {
+      console.error('Failed to fetch activity:', e)
+    }
+  }, [])
 
   const fetchFirm = useCallback(async (id: string) => {
     if (!id) return
@@ -839,25 +865,21 @@ export default function DashboardPage() {
             PaySplit
           </div>
 
-          <nav className={`${styles.headerNav} ${showMobileMenu ? styles.headerNavMobile : ''}`}>
-            <button
-              className={`${styles.navItem} ${tab === 'reconciliation' ? styles.navItemActive : ''}`}
-              onClick={() => { setTab('reconciliation'); setShowMobileMenu(false) }}
-            >
-              Reconciliation
-            </button>
-            <button
-              className={`${styles.navItem} ${tab === 'rules' ? styles.navItemActive : ''}`}
-              onClick={() => { setTab('rules'); setShowMobileMenu(false) }}
-            >
-              Rules
-            </button>
-            <button
-              className={`${styles.navItem} ${tab === 'settings' ? styles.navItemActive : ''}`}
-              onClick={() => { setTab('settings'); setShowMobileMenu(false) }}
-            >
-              Settings
-            </button>
+          <nav className={styles.nav}>
+            <div className={styles.navLinks}>
+              <button className={`${styles.navLink} ${tab === 'reconciliation' ? styles.navLinkActive : ''}`} onClick={() => { setTab('reconciliation'); setShowMobileMenu(false) }}>
+                Reconciliation
+              </button>
+              <button className={`${styles.navLink} ${tab === 'rules' ? styles.navLinkActive : ''}`} onClick={() => { setTab('rules'); fetchRules(firmId); setShowMobileMenu(false) }}>
+                Routing Rules
+              </button>
+              <button className={`${styles.navLink} ${tab === 'audit' ? styles.navLinkActive : ''}`} onClick={() => { setTab('audit'); fetchActivity(firmId); setShowMobileMenu(false) }}>
+                Audit Feed
+              </button>
+              <button className={`${styles.navLink} ${tab === 'settings' ? styles.navLinkActive : ''}`} onClick={() => { setTab('settings'); setShowMobileMenu(false) }}>
+                Settings
+              </button>
+            </div>
             <div className={styles.navMobileOnly}>
               <div className={styles.firmNameMobile}>
                 {firm?.name || 'Loading...'}
@@ -1305,7 +1327,12 @@ export default function DashboardPage() {
                           <td>
                             <div className={styles.customerName}>{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
                           </td>
-                          <td><span className={styles.ruleType}>{rule.ruleType}</span></td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span className={styles.ruleType}>{rule.ruleType}</span>
+                              {rule.isLocked && <span title={`Locked: ${rule.lockedReason}`} style={{ cursor: 'help' }}>🔒</span>}
+                            </div>
+                          </td>
                           <td>
                             <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px' }}>
                               {rule.ruleType === 'proportional'
@@ -1345,13 +1372,18 @@ export default function DashboardPage() {
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <button
                                 className={styles.secondaryBtn}
-                                style={{ padding: '4px 8px', fontSize: '10px' }}
+                                style={{ padding: '4px 8px', fontSize: '10px', opacity: rule.isLocked ? 0.7 : 1 }}
                                 onClick={() => {
+                                  if (rule.isLocked) {
+                                    addToast(`This rule is locked due to a plan downgrade. Upgrade to Professional to edit.`, 'info')
+                                    setShowPricingModal(true)
+                                    return
+                                  }
                                   setEditingRule(rule);
                                   setShowRuleModal(true);
                                 }}
                               >
-                                Edit
+                                {rule.isLocked ? 'View' : 'Edit'}
                               </button>
                               <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
                             </div>
@@ -1443,6 +1475,63 @@ export default function DashboardPage() {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {tab === 'audit' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Audit Feed</span>
+              <button className={styles.secondaryBtn} onClick={() => fetchActivity(firmId)}>Refresh</button>
+            </div>
+            {activity.length === 0 ? (
+              <div className={styles.empty}>
+                <span className={styles.emptyIcon}>📜</span>
+                <div className={styles.emptyTitle}>No activity logged yet</div>
+              </div>
+            ) : (
+              <div className={styles.tableContainer}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Event</th>
+                      <th>Actor</th>
+                      <th>Detail</th>
+                      <th>Job ID</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activity.map(log => {
+                      const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
+                      const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
+                      return (
+                        <tr key={log.id} className={styles.row}>
+                          <td><span className={styles.timeCell}>{new Date(log.createdAt).toLocaleString()}</span></td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sevColor }} />
+                              <span className={styles.mono} style={{ fontWeight: 600 }}>{log.type}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={styles.badge} style={{ fontSize: '9px', padding: '2px 6px', background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
+                              {log.actorType}
+                            </span>
+                          </td>
+                          <td>
+                            <div className={styles.metaSub} style={{ fontSize: '11px', maxWidth: '400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {JSON.stringify(log.details)}
+                            </div>
+                          </td>
+                          <td><span className={styles.mono} style={{ fontSize: '10px' }}>{log.jobId?.slice(0, 8) || '—'}</span></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
