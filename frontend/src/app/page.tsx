@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styles from './landing.module.css'
 import { ThemeToggle } from '../components/ThemeToggle'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -34,9 +36,9 @@ function SplitDiagram() {
           { label: 'Branch C', amount: '$12,000', pct: '24%', delay: '0.24s' },
         ].map(b => (
           <div key={b.label} className={styles.diagramBranch} style={{ animationDelay: b.delay }}>
-            <div className={styles.branchPct}>{b.pct}</div>
-            <div className={styles.branchAmount}>{b.amount}</div>
-            <div className={styles.branchLabel}>{b.label}</div>
+            <div className="font-mono text-[11px] text-accent font-bold mb-[5px]">{b.pct}</div>
+            <div className="font-display text-[14px] font-bold text-text tracking-[-0.3px] mb-[4px]">{b.amount}</div>
+            <div className="text-[10px] text-text-3 uppercase tracking-[0.5px]">{b.label}</div>
           </div>
         ))}
       </div>
@@ -92,8 +94,8 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <button className={styles.modalClose} onClick={onClose} aria-label="Close">✕</button>
+      <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button className={styles.modalClose} onClick={onClose} aria-label="Close modal">✕</button>
 
         {/* Brand mark */}
         <div className={styles.modalBrand}>
@@ -108,7 +110,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
 
         {/* Progress bar */}
         <div className={styles.modalProgressBar}>
-          <div className={styles.modalProgressFill} style={{ width: step === 'name' ? '50%' : '100%' }} />
+          <div className="h-full bg-accent transition-all duration-300 rounded-full" style={{ width: step === 'name' ? '50%' : '100%' }} />
         </div>
 
         {/* Steps */}
@@ -126,7 +128,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
 
         {step === 'name' ? (
           <>
-            <h2 className={styles.modalTitle}>Start your free trial</h2>
+            <h2 className={styles.modalTitle} id="modal-title">Start your free trial</h2>
             <p className={styles.modalSub}>30 days free · No credit card required</p>
             <div className={styles.field}>
               <label className={styles.fieldLabel}>Firm name</label>
@@ -147,7 +149,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            <h2 className={styles.modalTitle}>Connect QuickBooks</h2>
+            <h2 className={styles.modalTitle} id="modal-title">Connect QuickBooks</h2>
             <p className={styles.modalSub}>
               Authorize PaySplit to read invoices and post split payments on your behalf.
             </p>
@@ -160,15 +162,19 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
               ].map(p => (
                 <div key={p.text} className={styles.qboPerm}>
                   <span className={p.ok ? styles.permOk : styles.permNo}>{p.ok ? '✓' : '✕'}</span>
-                  <span style={{ color: p.ok ? 'var(--text-2)' : 'var(--text-3)' }}>{p.text}</span>
+                  <span className={p.ok ? 'text-text-2' : 'text-text-3'}>{p.text}</span>
                 </div>
               ))}
             </div>
             <button
               className={styles.modalBtnQBO}
-              onClick={() => { window.location.href = `${API}/auth/qbo/connect?firmId=${firmId}` }}
+              onClick={() => { 
+                const connectUrl = `${API}/auth/qbo/connect?firmId=${firmId}`
+                window.location.assign(connectUrl) 
+              }}
+              aria-label="Connect with QuickBooks Online"
             >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <circle cx="8" cy="8" r="8" fill="#2CA01C" />
                 <path d="M4.5 8.5l2.2 2.2L11.5 5" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -228,12 +234,13 @@ function FAQSection() {
                 className={styles.faqQuestion}
                 onClick={() => setOpen(open === i ? null : i)}
                 aria-expanded={open === i}
+                aria-controls={`faq-answer-${i}`}
               >
                 <span>{item.q}</span>
                 <span className={styles.faqChevron}>{open === i ? '−' : '+'}</span>
               </button>
               {open === i && (
-                <div className={styles.faqAnswer}>{item.a}</div>
+                <div id={`faq-answer-${i}`} className={styles.faqAnswer}>{item.a}</div>
               )}
             </div>
           ))}
@@ -273,8 +280,17 @@ const TESTIMONIALS = [
 ]
 
 export default function LandingPage() {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+
+  // Redirect to dashboard if already onboarded
+  useEffect(() => {
+    const firmId = localStorage.getItem('ps_firm_id')
+    if (firmId && window.location.pathname === '/') {
+      // router.push(`/dashboard?id=${firmId}`)
+    }
+  }, [router])
 
   return (
     <div className={`${styles.root} ${showMobileMenu ? styles.menuOpen : ''}`}>
@@ -285,8 +301,8 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className={styles.nav}>
         <div className={styles.navInner}>
-          <div className={styles.logo}>
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <div className={styles.logo} aria-label="PaySplit logo">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
               <rect x="1" y="1" width="9" height="9" rx="3" fill="#2d31fa" />
               <rect x="12" y="1" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".2" />
               <rect x="1" y="12" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".2" />
@@ -294,15 +310,15 @@ export default function LandingPage() {
             </svg>
             PaySplit
           </div>
-          <div className={`${styles.navLinks} ${showMobileMenu ? styles.navLinksMobile : ''}`}>
-            <a href="#how" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>How it works</a>
-            <a href="#pricing" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>Pricing</a>
-            <a href="#faq" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>FAQ</a>
-            <a href="/dashboard" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>Sign in</a>
+          <nav id="mobile-menu-links" className={`${styles.navLinks} ${showMobileMenu ? styles.navLinksMobile : ''}`} aria-label="Main navigation">
+            <Link href="#how" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>How it works</Link>
+            <Link href="#pricing" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>Pricing</Link>
+            <Link href="#faq" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>FAQ</Link>
+            <Link href="/dashboard" className={styles.navLink} onClick={() => setShowMobileMenu(false)}>Sign in</Link>
             <div className={styles.navMobileFooter}>
               <ThemeToggle />
             </div>
-          </div>
+          </nav>
 
           <div className={styles.navActions}>
             <div className={styles.hideMobile}>
@@ -314,7 +330,9 @@ export default function LandingPage() {
             <button
               className={styles.menuToggle}
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              aria-label="Toggle menu"
+              aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
+              aria-expanded={showMobileMenu}
+              aria-controls="mobile-menu-links"
             >
               {showMobileMenu ? '✕' : '☰'}
             </button>
@@ -358,7 +376,7 @@ export default function LandingPage() {
               <button className={styles.ctaPrimary} onClick={() => setShowModal(true)}>
                 Start 30-day free trial →
               </button>
-              <a href="#how" className={styles.ctaSecondary}>See how it works ↓</a>
+              <Link href="#how" className={styles.ctaSecondary}>See how it works ↓</Link>
             </div>
             <p className={styles.heroNote}>No credit card · Works with existing QBO · Setup in 2 min</p>
           </div>
@@ -398,9 +416,9 @@ export default function LandingPage() {
               { num: '03', title: 'Payments split automatically', body: 'When a bulk payment hits QBO, PaySplit intercepts it via webhook, calculates the split, posts allocations, and logs the audit trail — in under a second.' },
             ].map((s, i) => (
               <div key={s.num} className={styles.howStep} style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className={styles.howNum}>{s.num}</div>
-                <h3 className={styles.howTitle}>{s.title}</h3>
-                <p className={styles.howBody}>{s.body}</p>
+                <div className="font-mono text-[11px] tracking-[1px] text-accent mb-[16px] opacity-70">{s.num}</div>
+                <h3 className="font-display text-[17px] font-bold text-text mb-[12px] tracking-[-0.3px]">{s.title}</h3>
+                <p className="text-[14px] leading-[1.7] text-text-2">{s.body}</p>
               </div>
             ))}
           </div>
@@ -494,7 +512,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <div className={styles.logo} style={{ fontSize: 13 }}>
+          <div className="flex items-center gap-[9px] font-display text-[13px] font-extrabold text-text tracking-[-0.6px] shrink-0 translate-y-[-0.5px]">
             <svg width="16" height="16" viewBox="0 0 22 22" fill="none">
               <rect x="1" y="1" width="9" height="9" rx="3" fill="#2d31fa" />
               <rect x="12" y="1" width="9" height="9" rx="3" fill="#2d31fa" fillOpacity=".35" />
@@ -504,10 +522,10 @@ export default function LandingPage() {
             PaySplit
           </div>
           <div className={styles.footerLinks}>
-            <a href="#how" className={styles.footerLink}>How it works</a>
-            <a href="#pricing" className={styles.footerLink}>Pricing</a>
-            <a href="#faq" className={styles.footerLink}>FAQ</a>
-            <a href="/dashboard" className={styles.footerLink}>Sign in</a>
+            <Link href="#how" className={styles.footerLink}>How it works</Link>
+            <Link href="#pricing" className={styles.footerLink}>Pricing</Link>
+            <Link href="#faq" className={styles.footerLink}>FAQ</Link>
+            <Link href="/dashboard" className={styles.footerLink}>Sign in</Link>
           </div>
           <div className={styles.footerNote}>
             © {new Date().getFullYear()} PaySplit · Not affiliated with Intuit, Inc.

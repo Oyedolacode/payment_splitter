@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import styles from './dashboard.module.css'
 import { ThemeToggle } from '../../components/ThemeToggle'
+import { useRouter } from 'next/navigation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type RuleType = 'proportional' | 'oldest_first' | 'location_priority'
@@ -111,13 +112,12 @@ function StatusBadge({ status }: { status: JobStatus }) {
     <span
       className={styles.badge}
       style={{ color, borderColor: `${color}28`, background: `${color}10` }}
+      aria-label={`Status: ${label}`}
+      role="status"
     >
       <span
-        className={styles.badgeDot}
-        style={{
-          background: color,
-          animation: status === 'PROCESSING' ? 'pulseDot 1.2s ease-in-out infinite' : 'none',
-        }}
+        className={`${styles.badgeDot} ${status === 'PROCESSING' ? 'animate-pulseDot' : ''}`}
+        style={{ background: color }}
       />
       {label}
     </span>
@@ -173,10 +173,10 @@ function PricingModal({
 }) {
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={`${styles.modal} ${styles.pricingModal}`} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalHeader} style={{ padding: '32px 32px 0' }}>
-          <h2 className={styles.modalTitle}>Upgrade Your Splitter</h2>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+      <div className={`${styles.modal} ${styles.pricingModal}`} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title">
+        <div className={`${styles.modalHeader} pt-8 px-8 pb-0 flex items-center justify-between`}>
+          <h2 className={styles.modalTitle} id="pricing-modal-title">Upgrade Your Splitter</h2>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div className={styles.pricingGridModal}>
           <div className={styles.planCard}>
@@ -198,8 +198,7 @@ function PricingModal({
             <div className={styles.planPrice}>$349<span>/mo</span></div>
             <div className={styles.planFeature}>Unlimited rules & Waterfall</div>
             <button
-              className={styles.primaryBtn}
-              style={{ width: '100%', marginTop: 'auto' }}
+              className="w-full mt-auto bg-accent text-white border-none rounded-lg py-3.5 font-display text-[13px] font-extrabold cursor-pointer transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
               onClick={() => onUpgrade('professional')}
               disabled={currentPlan === 'PROFESSIONAL'}
             >
@@ -342,9 +341,9 @@ function RuleBuilderModal({
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="rule-modal-title">
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
+          <h2 className={styles.modalTitle} id="rule-modal-title">{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -355,12 +354,13 @@ function RuleBuilderModal({
         <div className={styles.modalBody}>
           {loading ? (
             <div className={styles.loadingRows}>
-              <div className={styles.skeleton} style={{ height: '40px' }} />
-              <div className={styles.skeleton} style={{ height: '40px' }} />
-              <div className={styles.skeleton} style={{ height: '120px' }} />
+              <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
+              <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
+              <div className="h-[120px] rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
             </div>
           ) : isEmpty ? (
-            <div className={styles.empty} style={{ padding: '20px' }}>
+            <div className="p-12 text-center" role="status">
+              <div className="text-[40px] mb-4">📭</div>
               <div className={styles.emptyTitle}>No QBO Data Available</div>
               <div className={styles.emptySub}>
                 We couldn't find any customers or locations in your QuickBooks account.
@@ -419,7 +419,7 @@ function RuleBuilderModal({
                   </div>
                 )}
                 {isRuleTypeLocked && (
-                  <div className={styles.errorBox} style={{ marginTop: '12px', fontSize: '12px' }}>
+                  <div className="mt-3 text-[12px] bg-red/10 border border-red/20 text-red p-3 rounded-lg flex gap-2">
                     <span>⚠️</span>
                     <span>This rule is currently <strong>locked</strong> due to a plan change. You can toggle it on/off, but cannot modify its configuration or strategy.</span>
                   </div>
@@ -449,11 +449,11 @@ function RuleBuilderModal({
 
 
               {(ruleType === 'oldest_first' || ruleType === 'location_priority') && (
-                <div className={styles.orderSection} style={{ opacity: isRuleTypeLocked ? 0.6 : 1, pointerEvents: isRuleTypeLocked ? 'none' : 'auto' }}>
+                <div className="transition-opacity" style={{ opacity: isRuleTypeLocked ? 0.6 : 1, pointerEvents: isRuleTypeLocked ? 'none' : 'auto' }}>
                   <label className={styles.label}>
                     {ruleType === 'oldest_first' ? 'Settlement Priority (Waterfall Order)' : 'Location Priority Order'}
                   </label>
-                  <p className={styles.settingsSub} style={{ marginBottom: '12px' }}>
+                  <p className="text-[12px] text-text-3 mb-3 leading-relaxed">
                     {ruleType === 'oldest_first'
                       ? 'Payments will fully cover the oldest invoices at Location 1 first, then Location 2, etc.'
                       : 'Each location listed will be fully cleared of all open invoices before any funds are applied to the next location.'}
@@ -466,18 +466,16 @@ function RuleBuilderModal({
                           <div className={styles.orderBadge}>{idx + 1}</div>
                           <div className={styles.orderName}>{loc?.Name || `Location ${locId}`}</div>
                           {!isRuleTypeLocked && (
-                            <div style={{ display: 'flex', gap: '4px' }}>
+                            <div className="flex gap-1">
                               <button
-                                className={styles.secondaryBtn}
-                                style={{ padding: '4px', fontSize: '10px' }}
+                                className="bg-surface border border-border-strong text-text-2 rounded p-1 text-[10px] font-bold cursor-pointer transition-all hover:bg-surface-2 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => moveOrder(idx, 'up')}
                                 disabled={idx === 0}
                               >
                                 ↑
                               </button>
                               <button
-                                className={styles.secondaryBtn}
-                                style={{ padding: '4px', fontSize: '10px' }}
+                                className="bg-surface border border-border-strong text-text-2 rounded p-1 text-[10px] font-bold cursor-pointer transition-all hover:bg-surface-2 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => moveOrder(idx, 'down')}
                                 disabled={idx === order.length - 1}
                               >
@@ -512,6 +510,7 @@ function RuleBuilderModal({
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('reconciliation')
   const [firmId, setFirmId] = useState<string>('')
   const [jobs, setJobs] = useState<PaymentJob[]>([])
@@ -552,12 +551,13 @@ export default function DashboardPage() {
     if (!id) return
     try {
       const res = await fetch(`${API}/api/jobs?firmId=${id}`)
-      const data = await res.json()
-      if (res.ok) {
-        setJobs(Array.isArray(data) ? data : [])
-      } else {
+      if (!res.ok) {
+        const data = await res.json()
         addToast(`Failed to fetch jobs: ${data.details || data.error || res.statusText}`, 'error')
+        return
       }
+      const data = await res.json()
+      setJobs(Array.isArray(data) ? data : [])
     } catch (e: any) {
       console.error('Failed to fetch jobs:', e)
       addToast(`Jobs Fetch Error: ${e.message || 'Unknown network error'}`, 'error')
@@ -643,12 +643,16 @@ export default function DashboardPage() {
 
     if (!activeId) {
       // No ID found, redirect back to landing
-      window.location.href = '/'
+      router.push('/')
       return
     }
 
     setFirmId(activeId)
-    if (params.get('connected') === 'true') setConnected(true)
+    if (params.get('connected') === 'true') {
+      setConnected(true)
+      // Clean up URL params
+      router.replace('/dashboard')
+    }
 
     fetchJobs(activeId)
     fetchRules(activeId)
@@ -721,6 +725,14 @@ export default function DashboardPage() {
   function toggleRow(jobId: string) {
     setSelected(prev => prev === jobId ? null : jobId)
   }
+
+  // Focus trap for modals would usually go here using a hook or Ref
+  const modalRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (showRuleModal || showPricingModal || showLogoutModal || showDeleteModal) {
+      modalRef.current?.focus()
+    }
+  }, [showRuleModal, showPricingModal, showLogoutModal, showDeleteModal])
 
   async function toggleRule(ruleId: string, isActive: boolean) {
     try {
@@ -797,6 +809,22 @@ export default function DashboardPage() {
   const totalSplits = complete.reduce((s, j) => s + j.auditEntries.length, 0)
   const successRate = jobs.length ? Math.round((complete.length / jobs.length) * 100) : null
   
+  if (loading) {
+    return (
+      <div className={styles.main} aria-busy="true" aria-live="polite">
+        <div className="flex flex-col gap-8">
+          <div className="h-12 w-1/3 bg-surface-2 animate-shimmer rounded-lg" />
+          <div className="grid grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-surface-2 animate-shimmer rounded-xl" />
+            ))}
+          </div>
+          <div className="h-96 bg-surface-2 animate-shimmer rounded-2xl" />
+        </div>
+      </div>
+    )
+  }
+
   const isTrialExpired = firm?.trialEndsAt ? new Date(firm.trialEndsAt) < new Date() : false
   const hasAccess = firm?.isSubscribed || !isTrialExpired
 
@@ -855,40 +883,40 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.root}>
-      {/* Background */}
       <div className={styles.gridBg} aria-hidden="true" />
       <div className={styles.glowPurple} aria-hidden="true" />
       <div className={styles.glowGreen} aria-hidden="true" />
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className={`${styles.header} ${showMobileMenu ? styles.headerMenuOpen : ''}`}>
-        <div className={styles.headerInner}>
-          <div className={styles.logo}>
-            <LogoIcon />
-            PaySplit
-          </div>
+      <div ref={modalRef} tabIndex={-1} className="outline-none">
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <header className={`${styles.header} ${showMobileMenu ? styles.headerMenuOpen : ''}`} role="banner">
+          <div className={styles.headerInner}>
+            <div className={styles.logo} aria-label="PaySplit dashboard">
+              <LogoIcon aria-hidden="true" />
+              PaySplit
+            </div>
 
           <nav className={styles.nav}>
-            <div className={styles.navLinks}>
-              <button className={`${styles.navLink} ${tab === 'reconciliation' ? styles.navLinkActive : ''}`} onClick={() => { setTab('reconciliation'); setShowMobileMenu(false) }}>
+            <div className={styles.navLinks} role="tablist" aria-label="Dashboard sections">
+              <button role="tab" aria-selected={tab === 'reconciliation'} className={`${styles.navLink} ${tab === 'reconciliation' ? styles.navLinkActive : ''}`} onClick={() => { setTab('reconciliation'); setShowMobileMenu(false) }}>
                 Reconciliation
               </button>
-              <button className={`${styles.navLink} ${tab === 'rules' ? styles.navLinkActive : ''}`} onClick={() => { setTab('rules'); fetchRules(firmId); setShowMobileMenu(false) }}>
+              <button role="tab" aria-selected={tab === 'rules'} className={`${styles.navLink} ${tab === 'rules' ? styles.navLinkActive : ''}`} onClick={() => { setTab('rules'); fetchRules(firmId); setShowMobileMenu(false) }}>
                 Routing Rules
               </button>
-              <button className={`${styles.navLink} ${tab === 'audit' ? styles.navLinkActive : ''}`} onClick={() => { setTab('audit'); fetchActivity(firmId); setShowMobileMenu(false) }}>
+              <button role="tab" aria-selected={tab === 'audit'} className={`${styles.navLink} ${tab === 'audit' ? styles.navLinkActive : ''}`} onClick={() => { setTab('audit'); fetchActivity(firmId); setShowMobileMenu(false) }}>
                 Audit Feed
               </button>
-              <button className={`${styles.navLink} ${tab === 'remittance' ? styles.navLinkActive : ''}`} onClick={() => { setTab('remittance'); setShowMobileMenu(false) }}>
+              <button role="tab" aria-selected={tab === 'remittance'} className={`${styles.navLink} ${tab === 'remittance' ? styles.navLinkActive : ''}`} onClick={() => { setTab('remittance'); setShowMobileMenu(false) }}>
                 CSV Remittance
               </button>
-              <button className={`${styles.navLink} ${tab === 'ap' ? styles.navLinkActive : ''}`} onClick={() => { setTab('ap'); setShowMobileMenu(false) }}>
+              <button role="tab" aria-selected={tab === 'ap'} className={`${styles.navLink} ${tab === 'ap' ? styles.navLinkActive : ''}`} onClick={() => { setTab('ap'); setShowMobileMenu(false) }}>
                 AP Bills
               </button>
-              <button className={`${styles.navLink} ${tab === 'trust' ? styles.navLinkActive : ''}`} onClick={() => { setTab('trust'); setShowMobileMenu(false) }}>
+              <button role="tab" aria-selected={tab === 'trust'} className={`${styles.navLink} ${tab === 'trust' ? styles.navLinkActive : ''}`} onClick={() => { setTab('trust'); setShowMobileMenu(false) }}>
                 Trust
               </button>
-              <button className={`${styles.navLink} ${tab === 'settings' ? styles.navLinkActive : ''}`} onClick={() => { setTab('settings'); setShowMobileMenu(false) }}>
+              <button role="tab" aria-selected={tab === 'settings'} className={`${styles.navLink} ${tab === 'settings' ? styles.navLinkActive : ''}`} onClick={() => { setTab('settings'); setShowMobileMenu(false) }}>
                 Settings
               </button>
             </div>
@@ -1402,10 +1430,26 @@ export default function DashboardPage() {
             </div>
 
             {rules.length === 0 ? (
-              <div className={styles.empty}>
-                <span className={styles.emptyIcon}>⚖️</span>
+              <div className="p-16 text-center" role="status">
+                <div className="text-[40px] mb-4">⚖️</div>
                 <div className={styles.emptyTitle}>No rules yet</div>
                 <div className={styles.emptySub}>Rules determine how payments are split between your branch locations.</div>
+                <div className="mt-6">
+                  <button 
+                    className={styles.primaryBtn} 
+                    onClick={() => {
+                       if (!hasAccess) {
+                         addToast(`Your access has expired. Please subscribe to create rules.`, 'error')
+                         setShowPricingModal(true)
+                         return
+                       }
+                       setEditingRule(null)
+                       setShowRuleModal(true)
+                    }}
+                  >
+                    + Create your first rule
+                  </button>
+                </div>
               </div>
             ) : (
               <div className={styles.tableContainer}>
@@ -1733,8 +1777,8 @@ export default function DashboardPage() {
 
         {showDeleteModal && (
           <div className={styles.overlay} onClick={() => setShowDeleteModal(false)}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-              <h2 className={styles.modalTitle} style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--red)' }}>Delete Rule</h2>
+            <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+              <h2 className={styles.modalTitle} id="delete-modal-title" style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--red)' }}>Delete Rule</h2>
               <p className={styles.modalSub}>Are you sure you want to permanently delete this rule? This cannot be undone.</p>
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                 <button
@@ -1760,7 +1804,7 @@ export default function DashboardPage() {
       {/* Logout confirmation modal */}
       {showLogoutModal && (
         <div className={styles.logoutOverlay} onClick={() => setShowLogoutModal(false)}>
-          <div className={styles.logoutModal} onClick={e => e.stopPropagation()}>
+          <div className={styles.logoutModal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
             <div className={styles.logoutModalIcon}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1768,7 +1812,7 @@ export default function DashboardPage() {
                 <line x1="21" y1="12" x2="9" y2="12"></line>
               </svg>
             </div>
-            <h2 className={styles.logoutModalTitle}>Sign Out</h2>
+            <h2 className={styles.logoutModalTitle} id="logout-modal-title">Sign Out</h2>
             <p className={styles.logoutModalBody}>Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
             <div className={styles.logoutModalActions}>
               <button
