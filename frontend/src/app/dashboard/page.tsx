@@ -18,7 +18,7 @@ interface Rule {
   createdAt: string
 }
 
-type Tab = 'reconciliation' | 'rules' | 'settings' | 'audit'
+type Tab = 'reconciliation' | 'rules' | 'settings' | 'audit' | 'remittance' | 'ap' | 'trust'
 
 type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED' | 'ANOMALY_PAUSED'
 
@@ -210,7 +210,7 @@ function PricingModal({
           <div className={styles.planCard}>
             <div className={styles.planName}>Practice</div>
             <div className={styles.planPrice}>$799<span>/mo</span></div>
-            <div className={styles.planFeature}>Practice-wide automation</div>
+            <div className={styles.planFeature}>Practice-wide automation & Location Priority</div>
             <button
               className={styles.planBtn}
               onClick={() => onUpgrade('practice')}
@@ -251,7 +251,7 @@ function RuleBuilderModal({
   const allowedStrategiesByPlan: Record<string, RuleType[]> = {
     TRIAL: ['proportional'],
     STANDARD: ['proportional'],
-    PROFESSIONAL: ['proportional', 'oldest_first', 'location_priority'],
+    PROFESSIONAL: ['proportional', 'oldest_first'],
     PRACTICE: ['proportional', 'oldest_first', 'location_priority'],
   }
 
@@ -415,7 +415,7 @@ function RuleBuilderModal({
                 </div>
                 {!allowed.includes(ruleType) && (
                   <div className={styles.planNoticeSmall}>
-                    {currentPlan} plan does not support this strategy. <span className={styles.upgradeLink} onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to Professional</span> to edit or create new {ruleType.replace('_', ' ')} rules.
+                    {currentPlan} plan does not support this strategy. <span className={styles.upgradeLink} onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to {ruleType === 'location_priority' ? 'Practice' : 'Professional'}</span> to edit or create new {ruleType.replace('_', ' ')} rules.
                   </div>
                 )}
                 {isRuleTypeLocked && (
@@ -796,6 +796,9 @@ export default function DashboardPage() {
   const totalProcessed = complete.reduce((s, j) => s + Number(j.totalAmount), 0)
   const totalSplits = complete.reduce((s, j) => s + j.auditEntries.length, 0)
   const successRate = jobs.length ? Math.round((complete.length / jobs.length) * 100) : null
+  
+  const isTrialExpired = firm?.trialEndsAt ? new Date(firm.trialEndsAt) < new Date() : false
+  const hasAccess = firm?.isSubscribed || !isTrialExpired
 
   // Month-over-month comparison
   const now = new Date()
@@ -876,6 +879,15 @@ export default function DashboardPage() {
               <button className={`${styles.navLink} ${tab === 'audit' ? styles.navLinkActive : ''}`} onClick={() => { setTab('audit'); fetchActivity(firmId); setShowMobileMenu(false) }}>
                 Audit Feed
               </button>
+              <button className={`${styles.navLink} ${tab === 'remittance' ? styles.navLinkActive : ''}`} onClick={() => { setTab('remittance'); setShowMobileMenu(false) }}>
+                CSV Remittance
+              </button>
+              <button className={`${styles.navLink} ${tab === 'ap' ? styles.navLinkActive : ''}`} onClick={() => { setTab('ap'); setShowMobileMenu(false) }}>
+                AP Bills
+              </button>
+              <button className={`${styles.navLink} ${tab === 'trust' ? styles.navLinkActive : ''}`} onClick={() => { setTab('trust'); setShowMobileMenu(false) }}>
+                Trust
+              </button>
               <button className={`${styles.navLink} ${tab === 'settings' ? styles.navLinkActive : ''}`} onClick={() => { setTab('settings'); setShowMobileMenu(false) }}>
                 Settings
               </button>
@@ -954,6 +966,30 @@ export default function DashboardPage() {
               <p className={styles.subtitle}>Define how incoming payments should be distributed</p>
             </div>
           )}
+          {tab === 'audit' && (
+            <div>
+              <h1 className={styles.title}>Audit Feed</h1>
+              <p className={styles.subtitle}>System and user activity logs</p>
+            </div>
+          )}
+          {tab === 'remittance' && (
+            <div>
+              <h1 className={styles.title}>CSV Remittance</h1>
+              <p className={styles.subtitle}>Upload bulk clearing files and remittance advice</p>
+            </div>
+          )}
+          {tab === 'ap' && (
+            <div>
+              <h1 className={styles.title}>AP Bill Splitting</h1>
+              <p className={styles.subtitle}>Automatically split and route Accounts Payable bills</p>
+            </div>
+          )}
+          {tab === 'trust' && (
+            <div>
+              <h1 className={styles.title}>Trust Accounting</h1>
+              <p className={styles.subtitle}>Manage compliance and transfers for trust ledger funds</p>
+            </div>
+          )}
           {tab === 'settings' && (
             <div>
               <h1 className={styles.title}>Firm Settings</h1>
@@ -967,8 +1003,28 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Expired Paywall Banner */}
+        {!loading && !hasAccess && (
+          <div className={styles.upgradeBanner} style={{ background: 'var(--bg-card)', border: '1px solid #ef4444' }}>
+            <div className={styles.upgradeContent}>
+              <span className={styles.upgradeIcon}>🚫</span>
+              <div>
+                <div className={styles.upgradeTitle} style={{ color: '#ef4444' }}>
+                  Subscription or Trial Expired
+                </div>
+                <div className={styles.upgradeText}>
+                  Your automated payment splitting is paused. Please subscribe to reactivate your rules and continue processing payments.
+                </div>
+              </div>
+            </div>
+            <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)}>
+              Subscribe Now
+            </button>
+          </div>
+        )}
+
         {/* Upgrade Banner for TRIAL/STANDARD */}
-        {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
+        {hasAccess && (firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
           <div className={styles.upgradeBanner}>
             <div className={styles.upgradeContent}>
               <span className={styles.upgradeIcon}>💎</span>
@@ -1274,6 +1330,46 @@ export default function DashboardPage() {
           </>
         )}
 
+        {tab === 'remittance' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Remittance Uploads</span>
+              <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)}>Upload CSV...</button>
+            </div>
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon}>📄</span>
+              <div className={styles.emptyTitle}>Upload Remittance History</div>
+              <div className={styles.emptySub}>Upload bulk clearing lists from payment providers directly. Support for this feature requires Professional plan or higher.</div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'ap' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>AP Bill Splitting</span>
+            </div>
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon}>📤</span>
+              <div className={styles.emptyTitle}>Split AP Bills Automatically</div>
+              <div className={styles.emptySub}>Accounts Payable bill splitting is an upcoming feature. Automate vendor disbursement across branches.</div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'trust' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Trust Accounting</span>
+            </div>
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon}>🏛️</span>
+              <div className={styles.emptyTitle}>Trust Ledger Management</div>
+              <div className={styles.emptySub}>Manage pre-funded retainers, trust-to-operating transfers, and compliance reporting. Feature currently in beta.</div>
+            </div>
+          </div>
+        )}
+
         {tab === 'rules' && (
           <div className={styles.card}>
             <div className={styles.cardHeader}>
@@ -1287,6 +1383,11 @@ export default function DashboardPage() {
               <button
                 className={styles.secondaryBtn}
                 onClick={() => {
+                  if (!hasAccess) {
+                    addToast(`Your access has expired. Please subscribe to create or edit rules.`, 'error')
+                    setShowPricingModal(true)
+                    return
+                  }
                   if ((firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && rules.length >= 3) {
                     addToast(`Your ${firm?.plan} plan allows up to 3 rules. Upgrade for more.`, 'info')
                     setShowPricingModal(true)
@@ -1362,7 +1463,15 @@ export default function DashboardPage() {
                           <td>
                             <button
                               className={`${styles.statusToggle} ${rule.isActive ? styles.toggleOn : styles.toggleOff}`}
-                              onClick={() => toggleRule(rule.id, !rule.isActive)}
+                              disabled={!hasAccess}
+                              onClick={() => {
+                                if (!hasAccess) {
+                                  addToast('Your access has expired. Please subscribe.', 'error')
+                                  setShowPricingModal(true)
+                                } else {
+                                  toggleRule(rule.id, !rule.isActive)
+                                }
+                              }}
                             >
                               {rule.isActive ? 'Active' : 'Disabled'}
                             </button>
@@ -1372,8 +1481,13 @@ export default function DashboardPage() {
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <button
                                 className={styles.secondaryBtn}
-                                style={{ padding: '4px 8px', fontSize: '10px', opacity: rule.isLocked ? 0.7 : 1 }}
+                                style={{ padding: '4px 8px', fontSize: '10px', opacity: rule.isLocked || !hasAccess ? 0.7 : 1 }}
                                 onClick={() => {
+                                  if (!hasAccess) {
+                                    addToast('Your access has expired. Please subscribe.', 'error')
+                                    setShowPricingModal(true)
+                                    return
+                                  }
                                   if (rule.isLocked) {
                                     addToast(`This rule is locked due to a plan downgrade. Upgrade to Professional to edit.`, 'info')
                                     setShowPricingModal(true)
@@ -1475,6 +1589,50 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>Advanced Integrations</span>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={styles.settingsRow}>
+                  <div>
+                    <div className={styles.settingsLabel}>Xero Integration</div>
+                    <div className={styles.settingsSub}>Sync payments and reconciliations with Xero (Coming soon)</div>
+                  </div>
+                  <button className={styles.secondaryBtn} disabled>Connect Xero</button>
+                </div>
+                <div className={styles.settingsRow}>
+                  <div>
+                    <div className={styles.settingsLabel}>Multi-Entity Portal</div>
+                    <div className={styles.settingsSub}>Manage multiple QBO files under one firm roof</div>
+                  </div>
+                  <button className={styles.secondaryBtn} onClick={() => addToast('Multi-Entity setup requires Practice Plan. Contact sales.', 'info')}>Configure</button>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>Security & Branding</span>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={styles.settingsRow}>
+                  <div>
+                    <div className={styles.settingsLabel}>Fraud & Anomaly Detection</div>
+                    <div className={styles.settingsSub}>Automatically pause payments above $5,000 for manual review</div>
+                  </div>
+                  <button className={`${styles.statusToggle} ${styles.toggleOn}`}>Active</button>
+                </div>
+                <div className={styles.settingsRow}>
+                  <div>
+                    <div className={styles.settingsLabel}>White-label Reporting</div>
+                    <div className={styles.settingsSub}>Use your firm's logo and branding on audit reports</div>
+                  </div>
+                  <button className={styles.secondaryBtn} onClick={() => addToast('White-label is a Practice Plan exclusive.', 'info')}>Customize</button>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -1482,6 +1640,10 @@ export default function DashboardPage() {
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>Audit Feed</span>
+              <div style={{ flex: 1 }} />
+              <button className={styles.secondaryBtn} style={{ marginRight: '8px' }} onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
+                ⬇ Bulk Attachment Export
+              </button>
               <button className={styles.secondaryBtn} onClick={() => fetchActivity(firmId)}>Refresh</button>
             </div>
             {activity.length === 0 ? (

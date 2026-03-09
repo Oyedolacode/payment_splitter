@@ -26,7 +26,7 @@ const createRuleSchema = z.object({
 const allowedStrategiesByPlan: Record<string, string[]> = {
   TRIAL: ['proportional'],
   STANDARD: ['proportional'],
-  PROFESSIONAL: ['proportional', 'oldest_first', 'location_priority'],
+  PROFESSIONAL: ['proportional', 'oldest_first'],
   PRACTICE: ['proportional', 'oldest_first', 'location_priority'],
 }
 
@@ -49,6 +49,11 @@ export async function rulesRoutes(fastify: FastifyInstance) {
 
     const firm = await prisma.firm.findUnique({ where: { id: body.firmId } })
     if (!firm) return reply.status(404).send({ error: 'Firm not found' })
+
+    const isTrialing = firm.trialEndsAt && firm.trialEndsAt > new Date()
+    if (!firm.isSubscribed && !isTrialing) {
+      return reply.status(403).send({ error: 'Subscription or trial has expired. Please subscribe to continue.' })
+    }
 
     const plan = firm.plan
 
@@ -94,7 +99,13 @@ export async function rulesRoutes(fastify: FastifyInstance) {
       const rule = await prisma.splitRule.findUnique({ where: { id: request.params.id }, include: { firm: true } })
       if (!rule) return reply.status(404).send({ error: 'Rule not found' })
 
-      const plan = rule.firm.plan
+      const firm = rule.firm
+      const isTrialing = firm.trialEndsAt && firm.trialEndsAt > new Date()
+      if (!firm.isSubscribed && !isTrialing) {
+        return reply.status(403).send({ error: 'Subscription or trial has expired. Please subscribe to continue.' })
+      }
+
+      const plan = firm.plan
       const allowed = allowedStrategiesByPlan[plan] || ['proportional']
       const currentType = rule.ruleType
       const isCurrentlyLocked = !allowed.includes(currentType)
