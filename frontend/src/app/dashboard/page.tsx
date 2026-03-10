@@ -901,37 +901,77 @@ export default function DashboardPage() {
 
       <div ref={modalRef} tabIndex={-1} className="outline-none">
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <header className={`${styles.header} ${showMobileMenu ? styles.headerMenuOpen : ''}`} role="banner">
-          <div className={styles.headerInner}>
-            <div className={styles.logo} aria-label="PaySplit dashboard">
-              <LogoIcon aria-hidden="true" />
-              PaySplit
+        <header className="sticky top-0 z-[50] w-full bg-surface/80 backdrop-blur-md border-b border-border transition-all duration-300" role="banner">
+          <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2 font-display font-800 text-[18px] text-text cursor-pointer" onClick={() => router.push('/')} aria-label="PaySplit dashboard">
+                <LogoIcon />
+                PaySplit
+              </div>
+
+              <nav className="hidden md:flex items-center gap-1">
+                {[
+                  { id: 'reconciliation', label: 'Reconciliation' },
+                  { id: 'rules', label: 'Routing Rules' },
+                  { id: 'audit', label: 'Audit Feed', gated: true },
+                  { id: 'remittance', label: 'CSV Remittance', gated: true },
+                  { id: 'ap', label: 'AP Bills', gated: true },
+                  { id: 'trust', label: 'Trust', gated: true },
+                  { id: 'settings', label: 'Settings' }
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    className={`px-4 py-2 rounded-lg text-[13px] font-700 transition-all flex items-center gap-2 ${tab === t.id ? 'bg-surface-2 text-accent shadow-sm' : 'text-text-3 hover:text-text hover:bg-surface-2'}`}
+                    onClick={() => {
+                      if (t.gated) {
+                        addToast(`${t.label} is available on Professional and Practice plans.`, 'info')
+                        setShowPricingModal(true)
+                      } else {
+                        setTab(t.id as Tab)
+                        if (t.id === 'rules') fetchRules(firmId)
+                        if (t.id === 'audit') fetchActivity(firmId)
+                      }
+                    }}
+                  >
+                    {t.label}
+                    {t.gated && <span className="flex items-center gap-1 bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-900 border border-accent/20">Pro 🔒</span>}
+                  </button>
+                ))}
+              </nav>
             </div>
 
-          <nav className={styles.nav}>
-            <div className={styles.navLinks} role="tablist" aria-label="Dashboard sections">
-              <button role="tab" aria-selected={tab === 'reconciliation'} className={`${styles.navLink} ${tab === 'reconciliation' ? styles.navLinkActive : ''}`} onClick={() => { setTab('reconciliation'); setShowMobileMenu(false) }}>
-                Reconciliation
-              </button>
-              <button role="tab" aria-selected={tab === 'rules'} className={`${styles.navLink} ${tab === 'rules' ? styles.navLinkActive : ''}`} onClick={() => { setTab('rules'); fetchRules(firmId); setShowMobileMenu(false) }}>
-                Routing Rules
-              </button>
-              <button role="tab" aria-selected={tab === 'audit'} className={`${styles.navLink} ${tab === 'audit' ? styles.navLinkActive : ''}`} onClick={() => { setTab('audit'); fetchActivity(firmId); setShowMobileMenu(false) }}>
-                Audit Feed
-              </button>
-              <button role="tab" aria-selected={tab === 'remittance'} className={`${styles.navLink} ${tab === 'remittance' ? styles.navLinkActive : ''}`} onClick={() => { setTab('remittance'); setShowMobileMenu(false) }}>
-              <button className={styles.logoutBtn} onClick={confirmLogout} aria-label="Log out" title="Log out">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-              </button>
-            </div>
-            <div className={styles.headerRightMobile}>
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex flex-col items-end">
+                <div className="text-[12px] font-800 text-text max-w-[120px] truncate">{firm?.name || 'My Firm'}</div>
+                {firm?.qboRealmId ? (
+                  <div className="flex items-center gap-1.5 text-[10px] font-900 text-accent-2 uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-2 animate-pulse" />
+                    QBO Connected
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] font-900 text-text-3 uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-border" />
+                    QBO Disconnected
+                  </div>
+                )}
+              </div>
               <ThemeToggle />
               <button
-                className={styles.menuToggle}
+                className="w-10 h-10 rounded-xl bg-surface-2 border border-border text-text-3 hover:text-text hover:border-text-3/30 transition-all flex items-center justify-center"
+                onClick={confirmLogout}
+                aria-label="Log out"
+                title="Log out"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+              <button
+                className="md:hidden w-10 h-10 rounded-xl bg-surface-2 border border-border text-text transition-all flex items-center justify-center p-0"
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
                 aria-label="Toggle menu"
               >
@@ -939,8 +979,41 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-        </div>
-      </header>
+
+          {/* Mobile Menu */}
+          {showMobileMenu && (
+            <div className="md:hidden border-t border-border bg-surface w-full animate-fadeIn overflow-hidden pb-4">
+              <nav className="flex flex-col p-4 gap-1">
+                {[
+                  { id: 'reconciliation', label: 'Reconciliation' },
+                  { id: 'rules', label: 'Routing Rules' },
+                  { id: 'audit', label: 'Audit Feed', gated: true },
+                  { id: 'remittance', label: 'CSV Remittance', gated: true },
+                  { id: 'ap', label: 'AP Bills', gated: true },
+                  { id: 'trust', label: 'Trust', gated: true },
+                  { id: 'settings', label: 'Settings' }
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-[14px] font-700 transition-all flex items-center justify-between ${tab === t.id ? 'bg-surface-2 text-accent' : 'text-text-3'}`}
+                    onClick={() => {
+                      if (t.gated) {
+                        addToast(`${t.label} is available on Professional and Practice plans.`, 'info')
+                        setShowPricingModal(true)
+                      } else {
+                        setTab(t.id as Tab)
+                        setShowMobileMenu(false)
+                      }
+                    }}
+                  >
+                    {t.label}
+                    {t.gated && <span className="bg-accent/10 text-accent text-[9px] px-2 py-0.5 rounded-full border border-accent/20">Pro 🔒</span>}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )}
+        </header>
 
       {/* ── Main ────────────────────────────────────────────────────────── */}
       <main className={styles.main}>
@@ -1521,53 +1594,60 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {tab === 'settings' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
                 <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
                     <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
-                    <div className="text-[12px] text-text-3">Connected to Realm ID: {firm?.qboRealmId || 'None'}</div>
+                    <div className="text-[12px] text-text-3">
+                      {firm?.qboRealmId ? (
+                        <span className="flex items-center gap-1.5 text-accent-2 font-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-2" />
+                          Connected to Realm ID: {firm.qboRealmId}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-text-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-border" />
+                          Not connected to any QBO company
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <a
                     href={`${API}/auth/qbo/connect?firmId=${firmId}`}
                     className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
                   >
-                    {firm?.connected ? 'Reconnect QBO' : 'Connect QBO'}
+                    {firm?.qboRealmId ? 'Reconnect QBO' : 'Connect QBO'}
                   </a>
                 </div>
                 <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
                     <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
-                    <div className="text-[12px] text-text-3">Current tier: {firm?.plan || 'TRIAL'}</div>
+                    <div className="text-[12px] text-text-3 flex items-center gap-2">
+                       Current tier: 
+                       <span className="bg-accent/10 text-accent font-900 px-2 py-0.5 rounded-full text-[10px] border border-accent/20 uppercase tracking-wider">{firm?.plan || 'TRIAL'}</span>
+                    </div>
                   </div>
-                  {firm?.plan !== 'TRIAL' ? (
-                    <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[8px_12px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 text-[12px]" onClick={() => setShowPricingModal(true)}>
-                      Change plan →
-                    </button>
-                  ) : (
-                    <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[8px_12px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 text-[12px]" onClick={() => setShowPricingModal(true)}>
-                      Upgrade →
-                    </button>
-                  )}
+                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[8px_16px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors" onClick={() => setShowPricingModal(true)}>
+                    {firm?.plan === 'TRIAL' ? 'Upgrade Plan' : 'Change Plan'}
+                  </button>
                 </div>
                 <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div>
+                  <div className="w-full">
                     <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
-                    <div className="text-[12px] text-text-3">Choose how payments are posted to QBO.</div>
-                    <div className="mt-3 flex gap-2">
+                    <div className="text-[12px] text-text-3 mb-4">Choose how payments are posted to QBO.</div>
+                    <div className="flex gap-2">
                       <button
-                        className={`py-1.5 px-3 rounded-full text-[12px] border border-border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent' : 'bg-surface-2 text-text-2 hover:bg-surface-3'}`}
+                        className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent shadow-lg shadow-accent/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
                         onClick={() => updateAllocationMode('AUTO')}
                       >
                         Auto-Post (Instant)
                       </button>
                       <button
-                        className={`py-1.5 px-3 rounded-full text-[12px] border border-border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899]' : 'bg-surface-2 text-text-2 hover:bg-surface-3'}`}
+                        className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899] shadow-lg shadow-[#ec4899]/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
                         onClick={() => updateAllocationMode('REVIEW')}
                       >
                         Manual Review
@@ -1578,55 +1658,102 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
                 <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
               </div>
-              <div className="flex flex-col">
-                <p className="text-[13px] text-text-3 leading-relaxed px-6 py-6">Webhooks and email alerts are active for all failed jobs.</p>
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-[11px] font-800 text-text-3 uppercase tracking-wider mb-2">Alert Recipients</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="email" 
+                      placeholder="admin@firm.com" 
+                      readOnly 
+                      className="flex-1 bg-surface-2 border border-border p-2.5 rounded-lg text-[13px] text-text-3 outline-none cursor-not-allowed" 
+                    />
+                    <button className="px-4 py-2 bg-surface-3 border border-border rounded-lg text-[12px] font-700 text-text-3 cursor-not-allowed" onClick={() => addToast('Notification configuration requires Practice plan.', 'info')}>Save</button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-accent-2/5 rounded-xl border border-accent-2/10">
+                  <span className="w-2 h-2 rounded-full bg-accent-2 animate-pulse" />
+                  <p className="text-[12px] text-text-2 leading-relaxed">
+                    System alerts are <strong>active</strong>. Internal webhooks are monitoring all API activity and failed reconciliation jobs.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
                 <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none group">
                   <div>
-                    <div className="font-bold text-[14px] text-text mb-1">Xero Integration</div>
-                    <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero (Coming soon)</div>
+                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                      Xero Integration
+                      <span className="bg-surface-3 text-text-3 text-[9px] px-1.5 py-0.5 rounded-full border border-border uppercase tracking-tight font-900">Coming Soon</span>
+                    </div>
+                    <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero.</div>
                   </div>
-                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-50 cursor-not-allowed" disabled>Connect Xero</button>
+                  <button className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-40 cursor-not-allowed" disabled>Connect Xero</button>
                 </div>
                 <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className="font-bold text-[14px] text-text mb-1">Multi-Entity Portal</div>
-                    <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof</div>
+                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                      Multi-Entity Portal
+                      <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                    </div>
+                    <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof.</div>
                   </div>
-                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => addToast('Multi-Entity setup requires Practice Plan. Contact sales.', 'info')}>Configure</button>
+                  <button 
+                    className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2" 
+                    onClick={() => { addToast('Multi-Entity setup requires Practice Plan.', 'info'); setShowPricingModal(true); }}
+                  >
+                    Configure 🔒
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
                 <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security & Branding</span>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className="font-bold text-[14px] text-text mb-1">Fraud & Anomaly Detection</div>
-                    <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review</div>
+                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                      Fraud & Anomaly Detection
+                      <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                    </div>
+                    <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review.</div>
                   </div>
-                  <button className="appearance-none border-none p-[4px_10px] rounded-[6px] text-[10.5px] font-800 uppercase tracking-[0.5px] bg-accent-glow text-accent">Active</button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-800 text-text-3 uppercase tracking-wider">Unconfigured</span>
+                    <button 
+                      className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[6px_10px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors"
+                      onClick={() => { addToast('Fraud protection requires Practice plan.', 'info'); setShowPricingModal(true); }}
+                    >
+                      Enable 🔒
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className="font-bold text-[14px] text-text mb-1">White-label Reporting</div>
-                    <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports</div>
+                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                      White-label Reporting
+                      <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                    </div>
+                    <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports.</div>
                   </div>
-                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => addToast('White-label is a Practice Plan exclusive.', 'info')}>Customize</button>
+                  <button 
+                    className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2" 
+                    onClick={() => { addToast('White-labeling is a Practice plan feature.', 'info'); setShowPricingModal(true); }}
+                  >
+                    Customize 🔒
+                  </button>
                 </div>
               </div>
             </div>
