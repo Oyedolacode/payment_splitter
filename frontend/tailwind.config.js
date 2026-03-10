@@ -34,25 +34,66 @@ module.exports = {
       borderRadius: {
         lg: "var(--radius)",
         md: "var(--radius-sm)",
+        xl: "20px",
+        "2xl": "24px",
       },
-      keyframes: {
-        fadeUp: {
-          "0%": { opacity: "0", transform: "translateY(12px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        pulseDot: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.3" },
-        },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
-        },
+      spacing: {
+        "header-h": "60px",
+      },
+      boxShadow: {
+        premium: "0 20px 50px rgba(0, 0, 0, 0.05)",
+        "premium-dark": "0 20px 50px rgba(0, 0, 0, 0.25)",
+        glow: "0 0 20px var(--accent-glow)",
+      },
+      transitionProperty: {
+        'all-smooth': 'all',
+      },
+      transitionDuration: {
+        '400': '400ms',
       },
       animation: {
-        fadeUp: "fadeUp 0.5s ease both",
-        pulseDot: "pulseDot 2s ease-in-out infinite",
-        shimmer: "shimmer 1.6s ease-in-out infinite",
+        'shimmer': 'shimmer 1.6s ease-in-out infinite',
+        'pulseDot': 'pulseDot 2s ease-in-out infinite',
+        'fadeUp': 'fadeUp 0.5s ease both',
+        'fadeIn': 'fadeIn 0.2s ease both',
+        'slideUp': 'slideUp 0.25s ease both',
+        'dashFlow': 'dashFlow 1.5s linear infinite',
+        'countUp': 'countUp 2s ease both',
+        'slideIn': 'slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' },
+        },
+        pulseDot: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.4', transform: 'scale(0.8)' },
+        },
+        fadeUp: {
+          'from': { opacity: '0', transform: 'translateY(12px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeIn: {
+          'from': { opacity: '0' },
+          'to': { opacity: '1' },
+        },
+        slideUp: {
+          'from': { opacity: '0', transform: 'translateY(20px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        dashFlow: {
+          'from': { strokeDashoffset: '20' },
+          'to': { strokeDashoffset: '0' },
+        },
+        countUp: {
+          'from': { opacity: '0', transform: 'translateY(6px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideIn: {
+          'from': { transform: 'translateX(100%)', opacity: '0' },
+          'to': { transform: 'translateX(0)', opacity: '1' },
+        },
       },
     },
   },

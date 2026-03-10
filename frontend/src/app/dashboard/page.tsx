@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
-import styles from './dashboard.module.css'
+import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { useRouter } from 'next/navigation'
 
@@ -110,13 +109,13 @@ function StatusBadge({ status }: { status: JobStatus }) {
   const { label, color } = STATUS_META[status]
   return (
     <span
-      className={styles.badge}
+      className="inline-flex items-center gap-1.5 p-[3px_10px] rounded-[6px] font-bold text-[11px] border border-transparent"
       style={{ color, borderColor: `${color}28`, background: `${color}10` }}
       aria-label={`Status: ${label}`}
       role="status"
     >
       <span
-        className={`${styles.badgeDot} ${status === 'PROCESSING' ? 'animate-pulseDot' : ''}`}
+        className={`w-1.5 h-1.5 rounded-full ${status === 'PROCESSING' ? 'animate-pulseDot' : ''}`}
         style={{ background: color }}
       />
       {label}
@@ -136,13 +135,25 @@ function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     info: 'ℹ'
   }
 
+  const borderColors = {
+    success: 'border-l-[#10b981]',
+    error: 'border-l-[#ef4444]',
+    info: 'border-l-[#2d31fa]'
+  }
+
+  const iconColors = {
+    success: 'text-[#10b981]',
+    error: 'text-[#ef4444]',
+    info: 'text-[#2d31fa]'
+  }
+
   return (
     <div
-      className={`${styles.globToast} ${styles[`globToast_${toast.type}`]}`}
+      className={`flex items-center gap-3 p-[12px_20px] bg-surface border border-border border-l-4 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] animate-slideIn min-w-[280px] max-w-[400px] cursor-pointer ${borderColors[toast.type]}`}
       onClick={onClose}
     >
-      <div className={styles.globToastIcon}>{icons[toast.type]}</div>
-      <div className={styles.globToastMessage}>{toast.message}</div>
+      <div className={`text-[16px] font-800 ${iconColors[toast.type]}`}>{icons[toast.type]}</div>
+      <div className="text-[13px] font-600 text-text leading-[1.4]">{toast.message}</div>
     </div>
   )
 }
@@ -152,7 +163,7 @@ function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
-      className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
+      className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
       width="16"
       height="16"
       viewBox="0 0 16 16"
@@ -172,19 +183,19 @@ function PricingModal({
   currentPlan: string
 }) {
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={`${styles.modal} ${styles.pricingModal}`} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title">
-        <div className={`${styles.modalHeader} pt-8 px-8 pb-0 flex items-center justify-between`}>
-          <h2 className={styles.modalTitle} id="pricing-modal-title">Upgrade Your Splitter</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">✕</button>
+    <div className="fixed inset-0 z-[9999] bg-[rgba(0,0,0,0.7)] backdrop-blur-[8px] flex items-center justify-center p-5 animate-fadeIn" onClick={onClose}>
+      <div className="bg-surface border border-border-strong rounded-[20px] w-full max-w-[500px] p-8 relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideUp max-[768px]:w-[95%] max-[768px]:p-5 max-[768px]:max-h-[90vh] max-[768px]:overflow-y-auto" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title">
+        <div className="flex justify-between items-center mb-6 pt-8 px-8 pb-0 max-[768px]:px-0">
+          <h2 className="font-display text-[20px] font-800 text-text tracking-[-0.5px]" id="pricing-modal-title">Upgrade Your Splitter</h2>
+          <button className="bg-none border-none text-text-3 text-[20px] cursor-pointer p-1 transition-colors hover:text-text" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
-        <div className={styles.pricingGridModal}>
-          <div className={styles.planCard}>
-            <div className={styles.planName}>Standard</div>
-            <div className={styles.planPrice}>$149<span>/mo</span></div>
-            <div className={styles.planFeature}>Up to 3 rules</div>
+        <div className="flex flex-col gap-4 mt-6">
+          <div className="bg-surface border border-border rounded-[18px] p-[32px_24px] display-flex flex-col transition-all duration-300 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:translate-y-[-4px] hover:border-accent hover:shadow-[0_12px_30px_rgba(0,0,0,0.06)]">
+            <div className="font-display text-[14px] font-700 text-text-3 mb-4 uppercase tracking-[1px]">Standard</div>
+            <div className="font-display text-[40px] font-800 text-text mb-6">$149<span className="text-[16px] text-text-3 font-500">/mo</span></div>
+            <div className="text-[14px] text-text-2 mb-8">Up to 3 rules</div>
             <button
-              className={styles.planBtn}
+              className="mt-auto p-3 rounded-[10px] border border-border-strong bg-surface-2 text-text text-[13px] font-700 cursor-pointer transition-all duration-200 hover:bg-surface-3 hover:border-text-3 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => onUpgrade('standard')}
               disabled={currentPlan === 'STANDARD'}
             >
@@ -192,21 +203,16 @@ function PricingModal({
             </button>
           </div>
 
-          <div className={`${styles.planCard} ${styles.planActive}`}>
-            <div className={styles.planBadge}>RECOMMENDED</div>
-            <div className={styles.planName}>Professional</div>
-            <div className={styles.planPrice}>$349<span>/mo</span></div>
-            <div className={styles.planFeature}>Unlimited rules & Waterfall</div>
+          <div className="bg-surface border border-accent rounded-[18px] p-[32px_24px] display-flex flex-col transition-all duration-300 relative scale-[1.05] shadow-[0_8px_24px_var(--accent-glow)] hover:translate-y-[-4px] hover:scale-[1.05]">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white text-[10px] font-800 p-[4px_12px] rounded-[20px] tracking-[0.8px]">RECOMMENDED</div>
+            <div className="font-display text-[14px] font-700 text-text-3 mb-4 uppercase tracking-[1px]">Professional</div>
+            <div className="font-display text-[40px] font-800 text-text mb-6">$349<span className="text-[16px] text-text-3 font-500">/mo</span></div>
+            <div className="text-[14px] text-text-2 mb-8">Unlimited rules & Waterfall</div>
             <button
-              className="w-full mt-auto bg-accent text-white border-none rounded-lg py-3.5 font-display text-[13px] font-extrabold cursor-pointer transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
+              className="mt-auto p-3 rounded-[10px] border border-border-strong bg-surface-2 text-text text-[13px] font-700 cursor-pointer transition-all duration-200 hover:bg-surface-3 hover:border-text-3 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => onUpgrade('professional')}
               disabled={currentPlan === 'PROFESSIONAL'}
             >
-              {currentPlan === 'PROFESSIONAL' ? 'Current Plan' : 'Upgrade to Pro'}
-            </button>
-          </div>
-
-          <div className={styles.planCard}>
             <div className={styles.planName}>Practice</div>
             <div className={styles.planPrice}>$799<span>/mo</span></div>
             <div className={styles.planFeature}>Practice-wide automation & Location Priority</div>
@@ -340,20 +346,20 @@ function RuleBuilderModal({
   const isEmpty = customers.length === 0 || locations.length === 0
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="rule-modal-title">
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle} id="rule-modal-title">{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={onClose}>
+      <div className="bg-surface border border-border w-full max-w-[540px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="rule-modal-title">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="font-display text-[18px] font-800 text-text tracking-tight" id="rule-modal-title">{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
+          <button className="bg-none border-none text-text-3 cursor-pointer p-1 transition-colors hover:text-text flex items-center justify-center" onClick={onClose} aria-label="Close modal">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
 
-        <div className={styles.modalBody}>
+        <div className="p-8 overflow-y-auto custom-scrollbar">
           {loading ? (
-            <div className={styles.loadingRows}>
+            <div className="flex flex-col gap-4">
               <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
               <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
               <div className="h-[120px] rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
@@ -361,18 +367,18 @@ function RuleBuilderModal({
           ) : isEmpty ? (
             <div className="p-12 text-center" role="status">
               <div className="text-[40px] mb-4">📭</div>
-              <div className={styles.emptyTitle}>No QBO Data Available</div>
-              <div className={styles.emptySub}>
+              <div className="font-display text-[15px] font-800 text-text mb-[7px]">No QBO Data Available</div>
+              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">
                 We couldn't find any customers or locations in your QuickBooks account.
                 Please ensure you have sub-customers created to split payments across.
               </div>
             </div>
           ) : (
             <>
-              <div className={styles.field}>
-                <label className={styles.label}>Parent Customer (where payments arrive)</label>
+              <div className="mb-6 last:mb-0">
+                <label className="block text-[12px] font-700 text-text-3 uppercase tracking-[0.5px] mb-2">Parent Customer (where payments arrive)</label>
                 <select
-                  className={styles.select}
+                  className="w-full bg-surface-2 border border-border text-text rounded-[12px] p-[10px_14px] text-[14px] outline-none transition-all focus:border-accent focus:shadow-[0_0_0_1px_var(--accent)] appearance-none"
                   value={parentCustomerId}
                   onChange={e => setParentCustomerId(e.target.value)}
                 >
@@ -383,9 +389,9 @@ function RuleBuilderModal({
                 </select>
               </div>
 
-              <div className={styles.field}>
-                <label className={styles.label}>Allocation Strategy</label>
-                <div className={styles.tabsSmall}>
+              <div className="mb-6 last:mb-0">
+                <label className="block text-[12px] font-700 text-text-3 uppercase tracking-[0.5px] mb-2">Allocation Strategy</label>
+                <div className="flex flex-wrap gap-2 bg-surface-2 p-1.5 rounded-[12px] border border-border w-fit">
                   {[
                     { id: 'proportional', label: 'Proportional (%)' },
                     { id: 'oldest_first', label: 'Oldest First (Waterfall)' },
@@ -397,7 +403,7 @@ function RuleBuilderModal({
                     return (
                       <button
                         key={strat.id}
-                        className={`${styles.tabSmall} ${isActive ? styles.tabSmallActive : ''} ${isLocked ? styles.tabSmallDisabled : ''}`}
+                        className={`text-[11.5px] font-700 p-[6px_14px] rounded-[8px] border border-transparent transition-all cursor-pointer ${isActive ? 'bg-surface border-border shadow-sm text-accent' : 'text-text-3 hover:text-text'} ${isLocked ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
                         onClick={() => {
                           if (isLocked) {
                             addToast(`${strat.label} is locked on the ${currentPlan} plan.`, 'info')
@@ -414,8 +420,8 @@ function RuleBuilderModal({
                   })}
                 </div>
                 {!allowed.includes(ruleType) && (
-                  <div className={styles.planNoticeSmall}>
-                    {currentPlan} plan does not support this strategy. <span className={styles.upgradeLink} onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to {ruleType === 'location_priority' ? 'Practice' : 'Professional'}</span> to edit or create new {ruleType.replace('_', ' ')} rules.
+                  <div className="mt-3 text-[11px] text-text-3 italic">
+                    {currentPlan} plan does not support this strategy. <span className="text-accent cursor-pointer hover:underline font-bold" onClick={() => { onClose(); setShowPricingModal(true); }}>Upgrade to {ruleType === 'location_priority' ? 'Practice' : 'Professional'}</span> to edit or create new {ruleType.replace('_', ' ')} rules.
                   </div>
                 )}
                 {isRuleTypeLocked && (
@@ -427,20 +433,20 @@ function RuleBuilderModal({
               </div>
 
               {ruleType === 'proportional' && (
-                <div className={styles.weightsGrid}>
-                  <label className={styles.label}>Location Weights (Must sum to 100%)</label>
+                <div className="mt-6 grid grid-cols-1 gap-3">
+                  <label className="block text-[12px] font-700 text-text-3 uppercase tracking-[0.5px] mb-2">Location Weights (Must sum to 100%)</label>
                   {locations.map(loc => (
-                    <div key={loc.Id} className={styles.weightRow}>
-                      <span className={styles.weightName}>{loc.Name}</span>
-                      <div className={styles.weightInputGroup}>
+                    <div key={loc.Id} className="flex items-center justify-between p-4 bg-surface-2 border border-border rounded-[16px] transition-all hover:border-text-3/40">
+                      <span className="font-bold text-[13px] text-text">{loc.Name}</span>
+                      <div className="flex items-center gap-1.5">
                         <input
                           type="number"
-                          className={styles.weightInput}
+                          className="w-[64px] bg-surface border border-border text-center font-bold text-text text-[14px] p-2 rounded-[8px] outline-none focus:border-accent"
                           placeholder="0"
                           value={weights[loc.Id] || ''}
                           onChange={e => handleWeightChange(loc.Id, e.target.value)}
                         />
-                        <span className={styles.weightUnit}>%</span>
+                        <span className="text-[12px] font-800 text-text-3">%</span>
                       </div>
                     </div>
                   ))}
@@ -449,8 +455,8 @@ function RuleBuilderModal({
 
 
               {(ruleType === 'oldest_first' || ruleType === 'location_priority') && (
-                <div className="transition-opacity" style={{ opacity: isRuleTypeLocked ? 0.6 : 1, pointerEvents: isRuleTypeLocked ? 'none' : 'auto' }}>
-                  <label className={styles.label}>
+                <div className={`transition-opacity ${isRuleTypeLocked ? 'opacity-60 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
+                  <label className="block text-[12px] font-700 text-text-3 uppercase tracking-[0.5px] mb-2">
                     {ruleType === 'oldest_first' ? 'Settlement Priority (Waterfall Order)' : 'Location Priority Order'}
                   </label>
                   <p className="text-[12px] text-text-3 mb-3 leading-relaxed">
@@ -458,13 +464,13 @@ function RuleBuilderModal({
                       ? 'Payments will fully cover the oldest invoices at Location 1 first, then Location 2, etc.'
                       : 'Each location listed will be fully cleared of all open invoices before any funds are applied to the next location.'}
                   </p>
-                  <div className={styles.orderList}>
+                  <div className="flex flex-col gap-2 mt-4">
                     {order.map((locId, idx) => {
                       const loc = locations.find(l => String(l.Id) === String(locId))
                       return (
-                        <div key={locId} className={styles.orderItem}>
-                          <div className={styles.orderBadge}>{idx + 1}</div>
-                          <div className={styles.orderName}>{loc?.Name || `Location ${locId}`}</div>
+                        <div key={locId} className="flex items-center gap-4 p-4 bg-surface-2 border border-border rounded-[16px] transition-all hover:border-text-3/40">
+                          <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11.5px] font-800 flex items-center justify-center flex-shrink-0">{idx + 1}</div>
+                          <div className="flex-1 font-bold text-[13px] text-text">{loc?.Name || `Location ${locId}`}</div>
                           {!isRuleTypeLocked && (
                             <div className="flex gap-1">
                               <button
@@ -490,10 +496,16 @@ function RuleBuilderModal({
                 </div>
               )}
 
-              <div className={styles.modalFooter}>
-                <button className={styles.secondaryBtn} onClick={onClose} disabled={saving}>Cancel</button>
+              <div className="flex justify-end gap-3 p-6 mt-8 border-t border-border -mx-8 -mb-8 bg-surface-2/50">
+                <button 
+                  className="text-[11px] font-700 text-text bg-surface border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" 
+                  onClick={onClose} 
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
                 <button
-                  className={styles.primaryBtn}
+                  className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1"
                   onClick={handleSave}
                   disabled={saving || loading || isEmpty || isRuleTypeLocked || (ruleType === 'proportional' && Math.abs(totalWeight - 100) > 0.01)}
                 >
@@ -908,44 +920,6 @@ export default function DashboardPage() {
                 Audit Feed
               </button>
               <button role="tab" aria-selected={tab === 'remittance'} className={`${styles.navLink} ${tab === 'remittance' ? styles.navLinkActive : ''}`} onClick={() => { setTab('remittance'); setShowMobileMenu(false) }}>
-                CSV Remittance
-              </button>
-              <button role="tab" aria-selected={tab === 'ap'} className={`${styles.navLink} ${tab === 'ap' ? styles.navLinkActive : ''}`} onClick={() => { setTab('ap'); setShowMobileMenu(false) }}>
-                AP Bills
-              </button>
-              <button role="tab" aria-selected={tab === 'trust'} className={`${styles.navLink} ${tab === 'trust' ? styles.navLinkActive : ''}`} onClick={() => { setTab('trust'); setShowMobileMenu(false) }}>
-                Trust
-              </button>
-              <button role="tab" aria-selected={tab === 'settings'} className={`${styles.navLink} ${tab === 'settings' ? styles.navLinkActive : ''}`} onClick={() => { setTab('settings'); setShowMobileMenu(false) }}>
-                Settings
-              </button>
-            </div>
-            <div className={styles.navMobileOnly}>
-              <div className={styles.firmNameMobile}>
-                {firm?.name || 'Loading...'}
-              </div>
-              <button className={styles.logoutBtnMobile} onClick={confirmLogout}>
-                Sign Out
-              </button>
-            </div>
-          </nav>
-
-          <div className={styles.headerRight}>
-            <div className={styles.headerRightDesktop}>
-              <ThemeToggle />
-              {firm?.plan === 'PROFESSIONAL' && (
-                <div className={styles.proBadge}>PRO</div>
-              )}
-              {firm?.plan === 'PRACTICE' && (
-                <div className={styles.practiceBadge}>PRACTICE</div>
-              )}
-              <div className={styles.firmName}>
-                {firm?.name || 'Loading firm...'}
-              </div>
-              <div className={styles.qboBadge}>
-                <span className={styles.qboDot} />
-                QBO Connected
-              </div>
               <button className={styles.logoutBtn} onClick={confirmLogout} aria-label="Log out" title="Log out">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1033,11 +1007,11 @@ export default function DashboardPage() {
 
         {/* Expired Paywall Banner */}
         {!loading && !hasAccess && (
-          <div className={styles.upgradeBanner} style={{ background: 'var(--bg-card)', border: '1px solid #ef4444' }}>
+          <div className={`${styles.upgradeBanner} bg-surface-2 border border-red/30`}>
             <div className={styles.upgradeContent}>
               <span className={styles.upgradeIcon}>🚫</span>
               <div>
-                <div className={styles.upgradeTitle} style={{ color: '#ef4444' }}>
+                <div className={`${styles.upgradeTitle} text-red`}>
                   Subscription or Trial Expired
                 </div>
                 <div className={styles.upgradeText}>
@@ -1079,16 +1053,11 @@ export default function DashboardPage() {
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <div className={styles.statLabel}>Total Processed</div>
-                <div className={styles.statValue} style={{ color: '#10b981' }}>${fmt(totalProcessed)}</div>
-                <div className={styles.statSub} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div className={`${styles.statValue} text-accent-2`}>${fmt(totalProcessed)}</div>
+                <div className={`${styles.statSub} flex items-center gap-1.5`}>
                   <span>{complete.length} payment{complete.length !== 1 ? 's' : ''}</span>
                   {momDelta !== null && (
-                    <span style={{
-                      fontSize: '10px', fontWeight: 700, padding: '1px 5px',
-                      borderRadius: '4px',
-                      background: momDelta >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                      color: momDelta >= 0 ? '#10b981' : '#ef4444'
-                    }}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${momDelta >= 0 ? 'bg-accent-2/10 text-accent-2' : 'bg-red/10 text-red'}`}>
                       {momDelta >= 0 ? '▲' : '▼'} {Math.abs(momDelta)}% vs last mo.
                     </span>
                   )}
@@ -1107,8 +1076,7 @@ export default function DashboardPage() {
               <div className={styles.stat}>
                 <div className={styles.statLabel}>Needs Attention</div>
                 <div
-                  className={styles.statValue}
-                  style={{ color: failed.length > 0 ? '#ef4444' : undefined }}
+                  className={`${styles.statValue} ${failed.length > 0 ? 'text-red' : ''}`}
                 >
                   {failed.length}
                 </div>
@@ -1148,87 +1116,86 @@ export default function DashboardPage() {
             )}
 
             {/* Jobs table */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Payment Jobs</span>
-                <span className={styles.cardCount}>{jobs.length} total</span>
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Jobs</span>
+                <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600">{jobs.length} total</span>
               </div>
 
               {loading ? (
-                <div className={styles.loadingRows}>
+                <div className="p-[16px_24px_20px] flex flex-col gap-[10px]">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className={styles.skeleton} style={{ opacity: 1.1 - i * 0.3 }} />
+                    <div key={i} className="h-[46px] rounded-[8px] bg-[linear-gradient(90deg,var(--surface-2)_25%,var(--surface-3)_50%,var(--surface-2)_75%)] bg-[length:200%_100%] animate-shimmer" style={{ opacity: 1.1 - i * 0.3 }} />
                   ))}
                 </div>
               ) : jobs.length === 0 ? (
-                <div className={styles.empty}>
-                  <span className={styles.emptyIcon}>⚡</span>
-                  <div className={styles.emptyTitle}>Waiting for payments</div>
-                  <div className={styles.emptySub}>
+                <div className="p-[72px_24px] text-center">
+                  <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">⚡</span>
+                  <div className="font-display text-[15px] font-800 text-text mb-[7px]">Waiting for payments</div>
+                  <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">
                     Jobs appear automatically when QBO payments are received via webhook.
                   </div>
                 </div>
               ) : (
-                <div className={styles.tableContainer}>
-                  <table className={styles.table}>
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full border-collapse table-fixed min-w-[800px]">
                     <colgroup>
-                      <col /><col /><col /><col /><col /><col /><col />
+                      <col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[13%]" /><col className="w-[12%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[14%]" />
                     </colgroup>
                     <thead>
-                      <tr>
-                        <th>Payment ID</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Splits</th>
-                        <th>Rule</th>
-                        <th>When</th>
-                        <th />
+                      <tr className="border-b border-border">
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Payment ID</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Amount</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Status</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Splits</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Rule</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">When</th>
+                        <th className="p-[11px_20px]" />
                       </tr>
                     </thead>
                     <tbody>
                       {jobs.map((job, i) => {
                         const isOpen = selected === job.id
                         return (
-                          <>
+                          <Fragment key={job.id}>
                             <tr
-                              key={job.id}
-                              className={`${styles.row} ${isOpen ? styles.rowSelected : ''}`}
+                              className={`border-b border-border cursor-pointer transition-colors duration-[0.12s] animate-fadeUp hover:bg-surface-2 ${isOpen ? 'bg-accent-glow border-b-transparent' : ''}`}
                               onClick={() => toggleRow(job.id)}
                               style={{ animationDelay: `${i * 35}ms` }}
                               aria-expanded={isOpen}
                             >
-                              <td>
-                                <span className={styles.mono}>
+                              <td className="p-[11px_20px]">
+                                <span className="font-mono text-[13px]">
                                   {job.paymentId.length > 24
                                     ? job.paymentId.slice(0, 24) + '…'
                                     : job.paymentId}
                                 </span>
                               </td>
-                              <td>
-                                <span className={styles.amountCell}>${fmt(job.totalAmount)}</span>
+                              <td className="p-[11px_20px]">
+                                <span className="font-mono font-bold text-accent-2 text-[13px]">${fmt(job.totalAmount)}</span>
                               </td>
-                              <td>
+                              <td className="p-[11px_20px]">
                                 <StatusBadge status={job.status} />
                               </td>
-                              <td>
-                                <span className={styles.splitCount}>
+                              <td className="p-[11px_20px]">
+                                <span className="text-[12px] text-text-2">
                                   {job.auditEntries.length} invoice{job.auditEntries.length !== 1 ? 's' : ''}
                                 </span>
                               </td>
-                              <td>
+                              <td className="p-[11px_20px]">
                                 {job.rule?.ruleType
-                                  ? <span className={styles.ruleType}>{job.rule.ruleType}</span>
-                                  : <span className={styles.mono}>—</span>
+                                  ? <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{job.rule.ruleType}</span>
+                                  : <span className="font-mono text-text-3">—</span>
                                 }
                               </td>
-                              <td>
-                                <span className={styles.timeCell}>{timeAgo(job.createdAt)}</span>
+                              <td className="p-[11px_20px]">
+                                <span className="text-[12px] text-text-3">{timeAgo(job.createdAt)}</span>
                               </td>
-                              <td>
-                                <div className={styles.rowActions}>
+                              <td className="p-[11px_20px]">
+                                <div className="flex items-center gap-3">
                                   {(job.status === 'FAILED' || job.status === 'ROLLED_BACK') && (
                                     <button
-                                      className={styles.retryBtn}
+                                      className="text-[11px] font-700 text-accent border border-accent bg-transparent p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-accent hover:text-white transition-all"
                                       onClick={e => retryJob(e, job.id)}
                                       disabled={retrying === job.id}
                                     >
@@ -1237,10 +1204,9 @@ export default function DashboardPage() {
                                   )}
                                   {job.status === 'REVIEW_REQUIRED' && (
                                     <button
-                                      className={styles.approveBtn}
+                                      className="text-[11px] font-700 text-white border border-[#db2777] bg-[#ec4899] p-[4px_10px] rounded-[6px] cursor-pointer hover:opacity-90 transition-all shadow-[0_2px_8px_rgba(236,72,153,0.3)]"
                                       onClick={e => approveJob(e, job.id)}
                                       disabled={retrying === job.id}
-                                      style={{ background: '#ec4899', borderColor: '#db2777' }}
                                     >
                                       {retrying === job.id ? '···' : 'Approve'}
                                     </button>
@@ -1252,22 +1218,22 @@ export default function DashboardPage() {
 
                             {/* Audit trail expansion */}
                             {isOpen && (
-                              <tr key={`${job.id}-audit`} className={styles.auditRow}>
-                                <td colSpan={7}>
-                                  <div className={styles.auditPanel}>
+                              <tr key={`${job.id}-audit`} className="bg-surface-2 border-b border-border">
+                                <td colSpan={7} className="p-0">
+                                  <div className="p-8 animate-fadeIn border-t border-border">
 
                                     {job.errorMessage && (
-                                      <div className={styles.errorBox}>
-                                        <span>⚠</span>
+                                      <div className="flex items-center gap-3 p-[14px_18px] mb-6 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl text-[#ef4444] text-[13px] font-600 animate-slideUp">
+                                        <span className="text-[16px]">⚠</span>
                                         <span>{job.errorMessage}</span>
                                       </div>
                                     )}
 
-                                    <div className={styles.auditGrid}>
+                                    <div className="grid grid-cols-2 gap-8 max-[1024px]:grid-cols-1">
                                       <div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                          <div className={styles.auditTitle} style={{ marginBottom: 0 }}>Audit Trail</div>
-                                          <button className={styles.printBtn} onClick={() => window.print()} title="Export to PDF">
+                                        <div className="flex justify-between items-center mb-4">
+                                          <div className="font-display text-[14px] font-800 text-text uppercase tracking-[0.5px]">Audit Trail</div>
+                                          <button className="p-[5px_10px] text-[11px] font-700 font-display text-text-3 bg-transparent border border-border rounded-[7px] cursor-pointer transition-all flex items-center gap-[5px] hover:text-text hover:border-border-strong hover:bg-surface" onClick={() => window.print()} title="Export to PDF">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                               <polyline points="7 10 12 15 17 10" />
@@ -1276,27 +1242,27 @@ export default function DashboardPage() {
                                             PDF
                                           </button>
                                         </div>
-                                        <table className={styles.auditTable}>
+                                        <table className="w-full border-collapse">
                                           <thead>
-                                            <tr>
-                                              <th>Sub-Location</th>
-                                              <th>Invoice</th>
-                                              <th>Amount Applied</th>
-                                              <th>QBO Payment ID</th>
+                                            <tr className="border-b border-border">
+                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Sub-Location</th>
+                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Invoice</th>
+                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Amount Applied</th>
+                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">QBO Payment ID</th>
                                             </tr>
                                           </thead>
                                           <tbody>
                                             {job.auditEntries.map(entry => (
-                                              <tr key={entry.id}>
-                                                <td><span className={styles.mono}>{entry.subLocationId}</span></td>
-                                                <td><span className={styles.mono}>{entry.invoiceId}</span></td>
-                                                <td>
-                                                  <span style={{ color: '#10b981', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                              <tr key={entry.id} className="border-b border-border last:border-none">
+                                                <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.subLocationId}</span></td>
+                                                <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.invoiceId}</span></td>
+                                                <td className="py-3">
+                                                  <span className="text-accent-2 font-extrabold font-mono text-[13px]">
                                                     ${fmt(entry.amountApplied)}
                                                   </span>
                                                 </td>
-                                                <td>
-                                                  <span className={styles.mono} style={{ color: 'var(--text-3)' }}>
+                                                <td className="py-3">
+                                                  <span className="font-mono text-[12px] text-text-3">
                                                     {entry.qboPaymentId ?? '—'}
                                                   </span>
                                                 </td>
@@ -1304,36 +1270,36 @@ export default function DashboardPage() {
                                             ))}
                                           </tbody>
                                           <tfoot>
-                                            <tr>
-                                              <td colSpan={2} style={{ color: 'var(--text-3)', fontSize: 11 }}>
+                                            <tr className="border-t border-border-strong">
+                                              <td colSpan={2} className="py-4 text-text-3 text-[11px] font-700 uppercase tracking-wider">
                                                 Total allocated
                                               </td>
-                                              <td>
-                                                <span style={{ color: '#10b981', fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '-0.3px' }}>
+                                              <td className="py-4">
+                                                <span className="text-accent-2 font-extrabold font-display text-[15px] tracking-tight">
                                                   ${fmt(job.auditEntries.reduce((s, e) => s + Number(e.amountApplied), 0))}
                                                 </span>
                                               </td>
-                                              <td />
+                                              <td className="py-4" />
                                             </tr>
                                           </tfoot>
                                         </table>
                                       </div>
 
                                       <div>
-                                        <div className={styles.auditTitle}>Job Details</div>
-                                        <div className={styles.metaPanel}>
+                                        <div className="font-display text-[14px] font-800 text-text mb-4 uppercase tracking-[0.5px]">Job Details</div>
+                                        <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
                                           {[
-                                            ['Job ID', job.id.slice(0, 8) + '…'],
-                                            ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? '…' : '')],
-                                            ['Rule type', job.rule?.ruleType ?? '—'],
-                                            ['Created', new Date(job.createdAt).toLocaleString()],
+                                            ['Job ID', job.id.slice(0, 8) + '…', job.id],
+                                            ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? '…' : ''), job.paymentId],
+                                            ['Rule type', job.rule?.ruleType ?? '—', job.rule?.ruleType],
+                                            ['Created', new Date(job.createdAt).toLocaleString(), job.createdAt],
                                             ...(job.completedAt
-                                              ? [['Completed', new Date(job.completedAt).toLocaleString()]]
+                                              ? [['Completed', new Date(job.completedAt).toLocaleString(), job.completedAt]]
                                               : []),
-                                          ].map(([k, v]) => (
-                                            <div key={k} className={styles.metaRow}>
-                                              <span className={styles.metaKey}>{k}</span>
-                                              <span className={styles.metaVal}>{v}</span>
+                                          ].map(([k, v, full]) => (
+                                            <div key={k} className="flex justify-between items-center py-2 border-b border-border last:border-none">
+                                              <span className="text-[11px] font-700 uppercase text-text-3 tracking-[0.5px]">{k}</span>
+                                              <span className="text-[13px] font-600 text-text font-mono truncate max-w-[200px]" title={full as string}>{v}</span>
                                             </div>
                                           ))}
                                           <div className={styles.metaRow}>
@@ -1359,57 +1325,57 @@ export default function DashboardPage() {
         )}
 
         {tab === 'remittance' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Remittance Uploads</span>
-              <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)}>Upload CSV...</button>
+          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Remittance Uploads</span>
+              <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1" onClick={() => setShowPricingModal(true)}>Upload CSV...</button>
             </div>
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>📄</span>
-              <div className={styles.emptyTitle}>Upload Remittance History</div>
-              <div className={styles.emptySub}>Upload bulk clearing lists from payment providers directly. Support for this feature requires Professional plan or higher.</div>
+            <div className="p-[72px_24px] text-center">
+              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📄</span>
+              <div className="font-display text-[15px] font-800 text-text mb-[7px]">Upload Remittance History</div>
+              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Upload bulk clearing lists from payment providers directly. Support for this feature requires Professional plan or higher.</div>
             </div>
           </div>
         )}
 
         {tab === 'ap' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>AP Bill Splitting</span>
+          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">AP Bill Splitting</span>
             </div>
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>📤</span>
-              <div className={styles.emptyTitle}>Split AP Bills Automatically</div>
-              <div className={styles.emptySub}>Accounts Payable bill splitting is an upcoming feature. Automate vendor disbursement across branches.</div>
+            <div className="p-[72px_24px] text-center">
+              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📤</span>
+              <div className="font-display text-[15px] font-800 text-text mb-[7px]">Split AP Bills Automatically</div>
+              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Accounts Payable bill splitting is an upcoming feature. Automate vendor disbursement across branches.</div>
             </div>
           </div>
         )}
 
         {tab === 'trust' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Trust Accounting</span>
+          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Trust Accounting</span>
             </div>
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>🏛️</span>
-              <div className={styles.emptyTitle}>Trust Ledger Management</div>
-              <div className={styles.emptySub}>Manage pre-funded retainers, trust-to-operating transfers, and compliance reporting. Feature currently in beta.</div>
+            <div className="p-[72px_24px] text-center">
+              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">🏛️</span>
+              <div className="font-display text-[15px] font-800 text-text mb-[7px]">Trust Ledger Management</div>
+              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Manage pre-funded retainers, trust-to-operating transfers, and compliance reporting. Feature currently in beta.</div>
             </div>
           </div>
         )}
 
         {tab === 'rules' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Payment Routing Rules</span>
+          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Routing Rules</span>
               {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
-                <span className={styles.cardCount} style={{ marginLeft: '12px' }}>
+                <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600 ml-3">
                   {rules.length} of 3 rules used
                 </span>
               )}
-              <div style={{ flex: 1 }} />
+              <div className="flex-1" />
               <button
-                className={styles.secondaryBtn}
+                className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1"
                 onClick={() => {
                   if (!hasAccess) {
                     addToast(`Your access has expired. Please subscribe to create or edit rules.`, 'error')
@@ -1425,18 +1391,18 @@ export default function DashboardPage() {
                   setShowRuleModal(true)
                 }}
               >
-                <span style={{ fontSize: '16px', fontWeight: 600, marginRight: '4px' }}>+</span> New Rule
+                <span className="text-[16px] font-semibold mr-1">+</span> New Rule
               </button>
             </div>
 
             {rules.length === 0 ? (
               <div className="p-16 text-center" role="status">
                 <div className="text-[40px] mb-4">⚖️</div>
-                <div className={styles.emptyTitle}>No rules yet</div>
-                <div className={styles.emptySub}>Rules determine how payments are split between your branch locations.</div>
+                <div className="font-display text-[15px] font-800 text-text mb-[7px]">No rules yet</div>
+                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Rules determine how payments are split between your branch locations.</div>
                 <div className="mt-6">
                   <button 
-                    className={styles.primaryBtn} 
+                    className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 mx-auto" 
                     onClick={() => {
                        if (!hasAccess) {
                          addToast(`Your access has expired. Please subscribe to create rules.`, 'error')
@@ -1452,49 +1418,49 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className={styles.tableContainer}>
-                <table className={styles.table}>
+              <div className="w-full overflow-x-auto">
+                <table className="w-full border-collapse table-fixed min-w-[800px]">
                   <thead>
-                    <tr>
-                      <th>Parent Customer</th>
-                      <th>Type</th>
-                      <th>Weights / Order</th>
-                      <th>Status</th>
-                      <th>Created</th>
-                      <th />
+                    <tr className="border-b border-border">
+                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Parent Customer</th>
+                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Type</th>
+                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Weights / Order</th>
+                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Status</th>
+                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Created</th>
+                      <th className="p-[11px_20px]" />
                     </tr>
                   </thead>
                   <tbody>
                     {rules.map(rule => {
                       const parent = customers.find(c => c.Id === rule.parentCustomerId)
                       return (
-                        <tr key={rule.id} className={styles.row}>
-                          <td>
-                            <div className={styles.customerName}>{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
+                        <tr key={rule.id} className="border-b border-border hover:bg-surface-2 transition-colors">
+                          <td className="p-[11px_20px]">
+                            <div className="font-bold text-[13px] text-text">{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
                           </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span className={styles.ruleType}>{rule.ruleType}</span>
-                              {rule.isLocked && <span title={`Locked: ${rule.lockedReason}`} style={{ cursor: 'help' }}>🔒</span>}
+                          <td className="p-[11px_20px]">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{rule.ruleType}</span>
+                              {rule.isLocked && <span title={`Locked: ${rule.lockedReason}`} className="cursor-help">🔒</span>}
                             </div>
                           </td>
-                          <td>
-                            <div className={styles.mono} style={{ fontSize: '11px', maxWidth: '300px' }}>
+                          <td className="p-[11px_20px]">
+                            <div className="font-mono text-[11px] max-w-[300px]">
                               {rule.ruleType === 'proportional'
                                 ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
                                   const loc = locations.find(l => String(l.Id) === String(id) || String(l.id) === String(id))
                                   return (
-                                    <span key={id} className={styles.priorityPill} style={{ marginRight: '4px', marginBottom: '4px', display: 'inline-block' }}>
+                                    <span key={id} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap mr-1 mb-1 inline-block">
                                       {loc?.Name || loc?.name || `Location ${id}`}: {w}%
                                     </span>
                                   )
                                 })
                                 : (
-                                  <div className={styles.badgePriority}>
+                                  <div className="flex flex-wrap gap-1 items-center">
                                     {(rule.ruleConfig.locationIds as string[]).map((locId, idx) => {
                                       const loc = locations.find(l => String(l.Id) === String(locId) || String(l.id) === String(locId))
                                       return (
-                                        <span key={locId} className={styles.priorityPill}>
+                                        <span key={locId} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap">
                                           {idx + 1}. {loc?.Name || loc?.name || `Location ${locId}`}
                                         </span>
                                       )
@@ -1504,9 +1470,9 @@ export default function DashboardPage() {
                               }
                             </div>
                           </td>
-                          <td>
+                          <td className="p-[11px_20px]">
                             <button
-                              className={`${styles.statusToggle} ${rule.isActive ? styles.toggleOn : styles.toggleOff}`}
+                              className={`appearance-none border-none p-[4px_10px] rounded-[6px] text-[10.5px] font-800 uppercase tracking-[0.5px] cursor-pointer transition-all ${rule.isActive ? 'bg-accent-glow text-accent' : 'bg-surface-2 text-text-3'}`}
                               disabled={!hasAccess}
                               onClick={() => {
                                 if (!hasAccess) {
@@ -1520,12 +1486,11 @@ export default function DashboardPage() {
                               {rule.isActive ? 'Active' : 'Disabled'}
                             </button>
                           </td>
-                          <td><span className={styles.timeCell}>{new Date(rule.createdAt).toLocaleDateString()}</span></td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                          <td className="p-[11px_20px]"><span className="text-[12px] text-text-3">{new Date(rule.createdAt).toLocaleDateString()}</span></td>
+                          <td className="p-[11px_20px]">
+                            <div className="flex gap-2">
                               <button
-                                className={styles.secondaryBtn}
-                                style={{ padding: '4px 8px', fontSize: '10px', opacity: rule.isLocked || !hasAccess ? 0.7 : 1 }}
+                                className={`text-[11px] font-700 text-text bg-surface-2 border border-border py-1 px-2 rounded-[6px] hover:bg-surface-3 transition-colors ${rule.isLocked || !hasAccess ? 'opacity-70' : 'opacity-100'}`}
                                 onClick={() => {
                                   if (!hasAccess) {
                                     addToast('Your access has expired. Please subscribe.', 'error')
@@ -1543,7 +1508,7 @@ export default function DashboardPage() {
                               >
                                 {rule.isLocked ? 'View' : 'Edit'}
                               </button>
-                              <button className={styles.deleteBtn} onClick={() => deleteRule(rule.id)}>Delete</button>
+                              <button className="text-[10px] font-700 text-red bg-transparent border border-red/20 p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-red/10 hover:border-red/40 transition-all font-display uppercase tracking-wider" onClick={() => deleteRule(rule.id)}>Delete</button>
                             </div>
                           </td>
                         </tr>
@@ -1557,64 +1522,53 @@ export default function DashboardPage() {
         )}
 
         {tab === 'settings' && (
-          <div className={styles.settingsGrid}>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Account Connection</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
               </div>
-              <div className={styles.cardBody}>
-                <div className={styles.settingsRow}>
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className={styles.settingsLabel}>QuickBooks Online</div>
-                    <div className={styles.settingsSub}>Connected to Realm ID: {firm?.qboRealmId || 'None'}</div>
+                    <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
+                    <div className="text-[12px] text-text-3">Connected to Realm ID: {firm?.qboRealmId || 'None'}</div>
                   </div>
                   <a
                     href={`${API}/auth/qbo/connect?firmId=${firmId}`}
-                    className={styles.primaryBtn}
-                    style={{ textDecoration: 'none', textAlign: 'center' }}
+                    className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
                   >
                     {firm?.connected ? 'Reconnect QBO' : 'Connect QBO'}
                   </a>
                 </div>
-                <div className={styles.settingsRow}>
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className={styles.settingsLabel}>Subscription Plan</div>
-                    <div className={styles.settingsSub}>Current tier: {firm?.plan || 'TRIAL'}</div>
+                    <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
+                    <div className="text-[12px] text-text-3">Current tier: {firm?.plan || 'TRIAL'}</div>
                   </div>
                   {firm?.plan !== 'TRIAL' ? (
-                    <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                    <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[8px_12px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 text-[12px]" onClick={() => setShowPricingModal(true)}>
                       Change plan →
                     </button>
                   ) : (
-                    <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                    <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[8px_12px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 text-[12px]" onClick={() => setShowPricingModal(true)}>
                       Upgrade →
                     </button>
                   )}
                 </div>
-                <div className={styles.settingsRow}>
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className={styles.settingsLabel}>Allocation Enforcement</div>
-                    <div className={styles.settingsSub}>Choose how payments are posted to QBO.</div>
-                    <div className={styles.modeToggle} style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+                    <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
+                    <div className="text-[12px] text-text-3">Choose how payments are posted to QBO.</div>
+                    <div className="mt-3 flex gap-2">
                       <button
-                        className={`${styles.pillBtn} ${firm?.allocationMode === 'AUTO' ? styles.active : ''}`}
+                        className={`py-1.5 px-3 rounded-full text-[12px] border border-border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent' : 'bg-surface-2 text-text-2 hover:bg-surface-3'}`}
                         onClick={() => updateAllocationMode('AUTO')}
-                        style={{
-                          background: firm?.allocationMode === 'AUTO' ? 'var(--accent)' : 'var(--bg-card)',
-                          color: firm?.allocationMode === 'AUTO' ? 'white' : 'var(--text-2)',
-                          padding: '6px 12px', borderRadius: '20px', fontSize: '12px', border: '1px solid var(--border)'
-                        }}
                       >
                         Auto-Post (Instant)
                       </button>
                       <button
-                        className={`${styles.pillBtn} ${firm?.allocationMode === 'REVIEW' ? styles.active : ''}`}
+                        className={`py-1.5 px-3 rounded-full text-[12px] border border-border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899]' : 'bg-surface-2 text-text-2 hover:bg-surface-3'}`}
                         onClick={() => updateAllocationMode('REVIEW')}
-                        style={{
-                          background: firm?.allocationMode === 'REVIEW' ? '#ec4899' : 'var(--bg-card)',
-                          color: firm?.allocationMode === 'REVIEW' ? 'white' : 'var(--text-2)',
-                          padding: '6px 12px', borderRadius: '20px', fontSize: '12px', border: '1px solid var(--border)'
-                        }}
                       >
                         Manual Review
                       </button>
@@ -1624,55 +1578,55 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Notifications</span>
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
               </div>
-              <div className={styles.cardBody}>
-                <p className={styles.subtitle} style={{ padding: '0 24px 24px' }}>Webhooks and email alerts are active for all failed jobs.</p>
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Advanced Integrations</span>
-              </div>
-              <div className={styles.cardBody}>
-                <div className={styles.settingsRow}>
-                  <div>
-                    <div className={styles.settingsLabel}>Xero Integration</div>
-                    <div className={styles.settingsSub}>Sync payments and reconciliations with Xero (Coming soon)</div>
-                  </div>
-                  <button className={styles.secondaryBtn} disabled>Connect Xero</button>
-                </div>
-                <div className={styles.settingsRow}>
-                  <div>
-                    <div className={styles.settingsLabel}>Multi-Entity Portal</div>
-                    <div className={styles.settingsSub}>Manage multiple QBO files under one firm roof</div>
-                  </div>
-                  <button className={styles.secondaryBtn} onClick={() => addToast('Multi-Entity setup requires Practice Plan. Contact sales.', 'info')}>Configure</button>
-                </div>
+              <div className="flex flex-col">
+                <p className="text-[13px] text-text-3 leading-relaxed px-6 py-6">Webhooks and email alerts are active for all failed jobs.</p>
               </div>
             </div>
 
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>Security & Branding</span>
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
               </div>
-              <div className={styles.cardBody}>
-                <div className={styles.settingsRow}>
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className={styles.settingsLabel}>Fraud & Anomaly Detection</div>
-                    <div className={styles.settingsSub}>Automatically pause payments above $5,000 for manual review</div>
+                    <div className="font-bold text-[14px] text-text mb-1">Xero Integration</div>
+                    <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero (Coming soon)</div>
                   </div>
-                  <button className={`${styles.statusToggle} ${styles.toggleOn}`}>Active</button>
+                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-50 cursor-not-allowed" disabled>Connect Xero</button>
                 </div>
-                <div className={styles.settingsRow}>
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
                   <div>
-                    <div className={styles.settingsLabel}>White-label Reporting</div>
-                    <div className={styles.settingsSub}>Use your firm's logo and branding on audit reports</div>
+                    <div className="font-bold text-[14px] text-text mb-1">Multi-Entity Portal</div>
+                    <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof</div>
                   </div>
-                  <button className={styles.secondaryBtn} onClick={() => addToast('White-label is a Practice Plan exclusive.', 'info')}>Customize</button>
+                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => addToast('Multi-Entity setup requires Practice Plan. Contact sales.', 'info')}>Configure</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security & Branding</span>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                  <div>
+                    <div className="font-bold text-[14px] text-text mb-1">Fraud & Anomaly Detection</div>
+                    <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review</div>
+                  </div>
+                  <button className="appearance-none border-none p-[4px_10px] rounded-[6px] text-[10.5px] font-800 uppercase tracking-[0.5px] bg-accent-glow text-accent">Active</button>
+                </div>
+                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                  <div>
+                    <div className="font-bold text-[14px] text-text mb-1">White-label Reporting</div>
+                    <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports</div>
+                  </div>
+                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => addToast('White-label is a Practice Plan exclusive.', 'info')}>Customize</button>
                 </div>
               </div>
             </div>
@@ -1681,25 +1635,25 @@ export default function DashboardPage() {
         )}
 
         {tab === 'audit' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Audit Feed</span>
-              <div style={{ flex: 1 }} />
-              <button className={styles.secondaryBtn} style={{ marginRight: '8px' }} onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
+          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Audit Feed</span>
+              <div className="flex-1" />
+              <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1 mr-2" onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
                 ⬇ Bulk Attachment Export
               </button>
-              <button className={styles.secondaryBtn} onClick={() => fetchActivity(firmId)}>Refresh</button>
+              <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => fetchActivity(firmId)}>Refresh</button>
             </div>
             {activity.length === 0 ? (
-              <div className={styles.empty}>
-                <span className={styles.emptyIcon}>📜</span>
-                <div className={styles.emptyTitle}>No activity logged yet</div>
+              <div className="p-[72px_24px] text-center">
+                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📜</span>
+                <div className="font-display text-[15px] font-800 text-text mb-[7px]">No activity logged yet</div>
               </div>
             ) : (
-              <div className={styles.tableContainer}>
-                <table className={styles.table}>
+              <div className="w-full overflow-x-auto">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr>
+                    <tr className="border-b border-border">
                       <th>Time</th>
                       <th>Event</th>
                       <th>Actor</th>
@@ -1712,25 +1666,25 @@ export default function DashboardPage() {
                       const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
                       const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
                       return (
-                        <tr key={log.id} className={styles.row}>
-                          <td><span className={styles.timeCell}>{new Date(log.createdAt).toLocaleString()}</span></td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sevColor }} />
-                              <span className={styles.mono} style={{ fontWeight: 600 }}>{log.type}</span>
+                        <tr key={log.id} className="border-b border-border hover:bg-surface-2 transition-colors">
+                          <td className="p-[11px_20px]"><span className="text-[12px] text-text-3 font-mono">{new Date(log.createdAt).toLocaleString()}</span></td>
+                          <td className="p-[11px_20px]">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full" style={{ background: sevColor }} />
+                              <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
                             </div>
                           </td>
-                          <td>
-                            <span className={styles.badge} style={{ fontSize: '9px', padding: '2px 6px', background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
+                          <td className="p-[11px_20px]">
+                            <span className="inline-flex items-center justify-center rounded-[4px] font-bold uppercase text-[9px] px-1.5 py-0.5 border" style={{ background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
                               {log.actorType}
                             </span>
                           </td>
-                          <td>
-                            <div className={styles.metaSub} style={{ fontSize: '11px', maxWidth: '400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <td className="p-[11px_20px]">
+                            <div className="text-[11px] text-text-3 max-w-[400px] whitespace-nowrap overflow-hidden text-ellipsis font-mono">
                               {JSON.stringify(log.details)}
                             </div>
                           </td>
-                          <td><span className={styles.mono} style={{ fontSize: '10px' }}>{log.jobId?.slice(0, 8) || '—'}</span></td>
+                          <td className="p-[11px_20px]"><span className="font-mono text-[10px] text-text-2">{log.jobId?.slice(0, 8) || '—'}</span></td>
                         </tr>
                       )
                     })}
@@ -1769,28 +1723,26 @@ export default function DashboardPage() {
         )}
 
         {/* Toast Container */}
-        <div className={styles.toastContainer}>
+        <div className="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
           {toasts.map(t => (
             <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
           ))}
         </div>
 
         {showDeleteModal && (
-          <div className={styles.overlay} onClick={() => setShowDeleteModal(false)}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
-              <h2 className={styles.modalTitle} id="delete-modal-title" style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--red)' }}>Delete Rule</h2>
-              <p className={styles.modalSub}>Are you sure you want to permanently delete this rule? This cannot be undone.</p>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+          <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowDeleteModal(false)}>
+            <div className="bg-surface border border-border w-full max-w-[440px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+              <h2 className="font-display text-[20px] font-800 text-red mb-2 tracking-tight" id="delete-modal-title">Delete Rule</h2>
+              <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to permanently delete this rule? This cannot be undone.</p>
+              <div className="flex gap-3 mt-6">
                 <button
-                  className={styles.secondaryBtn}
-                  style={{ flex: 1, padding: '12px', fontSize: '13px' }}
+                  className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
                   onClick={() => setShowDeleteModal(false)}
                 >
                   Cancel
                 </button>
                 <button
-                  className={styles.primaryBtn}
-                  style={{ flex: 1, padding: '12px', fontSize: '13px', background: 'var(--red)', border: 'none', color: 'white' }}
+                  className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
                   onClick={confirmDelete}
                 >
                   Delete
@@ -1803,27 +1755,26 @@ export default function DashboardPage() {
 
       {/* Logout confirmation modal */}
       {showLogoutModal && (
-        <div className={styles.logoutOverlay} onClick={() => setShowLogoutModal(false)}>
-          <div className={styles.logoutModal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
-            <div className={styles.logoutModalIcon}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
+          <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
+            <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
                 <line x1="21" y1="12" x2="9" y2="12"></line>
               </svg>
             </div>
-            <h2 className={styles.logoutModalTitle} id="logout-modal-title">Sign Out</h2>
-            <p className={styles.logoutModalBody}>Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
-            <div className={styles.logoutModalActions}>
+            <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
+            <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
+            <div className="flex gap-3">
               <button
-                className={styles.secondaryBtn}
-                style={{ flex: 1, padding: '11px' }}
+                className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
                 onClick={() => setShowLogoutModal(false)}
               >
                 Cancel
               </button>
               <button
-                className={styles.logoutConfirmBtn}
+                className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
                 onClick={handleLogout}
               >
                 Sign Out

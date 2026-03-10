@@ -46,13 +46,31 @@
   }
 
   body {
-    @apply bg-bg text-text text-[14px] leading-relaxed antialiased;
+    @apply bg-bg text-text text-[14px] leading-relaxed antialiased transition-colors duration-300;
     font-family: var(--font-body);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    @apply font-bold tracking-tight;
+    @apply font-bold tracking-tight text-text;
+  }
+
+  a {
+    @apply transition-all duration-200 no-underline text-inherit;
+  }
+
+  button {
+    @apply transition-all duration-200 cursor-pointer border-none;
+    font-family: inherit;
+  }
+
+  input, select, textarea {
+    @apply bg-surface border border-border rounded-md px-3 py-2 outline-none transition-all duration-200;
+    font-family: inherit;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    @apply border-accent ring-4 ring-accent-glow;
   }
 }
 
