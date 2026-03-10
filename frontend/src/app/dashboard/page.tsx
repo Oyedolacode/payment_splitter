@@ -213,11 +213,11 @@ function PricingModal({
               onClick={() => onUpgrade('professional')}
               disabled={currentPlan === 'PROFESSIONAL'}
             >
-            <div className={styles.planName}>Practice</div>
-            <div className={styles.planPrice}>$799<span>/mo</span></div>
-            <div className={styles.planFeature}>Practice-wide automation & Location Priority</div>
+            <div className="font-display text-[14px] font-700 text-text-3 mb-4 uppercase tracking-[1px]">Practice</div>
+            <div className="font-display text-[40px] font-800 text-text mb-6">$799<span className="text-[16px] text-text-3 font-500">/mo</span></div>
+            <div className="text-[14px] text-text-2 mb-8">Practice-wide automation & Location Priority</div>
             <button
-              className={styles.planBtn}
+              className="mt-auto p-3 rounded-[10px] border border-border-strong bg-surface-2 text-text text-[13px] font-700 cursor-pointer transition-all duration-200 hover:bg-surface-3 hover:border-text-3 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => onUpgrade('practice')}
               disabled={currentPlan === 'PRACTICE'}
             >
@@ -1016,83 +1016,80 @@ export default function DashboardPage() {
         </header>
 
       {/* ── Main ────────────────────────────────────────────────────────── */}
-      <main className={styles.main}>
-
-
+      <main className="max-w-[1400px] mx-auto px-6 py-8">
         {/* Connected toast */}
         {connected && tab === 'reconciliation' && (
-          <div className={styles.toast} role="status">
-            <span className={styles.toastIcon}>✓</span>
+          <div className="bg-accent-2/10 border border-accent-2/20 text-accent-2 p-4 rounded-xl mb-6 flex items-center gap-3 animate-slideIn" role="status">
+            <span className="bg-accent-2 text-white w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-900">✓</span>
             QuickBooks Online connected — payment monitoring is now active.
           </div>
         )}
 
-        {/* Page titles */}
-        <div className={styles.titleRow}>
+        <div className="flex items-center justify-between mb-8">
           {tab === 'reconciliation' && (
             <div>
-              <h1 className={styles.title}>Reconciliation History</h1>
-              <p className={styles.subtitle}>Automated payment splits across all branch locations</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Reconciliation History</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">Automated payment splits across all branch locations</p>
             </div>
           )}
           {tab === 'rules' && (
             <div>
-              <h1 className={styles.title}>Split Rules</h1>
-              <p className={styles.subtitle}>Define how incoming payments should be distributed</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Split Rules</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">Define how incoming payments should be distributed</p>
             </div>
           )}
           {tab === 'audit' && (
             <div>
-              <h1 className={styles.title}>Audit Feed</h1>
-              <p className={styles.subtitle}>System and user activity logs</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Audit Feed</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">System and user activity logs</p>
             </div>
           )}
           {tab === 'remittance' && (
             <div>
-              <h1 className={styles.title}>CSV Remittance</h1>
-              <p className={styles.subtitle}>Upload bulk clearing files and remittance advice</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">CSV Remittance</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">Upload bulk clearing files and remittance advice</p>
             </div>
           )}
           {tab === 'ap' && (
             <div>
-              <h1 className={styles.title}>AP Bill Splitting</h1>
-              <p className={styles.subtitle}>Automatically split and route Accounts Payable bills</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">AP Bill Splitting</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">Automatically split and route Accounts Payable bills</p>
             </div>
           )}
           {tab === 'trust' && (
             <div>
-              <h1 className={styles.title}>Trust Accounting</h1>
-              <p className={styles.subtitle}>Manage compliance and transfers for trust ledger funds</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Trust Accounting</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">Manage compliance and transfers for trust ledger funds</p>
             </div>
           )}
           {tab === 'settings' && (
             <div>
-              <h1 className={styles.title}>Firm Settings</h1>
-              <p className={styles.subtitle}>Manage your connection and account preferences</p>
+              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Firm Settings</h1>
+              <p className="text-text-3 text-[14px] mt-1 font-medium">Manage your connection and account preferences</p>
             </div>
           )}
 
-          <div className={styles.livePill} aria-label="Live data">
-            <span className={styles.liveDot} />
+          <div className="flex items-center gap-1.5 bg-accent-2/10 text-accent-2 px-3 py-1.5 rounded-full text-[11px] font-800 uppercase tracking-wider border border-accent-2/20" aria-label="Live data">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-2 animate-pulse" />
             Live
           </div>
         </div>
 
         {/* Expired Paywall Banner */}
         {!loading && !hasAccess && (
-          <div className={`${styles.upgradeBanner} bg-surface-2 border border-red/30`}>
-            <div className={styles.upgradeContent}>
-              <span className={styles.upgradeIcon}>🚫</span>
+          <div className="bg-red/5 border border-red/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <span className="text-[24px]">🚫</span>
               <div>
-                <div className={`${styles.upgradeTitle} text-red`}>
-                  Subscription or Trial Expired
+                <div className="text-[16px] font-800 text-red">
+                   Subscription or Trial Expired
                 </div>
-                <div className={styles.upgradeText}>
+                <div className="text-[13px] text-text-3 mt-0.5">
                   Your automated payment splitting is paused. Please subscribe to reactivate your rules and continue processing payments.
                 </div>
               </div>
             </div>
-            <button className={styles.primaryBtn} onClick={() => setShowPricingModal(true)}>
+            <button className="bg-red text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
               Subscribe Now
             </button>
           </div>
@@ -1100,19 +1097,19 @@ export default function DashboardPage() {
 
         {/* Upgrade Banner for TRIAL/STANDARD */}
         {hasAccess && (firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
-          <div className={styles.upgradeBanner}>
-            <div className={styles.upgradeContent}>
-              <span className={styles.upgradeIcon}>💎</span>
+          <div className="bg-accent/5 border border-accent/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <span className="text-[24px]">💎</span>
               <div>
-                <div className={styles.upgradeTitle}>
+                <div className="text-[16px] font-800 text-text">
                   Upgrade to Professional
                 </div>
-                <div className={styles.upgradeText}>
+                <div className="text-[13px] text-text-3 mt-0.5">
                   Unlock unlimited rules and waterfall allocation logic.
                 </div>
               </div>
             </div>
-            <button className={styles.upgradeBtn} onClick={() => setShowPricingModal(true)}>
+            <button className="bg-accent text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
               View Plans
             </button>
           </div>
@@ -1123,11 +1120,11 @@ export default function DashboardPage() {
         {tab === 'reconciliation' && (
           <>
             {/* Stats */}
-            <div className={styles.stats}>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Total Processed</div>
-                <div className={`${styles.statValue} text-accent-2`}>${fmt(totalProcessed)}</div>
-                <div className={`${styles.statSub} flex items-center gap-1.5`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Total Processed</div>
+                <div className="text-[28px] font-display font-800 text-accent-2 tracking-tight">${fmt(totalProcessed)}</div>
+                <div className="text-[12px] text-text-3 mt-1 font-medium flex items-center gap-1.5">
                   <span>{complete.length} payment{complete.length !== 1 ? 's' : ''}</span>
                   {momDelta !== null && (
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${momDelta >= 0 ? 'bg-accent-2/10 text-accent-2' : 'bg-red/10 text-red'}`}>
@@ -1136,38 +1133,38 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Invoice Splits</div>
-                <div className={styles.statValue}>{totalSplits}</div>
-                <div className={styles.statSub}>across all jobs</div>
+              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Invoice Splits</div>
+                <div className="text-[28px] font-display font-800 text-text tracking-tight">{totalSplits}</div>
+                <div className="text-[12px] text-text-3 mt-1 font-medium">across all jobs</div>
               </div>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Success Rate</div>
-                <div className={styles.statValue}>{successRate !== null ? `${successRate}%` : '—'}</div>
-                <div className={styles.statSub}>{jobs.length} total job{jobs.length !== 1 ? 's' : ''}</div>
+              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Success Rate</div>
+                <div className="text-[28px] font-display font-800 text-text tracking-tight">{successRate !== null ? `${successRate}%` : '—'}</div>
+                <div className="text-[12px] text-text-3 mt-1 font-medium">{jobs.length} total job{jobs.length !== 1 ? 's' : ''}</div>
               </div>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Needs Attention</div>
+              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Needs Attention</div>
                 <div
                   className={`${styles.statValue} ${failed.length > 0 ? 'text-red' : ''}`}
                 >
                   {failed.length}
                 </div>
-                <div className={styles.statSub}>failed / rolled back</div>
+                <div className="text-[12px] text-text-3 mt-1 font-medium">failed / rolled back</div>
               </div>
             </div>
 
             {/* Onboarding checklist — shown until dismissed */}
             {!loading && !checklistDismissed && jobs.length === 0 && (
-              <div className={styles.checklist}>
-                <div className={styles.checklistHeader}>
+              <div className="bg-white dark:bg-surface border border-border rounded-[18px] p-6 mb-8 shadow-sm animate-fadeUp">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <div className={styles.checklistTitle}>Getting started with PaySplit</div>
-                    <div className={styles.checklistSub}>Complete these steps to start splitting payments automatically</div>
+                    <div className="font-display text-[17px] font-800 text-text tracking-[-0.2px]">Getting started with PaySplit</div>
+                    <div className="text-[13px] text-text-3 mt-0.5">Complete these steps to start splitting payments automatically</div>
                   </div>
-                  <button className={styles.checklistDismiss} onClick={dismissChecklist} aria-label="Dismiss">✕</button>
+                  <button className="w-7 h-7 flex items-center justify-center rounded-lg bg-surface-2 border border-transparent text-text-3 hover:text-text hover:bg-surface-3 transition-all" onClick={dismissChecklist} aria-label="Dismiss">✕</button>
                 </div>
-                <div className={styles.checklistItems}>
+                <div className="flex flex-col gap-2">
                   {[
                     { label: 'Create your account', done: true },
                     { label: 'Connect QuickBooks Online', done: !!firm?.connected },
@@ -1176,12 +1173,12 @@ export default function DashboardPage() {
                   ].map((item, i) => (
                     <div
                       key={i}
-                      className={`${styles.checklistItem} ${item.done ? styles.checklistItemDone : ''} ${item.action && !item.done ? styles.checklistItemClickable : ''}`}
+                      className={`flex items-center gap-4 p-4 rounded-xl border border-border transition-all ${item.done ? 'bg-accent-2/5 border-accent-2/20 opacity-80' : ''} ${item.action && !item.done ? 'cursor-pointer hover:bg-surface-2 hover:border-border-strong' : ''}`}
                       onClick={item.action && !item.done ? item.action : undefined}
                     >
-                      <span className={styles.checklistIcon}>{item.done ? '✓' : `${i + 1}`}</span>
-                      <span className={styles.checklistLabel}>{item.label}</span>
-                      {item.action && !item.done && <span className={styles.checklistArrow}>→</span>}
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-900 border border-border ${item.done ? 'bg-accent-2 border-accent-2 text-white' : 'bg-surface-2 text-text-3'}`}>{item.done ? '✓' : `${i + 1}`}</span>
+                      <span className="text-[13.5px] font-600 text-text">{item.label}</span>
+                      {item.action && !item.done && <span className="ml-auto text-text-3 font-medium">→</span>}
                     </div>
                   ))}
                 </div>
@@ -1375,10 +1372,10 @@ export default function DashboardPage() {
                                               <span className="text-[13px] font-600 text-text font-mono truncate max-w-[200px]" title={full as string}>{v}</span>
                                             </div>
                                           ))}
-                                          <div className={styles.metaRow}>
-                                            <span className={styles.metaKey}>Total amount</span>
-                                            <span className={styles.metaAmount}>${fmt(job.totalAmount)}</span>
-                                          </div>
+                                            <div className="flex justify-between items-center py-3 border-b border-border last:border-none">
+                                              <span className="text-[12px] font-800 text-text-3 uppercase tracking-wider">Total amount</span>
+                                              <span className="text-[18px] font-display font-800 text-accent-2 tracking-tight">${fmt(job.totalAmount)}</span>
+                                            </div>
                                         </div>
                                       </div>
                                     </div>
