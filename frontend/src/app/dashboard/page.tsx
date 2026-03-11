@@ -365,9 +365,9 @@ function RuleBuilderModal({
         <div className="p-8 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex flex-col gap-4">
-              <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
-              <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
-              <div className="h-[120px] rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-shimmer" />
+              <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-pulse" />
+              <div className="h-10 rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-pulse" />
+              <div className="h-[120px] rounded-lg bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 bg-[length:200%_100%] animate-pulse" />
             </div>
           ) : isEmpty ? (
             <div className="p-12 text-center" role="status">
@@ -833,10 +833,10 @@ export default function DashboardPage() {
           <div className="h-12 w-1/3 bg-surface-2 animate-pulse rounded-lg" />
           <div className="grid grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-32 bg-surface-2 animate-shimmer rounded-xl" />
+              <div key={i} className="h-32 bg-surface-2 animate-pulse rounded-xl" />
             ))}
           </div>
-          <div className="h-96 bg-surface-2 animate-shimmer rounded-2xl" />
+          <div className="h-96 bg-surface-2 animate-pulse rounded-2xl" />
         </div>
       </div>
     )
@@ -1151,7 +1151,7 @@ export default function DashboardPage() {
                 <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
                   <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Needs Attention</div>
                   <div
-                    className={`${styles.statValue} ${failed.length > 0 ? 'text-red' : ''}`}
+                    className={`text-[28px] font-display font-800 tracking-tight ${failed.length > 0 ? 'text-red' : 'text-text'}`}
                   >
                     {failed.length}
                   </div>
@@ -1200,7 +1200,7 @@ export default function DashboardPage() {
                 {loading ? (
                   <div className="p-[16px_24px_20px] flex flex-col gap-[10px]">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="h-[46px] rounded-[8px] bg-[linear-gradient(90deg,var(--surface-2)_25%,var(--surface-3)_50%,var(--surface-2)_75%)] bg-[length:200%_100%] animate-shimmer" style={{ opacity: 1.1 - i * 0.3 }} />
+                      <div key={i} className="h-[46px] rounded-[8px] bg-[linear-gradient(90deg,var(--surface-2)_25%,var(--surface-3)_50%,var(--surface-2)_75%)] bg-[length:200%_100%] animate-pulse" style={{ opacity: 1.1 - i * 0.3 }} />
                     ))}
                   </div>
                 ) : jobs.length === 0 ? (
@@ -1881,16 +1881,16 @@ export default function DashboardPage() {
         </div>
       )}
     </main>
-  </div >
 
-    { showLogoutModal && (
+        {
+    showLogoutModal && (
       <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
         <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
           <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </div>
           <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
@@ -1912,7 +1912,8 @@ export default function DashboardPage() {
         </div>
       </div>
     )
-}
+  }
+      </div >
     </div >
   )
 }
