@@ -828,9 +828,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className={styles.main} aria-busy="true" aria-live="polite">
-        <div className="flex flex-col gap-8">
-          <div className="h-12 w-1/3 bg-surface-2 animate-shimmer rounded-lg" />
+      <div className="min-h-screen bg-bg p-8" aria-busy="true" aria-live="polite">
+        <div className="flex flex-col gap-8 max-w-[1400px] mx-auto">
+          <div className="h-12 w-1/3 bg-surface-2 animate-pulse rounded-lg" />
           <div className="grid grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="h-32 bg-surface-2 animate-shimmer rounded-xl" />
@@ -899,10 +899,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className={styles.root}>
-      <div className={styles.gridBg} aria-hidden="true" />
-      <div className={styles.glowPurple} aria-hidden="true" />
-      <div className={styles.glowGreen} aria-hidden="true" />
+    <div className="min-h-screen bg-bg text-text relative overflow-x-hidden">
+      <div className="fixed inset-0 bg-[linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] bg-[length:52px_52px] pointer-events-none z-0 opacity-50" aria-hidden="true" />
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent/5 blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-2/5 blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
 
       <div ref={modalRef} tabIndex={-1} className="outline-none">
         {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -1881,10 +1881,9 @@ export default function DashboardPage() {
         </div>
       )}
     </main>
+  </div >
 
-      {/* Logout confirmation modal */ }
-  {
-    showLogoutModal && (
+    { showLogoutModal && (
       <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
         <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
           <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1913,7 +1912,7 @@ export default function DashboardPage() {
         </div>
       </div>
     )
-  }
+}
     </div >
   )
 }
