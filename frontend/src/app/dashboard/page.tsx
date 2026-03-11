@@ -1123,7 +1123,7 @@ export default function DashboardPage() {
           {/* ── Tab Content ────────────────────────────────────────────────── */}
 
           {tab === 'reconciliation' && (
-            <>
+            <div className="animate-fadeIn">
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
@@ -1396,7 +1396,7 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {tab === 'remittance' && (
@@ -1440,7 +1440,7 @@ export default function DashboardPage() {
           )}
 
           {tab === 'rules' && (
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+            <div className="animate-fadeIn">
               <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
                 <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Routing Rules</span>
                 {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
@@ -1593,326 +1593,325 @@ export default function DashboardPage() {
                   </table>
                 </div>
               )}
-            </div>
-          )}
 
-          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                <div>
-                  <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
-                  <div className="text-[12px] text-text-3">
-                    {firm?.qboRealmId ? (
-                      <span className="flex items-center gap-1.5 text-accent-2 font-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-2" />
-                        Connected to Realm ID: {firm.qboRealmId}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-text-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-border" />
-                        Not connected to any QBO company
-                      </span>
-                    )}
+              {tab === 'settings' && (
+                <div className="animate-fadeIn">
+                  <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+                    <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+                      <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                        <div>
+                          <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
+                          <div className="text-[12px] text-text-3">
+                            {firm?.qboRealmId ? (
+                              <span className="flex items-center gap-1.5 text-accent-2 font-700">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-2" />
+                                Connected to Realm ID: {firm.qboRealmId}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1.5 text-text-3">
+                                <span className="w-1.5 h-1.5 rounded-full bg-border" />
+                                Not connected to any QBO company
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <a
+                          href={`${API}/auth/qbo/connect?firmId=${firmId}`}
+                          className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
+                        >
+                          {firm?.qboRealmId ? 'Reconnect QBO' : 'Connect QBO'}
+                        </a>
+                      </div>
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                        <div>
+                          <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
+                          <div className="text-[12px] text-text-3 flex items-center gap-2">
+                            Current tier:
+                            <span className="bg-accent/10 text-accent font-900 px-2 py-0.5 rounded-full text-[10px] border border-accent/20 uppercase tracking-wider">{firm?.plan || 'TRIAL'}</span>
+                          </div>
+                        </div>
+                        <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[8px_16px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors" onClick={() => setShowPricingModal(true)}>
+                          {firm?.plan === 'TRIAL' ? 'Upgrade Plan' : 'Change Plan'}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                        <div className="w-full">
+                          <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
+                          <div className="text-[12px] text-text-3 mb-4">Choose how payments are posted to QBO.</div>
+                          <div className="flex gap-2">
+                            <button
+                              className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent shadow-lg shadow-accent/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
+                              onClick={() => updateAllocationMode('AUTO')}
+                            >
+                              Auto-Post (Instant)
+                            </button>
+                            <button
+                              className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899] shadow-lg shadow-[#ec4899]/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
+                              onClick={() => updateAllocationMode('REVIEW')}
+                            >
+                              Manual Review
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+                    <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+                      <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
+                    </div>
+                    <div className="p-6">
+                      <div className="mb-4">
+                        <label className="block text-[11px] font-800 text-text-3 uppercase tracking-wider mb-2">Alert Recipients</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="admin@firm.com"
+                            readOnly
+                            className="flex-1 bg-surface-2 border border-border p-2.5 rounded-lg text-[13px] text-text-3 outline-none cursor-not-allowed"
+                          />
+                          <button className="px-4 py-2 bg-surface-3 border border-border rounded-lg text-[12px] font-700 text-text-3 cursor-not-allowed" onClick={() => addToast('Notification configuration requires Practice plan.', 'info')}>Save</button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 bg-accent-2/5 rounded-xl border border-accent-2/10">
+                        <span className="w-2 h-2 rounded-full bg-accent-2 animate-pulse" />
+                        <p className="text-[12px] text-text-2 leading-relaxed">
+                          System alerts are <strong>active</strong>. Internal webhooks are monitoring all API activity and failed reconciliation jobs.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+                    <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+                      <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none group">
+                        <div>
+                          <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                            Xero Integration
+                            <span className="bg-surface-3 text-text-3 text-[9px] px-1.5 py-0.5 rounded-full border border-border uppercase tracking-tight font-900">Coming Soon</span>
+                          </div>
+                          <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero.</div>
+                        </div>
+                        <button className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-40 cursor-not-allowed" disabled>Connect Xero</button>
+                      </div>
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                        <div>
+                          <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                            Multi-Entity Portal
+                            <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                          </div>
+                          <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof.</div>
+                        </div>
+                        <button
+                          className="text-[11px) font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
+                          onClick={() => { addToast('Multi-Entity setup requires Practice Plan.', 'info'); setShowPricingModal(true); }}
+                        >
+                          Configure 🔒
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+                    <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+                      <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security & Branding</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                        <div>
+                          <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                            Fraud & Anomaly Detection
+                            <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                          </div>
+                          <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review.</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-wider">Unconfigured</span>
+                          <button
+                            className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[6px_10px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors"
+                            onClick={() => { addToast('Fraud protection requires Practice plan.', 'info'); setShowPricingModal(true); }}
+                          >
+                            Enable 🔒
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                        <div>
+                          <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                            White-label Reporting
+                            <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                          </div>
+                          <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports.</div>
+                        </div>
+                        <button
+                          className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
+                          onClick={() => { addToast('White-labeling is a Practice plan feature.', 'info'); setShowPricingModal(true); }}
+                        >
+                          Customize 🔒
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <a
-                  href={`${API}/auth/qbo/connect?firmId=${firmId}`}
-                  className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
-                >
-                  {firm?.qboRealmId ? 'Reconnect QBO' : 'Connect QBO'}
-                </a>
+              )}
+
+              {tab === 'audit' && (
+                <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+                  <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                    <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Audit Feed</span>
+                    <div className="flex-1" />
+                    <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1 mr-2" onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
+                      ⬇ Bulk Attachment Export
+                    </button>
+                    <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => fetchActivity(firmId)}>Refresh</button>
+                  </div>
+                  {activity.length === 0 ? (
+                    <div className="p-[72px_24px] text-center">
+                      <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📜</span>
+                      <div className="font-display text-[15px] font-800 text-text mb-[7px]">No activity logged yet</div>
+                    </div>
+                  ) : (
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th>Time</th>
+                            <th>Event</th>
+                            <th>Actor</th>
+                            <th>Detail</th>
+                            <th>Job ID</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activity.map(log => {
+                            const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
+                            const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
+                            return (
+                              <tr key={log.id} className="border-b border-border hover:bg-surface-2 transition-colors">
+                                <td className="p-[11px_20px]"><span className="text-[12px] text-text-3 font-mono">{new Date(log.createdAt).toLocaleString()}</span></td>
+                                <td className="p-[11px_20px]">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full" style={{ background: sevColor }} />
+                                    <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
+                                  </div>
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <span className="inline-flex items-center justify-center rounded-[4px] font-bold uppercase text-[9px] px-1.5 py-0.5 border" style={{ background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
+                                    {log.actorType}
+                                  </span>
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <div className="text-[11px] text-text-3 max-w-[400px] whitespace-nowrap overflow-hidden text-ellipsis font-mono">
+                                    {JSON.stringify(log.details)}
+                                  </div>
+                                </td>
+                                <td className="p-[11px_20px]"><span className="font-mono text-[10px] text-text-2">{log.jobId?.slice(0, 8) || '—'}</span></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+
+              {showRuleModal && (
+                <RuleBuilderModal
+                  customers={customers}
+                  locations={locations}
+                  onClose={() => {
+                    setShowRuleModal(false);
+                    setEditingRule(null);
+                  }}
+                  onSave={() => fetchRules(firmId)} // Corrected to just refetch
+                  loading={loadingQBO}
+                  plan={firm?.plan || 'trial'}
+                  firmId={firmId}
+                  addToast={addToast}
+                  setShowPricingModal={setShowPricingModal}
+                  editingRule={editingRule}
+                />
+              )}
+
+              {showPricingModal && (
+                <PricingModal
+                  currentPlan={firm?.plan || 'TRIAL'}
+                  onClose={() => setShowPricingModal(false)}
+                  onUpgrade={handleUpgrade}
+                />
+              )}
+
+              {/* Toast Container */}
+              <div className="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
+                {toasts.map(t => (
+                  <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
+                ))}
               </div>
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                <div>
-                  <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
-                  <div className="text-[12px] text-text-3 flex items-center gap-2">
-                    Current tier:
-                    <span className="bg-accent/10 text-accent font-900 px-2 py-0.5 rounded-full text-[10px] border border-accent/20 uppercase tracking-wider">{firm?.plan || 'TRIAL'}</span>
+
+              {showDeleteModal && (
+                <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowDeleteModal(false)}>
+                  <div className="bg-surface border border-border w-full max-w-[440px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+                    <h2 className="font-display text-[20px] font-800 text-red mb-2 tracking-tight" id="delete-modal-title">Delete Rule</h2>
+                    <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to permanently delete this rule? This cannot be undone.</p>
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
+                        onClick={() => setShowDeleteModal(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
+                        onClick={confirmDelete}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[8px_16px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors" onClick={() => setShowPricingModal(true)}>
-                  {firm?.plan === 'TRIAL' ? 'Upgrade Plan' : 'Change Plan'}
-                </button>
-              </div>
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                <div className="w-full">
-                  <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
-                  <div className="text-[12px] text-text-3 mb-4">Choose how payments are posted to QBO.</div>
-                  <div className="flex gap-2">
+              )}
+            </main>
+
+      {
+            showLogoutModal && (
+              <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
+                <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
+                  <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </div>
+                  <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
+                  <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
+                  <div className="flex gap-3">
                     <button
-                      className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent shadow-lg shadow-accent/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
-                      onClick={() => updateAllocationMode('AUTO')}
+                      className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
+                      onClick={() => setShowLogoutModal(false)}
                     >
-                      Auto-Post (Instant)
+                      Cancel
                     </button>
                     <button
-                      className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899] shadow-lg shadow-[#ec4899]/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
-                      onClick={() => updateAllocationMode('REVIEW')}
+                      className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
+                      onClick={handleLogout}
                     >
-                      Manual Review
+                      Sign Out
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
-            </div>
-            <div className="p-6">
-              <div className="mb-4">
-                <label className="block text-[11px] font-800 text-text-3 uppercase tracking-wider mb-2">Alert Recipients</label>
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    placeholder="admin@firm.com"
-                    readOnly
-                    className="flex-1 bg-surface-2 border border-border p-2.5 rounded-lg text-[13px] text-text-3 outline-none cursor-not-allowed"
-                  />
-                  <button className="px-4 py-2 bg-surface-3 border border-border rounded-lg text-[12px] font-700 text-text-3 cursor-not-allowed" onClick={() => addToast('Notification configuration requires Practice plan.', 'info')}>Save</button>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 bg-accent-2/5 rounded-xl border border-accent-2/10">
-                <span className="w-2 h-2 rounded-full bg-accent-2 animate-pulse" />
-                <p className="text-[12px] text-text-2 leading-relaxed">
-                  System alerts are <strong>active</strong>. Internal webhooks are monitoring all API activity and failed reconciliation jobs.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none group">
-                <div>
-                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                    Xero Integration
-                    <span className="bg-surface-3 text-text-3 text-[9px] px-1.5 py-0.5 rounded-full border border-border uppercase tracking-tight font-900">Coming Soon</span>
-                  </div>
-                  <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero.</div>
-                </div>
-                <button className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-40 cursor-not-allowed" disabled>Connect Xero</button>
-              </div>
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                <div>
-                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                    Multi-Entity Portal
-                    <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                  </div>
-                  <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof.</div>
-                </div>
-                <button
-                  className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
-                  onClick={() => { addToast('Multi-Entity setup requires Practice Plan.', 'info'); setShowPricingModal(true); }}
-                >
-                  Configure 🔒
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security & Branding</span>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                <div>
-                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                    Fraud & Anomaly Detection
-                    <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                  </div>
-                  <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review.</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-800 text-text-3 uppercase tracking-wider">Unconfigured</span>
-                  <button
-                    className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[6px_10px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors"
-                    onClick={() => { addToast('Fraud protection requires Practice plan.', 'info'); setShowPricingModal(true); }}
-                  >
-                    Enable 🔒
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                <div>
-                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                    White-label Reporting
-                    <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                  </div>
-                  <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports.</div>
-                </div>
-                <button
-                  className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
-                  onClick={() => { addToast('White-labeling is a Practice plan feature.', 'info'); setShowPricingModal(true); }}
-                >
-                  Customize 🔒
-                </button>
-              </div>
-            </div>
-          </div>
-
-      </div>
-        )}
-
-      {tab === 'audit' && (
-        <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-          <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-            <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Audit Feed</span>
-            <div className="flex-1" />
-            <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1 mr-2" onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
-              ⬇ Bulk Attachment Export
-            </button>
-            <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => fetchActivity(firmId)}>Refresh</button>
-          </div>
-          {activity.length === 0 ? (
-            <div className="p-[72px_24px] text-center">
-              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📜</span>
-              <div className="font-display text-[15px] font-800 text-text mb-[7px]">No activity logged yet</div>
-            </div>
-          ) : (
-            <div className="w-full overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th>Time</th>
-                    <th>Event</th>
-                    <th>Actor</th>
-                    <th>Detail</th>
-                    <th>Job ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activity.map(log => {
-                    const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
-                    const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
-                    return (
-                      <tr key={log.id} className="border-b border-border hover:bg-surface-2 transition-colors">
-                        <td className="p-[11px_20px]"><span className="text-[12px] text-text-3 font-mono">{new Date(log.createdAt).toLocaleString()}</span></td>
-                        <td className="p-[11px_20px]">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ background: sevColor }} />
-                            <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
-                          </div>
-                        </td>
-                        <td className="p-[11px_20px]">
-                          <span className="inline-flex items-center justify-center rounded-[4px] font-bold uppercase text-[9px] px-1.5 py-0.5 border" style={{ background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
-                            {log.actorType}
-                          </span>
-                        </td>
-                        <td className="p-[11px_20px]">
-                          <div className="text-[11px] text-text-3 max-w-[400px] whitespace-nowrap overflow-hidden text-ellipsis font-mono">
-                            {JSON.stringify(log.details)}
-                          </div>
-                        </td>
-                        <td className="p-[11px_20px]"><span className="font-mono text-[10px] text-text-2">{log.jobId?.slice(0, 8) || '—'}</span></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-
-      {showRuleModal && (
-        <RuleBuilderModal
-          customers={customers}
-          locations={locations}
-          onClose={() => {
-            setShowRuleModal(false);
-            setEditingRule(null);
-          }}
-          onSave={() => fetchRules(firmId)} // Corrected to just refetch
-          loading={loadingQBO}
-          plan={firm?.plan || 'trial'}
-          firmId={firmId}
-          addToast={addToast}
-          setShowPricingModal={setShowPricingModal}
-          editingRule={editingRule}
-        />
-      )}
-
-      {showPricingModal && (
-        <PricingModal
-          currentPlan={firm?.plan || 'TRIAL'}
-          onClose={() => setShowPricingModal(false)}
-          onUpgrade={handleUpgrade}
-        />
-      )}
-
-      {/* Toast Container */}
-      <div className="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
-        {toasts.map(t => (
-          <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
-        ))}
-      </div>
-
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowDeleteModal(false)}>
-          <div className="bg-surface border border-border w-full max-w-[440px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
-            <h2 className="font-display text-[20px] font-800 text-red mb-2 tracking-tight" id="delete-modal-title">Delete Rule</h2>
-            <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to permanently delete this rule? This cannot be undone.</p>
-            <div className="flex gap-3 mt-6">
-              <button
-                className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
-                onClick={confirmDelete}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </main>
-
-        {
-    showLogoutModal && (
-      <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
-        <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
-          <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </div>
-          <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
-          <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
-          <div className="flex gap-3">
-            <button
-              className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
-              onClick={() => setShowLogoutModal(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
-              onClick={handleLogout}
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+            )
+          }
       </div >
     </div >
   )
