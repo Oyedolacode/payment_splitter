@@ -213,6 +213,11 @@ function PricingModal({
               onClick={() => onUpgrade('professional')}
               disabled={currentPlan === 'PROFESSIONAL'}
             >
+              {currentPlan === 'PROFESSIONAL' ? 'Current Plan' : 'Select Professional'}
+            </button>
+          </div>
+
+          <div className="bg-surface border border-border rounded-[18px] p-[32px_24px] display-flex flex-col transition-all duration-300 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:translate-y-[-4px] hover:border-accent hover:shadow-[0_12px_30px_rgba(0,0,0,0.06)]">
             <div className="font-display text-[14px] font-700 text-text-3 mb-4 uppercase tracking-[1px]">Practice</div>
             <div className="font-display text-[40px] font-800 text-text mb-6">$799<span className="text-[16px] text-text-3 font-500">/mo</span></div>
             <div className="text-[14px] text-text-2 mb-8">Practice-wide automation & Location Priority</div>
@@ -497,9 +502,9 @@ function RuleBuilderModal({
               )}
 
               <div className="flex justify-end gap-3 p-6 mt-8 border-t border-border -mx-8 -mb-8 bg-surface-2/50">
-                <button 
-                  className="text-[11px] font-700 text-text bg-surface border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" 
-                  onClick={onClose} 
+                <button
+                  className="text-[11px] font-700 text-text bg-surface border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1"
+                  onClick={onClose}
                   disabled={saving}
                 >
                   Cancel
@@ -820,7 +825,7 @@ export default function DashboardPage() {
   const totalProcessed = complete.reduce((s, j) => s + Number(j.totalAmount), 0)
   const totalSplits = complete.reduce((s, j) => s + j.auditEntries.length, 0)
   const successRate = jobs.length ? Math.round((complete.length / jobs.length) * 100) : null
-  
+
   if (loading) {
     return (
       <div className={styles.main} aria-busy="true" aria-live="polite">
@@ -1015,375 +1020,573 @@ export default function DashboardPage() {
           )}
         </header>
 
-      {/* ── Main ────────────────────────────────────────────────────────── */}
-      <main className="max-w-[1400px] mx-auto px-6 py-8">
-        {/* Connected toast */}
-        {connected && tab === 'reconciliation' && (
-          <div className="bg-accent-2/10 border border-accent-2/20 text-accent-2 p-4 rounded-xl mb-6 flex items-center gap-3 animate-slideIn" role="status">
-            <span className="bg-accent-2 text-white w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-900">✓</span>
-            QuickBooks Online connected — payment monitoring is now active.
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-8">
-          {tab === 'reconciliation' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Reconciliation History</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">Automated payment splits across all branch locations</p>
-            </div>
-          )}
-          {tab === 'rules' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Split Rules</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">Define how incoming payments should be distributed</p>
-            </div>
-          )}
-          {tab === 'audit' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Audit Feed</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">System and user activity logs</p>
-            </div>
-          )}
-          {tab === 'remittance' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">CSV Remittance</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">Upload bulk clearing files and remittance advice</p>
-            </div>
-          )}
-          {tab === 'ap' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">AP Bill Splitting</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">Automatically split and route Accounts Payable bills</p>
-            </div>
-          )}
-          {tab === 'trust' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Trust Accounting</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">Manage compliance and transfers for trust ledger funds</p>
-            </div>
-          )}
-          {tab === 'settings' && (
-            <div>
-              <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Firm Settings</h1>
-              <p className="text-text-3 text-[14px] mt-1 font-medium">Manage your connection and account preferences</p>
+        {/* ── Main ────────────────────────────────────────────────────────── */}
+        <main className="max-w-[1400px] mx-auto px-6 py-8">
+          {/* Connected toast */}
+          {connected && tab === 'reconciliation' && (
+            <div className="bg-accent-2/10 border border-accent-2/20 text-accent-2 p-4 rounded-xl mb-6 flex items-center gap-3 animate-slideIn" role="status">
+              <span className="bg-accent-2 text-white w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-900">✓</span>
+              QuickBooks Online connected — payment monitoring is now active.
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 bg-accent-2/10 text-accent-2 px-3 py-1.5 rounded-full text-[11px] font-800 uppercase tracking-wider border border-accent-2/20" aria-label="Live data">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-2 animate-pulse" />
-            Live
-          </div>
-        </div>
-
-        {/* Expired Paywall Banner */}
-        {!loading && !hasAccess && (
-          <div className="bg-red/5 border border-red/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <span className="text-[24px]">🚫</span>
+          <div className="flex items-center justify-between mb-8">
+            {tab === 'reconciliation' && (
               <div>
-                <div className="text-[16px] font-800 text-red">
-                   Subscription or Trial Expired
-                </div>
-                <div className="text-[13px] text-text-3 mt-0.5">
-                  Your automated payment splitting is paused. Please subscribe to reactivate your rules and continue processing payments.
-                </div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Reconciliation History</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">Automated payment splits across all branch locations</p>
               </div>
-            </div>
-            <button className="bg-red text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
-              Subscribe Now
-            </button>
-          </div>
-        )}
-
-        {/* Upgrade Banner for TRIAL/STANDARD */}
-        {hasAccess && (firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
-          <div className="bg-accent/5 border border-accent/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <span className="text-[24px]">💎</span>
+            )}
+            {tab === 'rules' && (
               <div>
-                <div className="text-[16px] font-800 text-text">
-                  Upgrade to Professional
-                </div>
-                <div className="text-[13px] text-text-3 mt-0.5">
-                  Unlock unlimited rules and waterfall allocation logic.
-                </div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Split Rules</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">Define how incoming payments should be distributed</p>
               </div>
-            </div>
-            <button className="bg-accent text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
-              View Plans
-            </button>
-          </div>
-        )}
-
-        {/* ── Tab Content ────────────────────────────────────────────────── */}
-
-        {tab === 'reconciliation' && (
-          <>
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Total Processed</div>
-                <div className="text-[28px] font-display font-800 text-accent-2 tracking-tight">${fmt(totalProcessed)}</div>
-                <div className="text-[12px] text-text-3 mt-1 font-medium flex items-center gap-1.5">
-                  <span>{complete.length} payment{complete.length !== 1 ? 's' : ''}</span>
-                  {momDelta !== null && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${momDelta >= 0 ? 'bg-accent-2/10 text-accent-2' : 'bg-red/10 text-red'}`}>
-                      {momDelta >= 0 ? '▲' : '▼'} {Math.abs(momDelta)}% vs last mo.
-                    </span>
-                  )}
-                </div>
+            )}
+            {tab === 'audit' && (
+              <div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Audit Feed</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">System and user activity logs</p>
               </div>
-              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Invoice Splits</div>
-                <div className="text-[28px] font-display font-800 text-text tracking-tight">{totalSplits}</div>
-                <div className="text-[12px] text-text-3 mt-1 font-medium">across all jobs</div>
+            )}
+            {tab === 'remittance' && (
+              <div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">CSV Remittance</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">Upload bulk clearing files and remittance advice</p>
               </div>
-              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Success Rate</div>
-                <div className="text-[28px] font-display font-800 text-text tracking-tight">{successRate !== null ? `${successRate}%` : '—'}</div>
-                <div className="text-[12px] text-text-3 mt-1 font-medium">{jobs.length} total job{jobs.length !== 1 ? 's' : ''}</div>
+            )}
+            {tab === 'ap' && (
+              <div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">AP Bill Splitting</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">Automatically split and route Accounts Payable bills</p>
               </div>
-              <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Needs Attention</div>
-                <div
-                  className={`${styles.statValue} ${failed.length > 0 ? 'text-red' : ''}`}
-                >
-                  {failed.length}
-                </div>
-                <div className="text-[12px] text-text-3 mt-1 font-medium">failed / rolled back</div>
+            )}
+            {tab === 'trust' && (
+              <div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Trust Accounting</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">Manage compliance and transfers for trust ledger funds</p>
               </div>
-            </div>
-
-            {/* Onboarding checklist — shown until dismissed */}
-            {!loading && !checklistDismissed && jobs.length === 0 && (
-              <div className="bg-white dark:bg-surface border border-border rounded-[18px] p-6 mb-8 shadow-sm animate-fadeUp">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <div className="font-display text-[17px] font-800 text-text tracking-[-0.2px]">Getting started with PaySplit</div>
-                    <div className="text-[13px] text-text-3 mt-0.5">Complete these steps to start splitting payments automatically</div>
-                  </div>
-                  <button className="w-7 h-7 flex items-center justify-center rounded-lg bg-surface-2 border border-transparent text-text-3 hover:text-text hover:bg-surface-3 transition-all" onClick={dismissChecklist} aria-label="Dismiss">✕</button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {[
-                    { label: 'Create your account', done: true },
-                    { label: 'Connect QuickBooks Online', done: !!firm?.connected },
-                    { label: 'Create your first split rule', done: rules.length > 0, action: () => setTab('rules') },
-                    { label: 'Receive your first payment split', done: false },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-4 p-4 rounded-xl border border-border transition-all ${item.done ? 'bg-accent-2/5 border-accent-2/20 opacity-80' : ''} ${item.action && !item.done ? 'cursor-pointer hover:bg-surface-2 hover:border-border-strong' : ''}`}
-                      onClick={item.action && !item.done ? item.action : undefined}
-                    >
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-900 border border-border ${item.done ? 'bg-accent-2 border-accent-2 text-white' : 'bg-surface-2 text-text-3'}`}>{item.done ? '✓' : `${i + 1}`}</span>
-                      <span className="text-[13.5px] font-600 text-text">{item.label}</span>
-                      {item.action && !item.done && <span className="ml-auto text-text-3 font-medium">→</span>}
-                    </div>
-                  ))}
-                </div>
+            )}
+            {tab === 'settings' && (
+              <div>
+                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Firm Settings</h1>
+                <p className="text-text-3 text-[14px] mt-1 font-medium">Manage your connection and account preferences</p>
               </div>
             )}
 
-            {/* Jobs table */}
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Jobs</span>
-                <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600">{jobs.length} total</span>
+            <div className="flex items-center gap-1.5 bg-accent-2/10 text-accent-2 px-3 py-1.5 rounded-full text-[11px] font-800 uppercase tracking-wider border border-accent-2/20" aria-label="Live data">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-2 animate-pulse" />
+              Live
+            </div>
+          </div>
+
+          {/* Expired Paywall Banner */}
+          {!loading && !hasAccess && (
+            <div className="bg-red/5 border border-red/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <span className="text-[24px]">🚫</span>
+                <div>
+                  <div className="text-[16px] font-800 text-red">
+                    Subscription or Trial Expired
+                  </div>
+                  <div className="text-[13px] text-text-3 mt-0.5">
+                    Your automated payment splitting is paused. Please subscribe to reactivate your rules and continue processing payments.
+                  </div>
+                </div>
+              </div>
+              <button className="bg-red text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
+                Subscribe Now
+              </button>
+            </div>
+          )}
+
+          {/* Upgrade Banner for TRIAL/STANDARD */}
+          {hasAccess && (firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
+            <div className="bg-accent/5 border border-accent/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <span className="text-[24px]">💎</span>
+                <div>
+                  <div className="text-[16px] font-800 text-text">
+                    Upgrade to Professional
+                  </div>
+                  <div className="text-[13px] text-text-3 mt-0.5">
+                    Unlock unlimited rules and waterfall allocation logic.
+                  </div>
+                </div>
+              </div>
+              <button className="bg-accent text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
+                View Plans
+              </button>
+            </div>
+          )}
+
+          {/* ── Tab Content ────────────────────────────────────────────────── */}
+
+          {tab === 'reconciliation' && (
+            <>
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Total Processed</div>
+                  <div className="text-[28px] font-display font-800 text-accent-2 tracking-tight">${fmt(totalProcessed)}</div>
+                  <div className="text-[12px] text-text-3 mt-1 font-medium flex items-center gap-1.5">
+                    <span>{complete.length} payment{complete.length !== 1 ? 's' : ''}</span>
+                    {momDelta !== null && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${momDelta >= 0 ? 'bg-accent-2/10 text-accent-2' : 'bg-red/10 text-red'}`}>
+                        {momDelta >= 0 ? '▲' : '▼'} {Math.abs(momDelta)}% vs last mo.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Invoice Splits</div>
+                  <div className="text-[28px] font-display font-800 text-text tracking-tight">{totalSplits}</div>
+                  <div className="text-[12px] text-text-3 mt-1 font-medium">across all jobs</div>
+                </div>
+                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Success Rate</div>
+                  <div className="text-[28px] font-display font-800 text-text tracking-tight">{successRate !== null ? `${successRate}%` : '—'}</div>
+                  <div className="text-[12px] text-text-3 mt-1 font-medium">{jobs.length} total job{jobs.length !== 1 ? 's' : ''}</div>
+                </div>
+                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Needs Attention</div>
+                  <div
+                    className={`${styles.statValue} ${failed.length > 0 ? 'text-red' : ''}`}
+                  >
+                    {failed.length}
+                  </div>
+                  <div className="text-[12px] text-text-3 mt-1 font-medium">failed / rolled back</div>
+                </div>
               </div>
 
-              {loading ? (
-                <div className="p-[16px_24px_20px] flex flex-col gap-[10px]">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-[46px] rounded-[8px] bg-[linear-gradient(90deg,var(--surface-2)_25%,var(--surface-3)_50%,var(--surface-2)_75%)] bg-[length:200%_100%] animate-shimmer" style={{ opacity: 1.1 - i * 0.3 }} />
-                  ))}
+              {/* Onboarding checklist — shown until dismissed */}
+              {!loading && !checklistDismissed && jobs.length === 0 && (
+                <div className="bg-white dark:bg-surface border border-border rounded-[18px] p-6 mb-8 shadow-sm animate-fadeUp">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <div className="font-display text-[17px] font-800 text-text tracking-[-0.2px]">Getting started with PaySplit</div>
+                      <div className="text-[13px] text-text-3 mt-0.5">Complete these steps to start splitting payments automatically</div>
+                    </div>
+                    <button className="w-7 h-7 flex items-center justify-center rounded-lg bg-surface-2 border border-transparent text-text-3 hover:text-text hover:bg-surface-3 transition-all" onClick={dismissChecklist} aria-label="Dismiss">✕</button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { label: 'Create your account', done: true },
+                      { label: 'Connect QuickBooks Online', done: !!firm?.connected },
+                      { label: 'Create your first split rule', done: rules.length > 0, action: () => setTab('rules') },
+                      { label: 'Receive your first payment split', done: false },
+                    ].map((item, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-4 p-4 rounded-xl border border-border transition-all ${item.done ? 'bg-accent-2/5 border-accent-2/20 opacity-80' : ''} ${item.action && !item.done ? 'cursor-pointer hover:bg-surface-2 hover:border-border-strong' : ''}`}
+                        onClick={item.action && !item.done ? item.action : undefined}
+                      >
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-900 border border-border ${item.done ? 'bg-accent-2 border-accent-2 text-white' : 'bg-surface-2 text-text-3'}`}>{item.done ? '✓' : `${i + 1}`}</span>
+                        <span className="text-[13.5px] font-600 text-text">{item.label}</span>
+                        {item.action && !item.done && <span className="ml-auto text-text-3 font-medium">→</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : jobs.length === 0 ? (
-                <div className="p-[72px_24px] text-center">
-                  <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">⚡</span>
-                  <div className="font-display text-[15px] font-800 text-text mb-[7px]">Waiting for payments</div>
-                  <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">
-                    Jobs appear automatically when QBO payments are received via webhook.
+              )}
+
+              {/* Jobs table */}
+              <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+                <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                  <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Jobs</span>
+                  <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600">{jobs.length} total</span>
+                </div>
+
+                {loading ? (
+                  <div className="p-[16px_24px_20px] flex flex-col gap-[10px]">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-[46px] rounded-[8px] bg-[linear-gradient(90deg,var(--surface-2)_25%,var(--surface-3)_50%,var(--surface-2)_75%)] bg-[length:200%_100%] animate-shimmer" style={{ opacity: 1.1 - i * 0.3 }} />
+                    ))}
+                  </div>
+                ) : jobs.length === 0 ? (
+                  <div className="p-[72px_24px] text-center">
+                    <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">⚡</span>
+                    <div className="font-display text-[15px] font-800 text-text mb-[7px]">Waiting for payments</div>
+                    <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">
+                      Jobs appear automatically when QBO payments are received via webhook.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full border-collapse table-fixed min-w-[800px]">
+                      <colgroup>
+                        <col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[13%]" /><col className="w-[12%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[14%]" />
+                      </colgroup>
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Payment ID</th>
+                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Amount</th>
+                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Status</th>
+                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Splits</th>
+                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Rule</th>
+                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">When</th>
+                          <th className="p-[11px_20px]" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {jobs.map((job, i) => {
+                          const isOpen = selected === job.id
+                          return (
+                            <Fragment key={job.id}>
+                              <tr
+                                className={`border-b border-border cursor-pointer transition-colors duration-[0.12s] animate-fadeUp hover:bg-surface-2 ${isOpen ? 'bg-accent-glow border-b-transparent' : ''}`}
+                                onClick={() => toggleRow(job.id)}
+                                style={{ animationDelay: `${i * 35}ms` }}
+                                aria-expanded={isOpen}
+                              >
+                                <td className="p-[11px_20px]">
+                                  <span className="font-mono text-[13px]">
+                                    {job.paymentId.length > 24
+                                      ? job.paymentId.slice(0, 24) + '…'
+                                      : job.paymentId}
+                                  </span>
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <span className="font-mono font-bold text-accent-2 text-[13px]">${fmt(job.totalAmount)}</span>
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <StatusBadge status={job.status} />
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <span className="text-[12px] text-text-2">
+                                    {job.auditEntries.length} invoice{job.auditEntries.length !== 1 ? 's' : ''}
+                                  </span>
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  {job.rule?.ruleType
+                                    ? <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{job.rule.ruleType}</span>
+                                    : <span className="font-mono text-text-3">—</span>
+                                  }
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <span className="text-[12px] text-text-3">{timeAgo(job.createdAt)}</span>
+                                </td>
+                                <td className="p-[11px_20px]">
+                                  <div className="flex items-center gap-3">
+                                    {(job.status === 'FAILED' || job.status === 'ROLLED_BACK') && (
+                                      <button
+                                        className="text-[11px] font-700 text-accent border border-accent bg-transparent p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-accent hover:text-white transition-all"
+                                        onClick={e => retryJob(e, job.id)}
+                                        disabled={retrying === job.id}
+                                      >
+                                        {retrying === job.id ? '···' : 'Retry'}
+                                      </button>
+                                    )}
+                                    {job.status === 'REVIEW_REQUIRED' && (
+                                      <button
+                                        className="text-[11px] font-700 text-white border border-[#db2777] bg-[#ec4899] p-[4px_10px] rounded-[6px] cursor-pointer hover:opacity-90 transition-all shadow-[0_2px_8px_rgba(236,72,153,0.3)]"
+                                        onClick={e => approveJob(e, job.id)}
+                                        disabled={retrying === job.id}
+                                      >
+                                        {retrying === job.id ? '···' : 'Approve'}
+                                      </button>
+                                    )}
+                                    <Chevron open={isOpen} />
+                                  </div>
+                                </td>
+                              </tr>
+
+                              {/* Audit trail expansion */}
+                              {isOpen && (
+                                <tr key={`${job.id}-audit`} className="bg-surface-2 border-b border-border">
+                                  <td colSpan={7} className="p-0">
+                                    <div className="p-8 animate-fadeIn border-t border-border">
+
+                                      {job.errorMessage && (
+                                        <div className="flex items-center gap-3 p-[14px_18px] mb-6 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl text-[#ef4444] text-[13px] font-600 animate-slideUp">
+                                          <span className="text-[16px]">⚠</span>
+                                          <span>{job.errorMessage}</span>
+                                        </div>
+                                      )}
+
+                                      <div className="grid grid-cols-2 gap-8 max-[1024px]:grid-cols-1">
+                                        <div>
+                                          <div className="flex justify-between items-center mb-4">
+                                            <div className="font-display text-[14px] font-800 text-text uppercase tracking-[0.5px]">Audit Trail</div>
+                                            <button className="p-[5px_10px] text-[11px] font-700 font-display text-text-3 bg-transparent border border-border rounded-[7px] cursor-pointer transition-all flex items-center gap-[5px] hover:text-text hover:border-border-strong hover:bg-surface" onClick={() => window.print()} title="Export to PDF">
+                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                <polyline points="7 10 12 15 17 10" />
+                                                <line x1="12" y1="15" x2="12" y2="3" />
+                                              </svg>
+                                              PDF
+                                            </button>
+                                          </div>
+                                          <table className="w-full border-collapse">
+                                            <thead>
+                                              <tr className="border-b border-border">
+                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Sub-Location</th>
+                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Invoice</th>
+                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Amount Applied</th>
+                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">QBO Payment ID</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {job.auditEntries.map(entry => (
+                                                <tr key={entry.id} className="border-b border-border last:border-none">
+                                                  <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.subLocationId}</span></td>
+                                                  <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.invoiceId}</span></td>
+                                                  <td className="py-3">
+                                                    <span className="text-accent-2 font-extrabold font-mono text-[13px]">
+                                                      ${fmt(entry.amountApplied)}
+                                                    </span>
+                                                  </td>
+                                                  <td className="py-3">
+                                                    <span className="font-mono text-[12px] text-text-3">
+                                                      {entry.qboPaymentId ?? '—'}
+                                                    </span>
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                            <tfoot>
+                                              <tr className="border-t border-border-strong">
+                                                <td colSpan={2} className="py-4 text-text-3 text-[11px] font-700 uppercase tracking-wider">
+                                                  Total allocated
+                                                </td>
+                                                <td className="py-4">
+                                                  <span className="text-accent-2 font-extrabold font-display text-[15px] tracking-tight">
+                                                    ${fmt(job.auditEntries.reduce((s, e) => s + Number(e.amountApplied), 0))}
+                                                  </span>
+                                                </td>
+                                                <td className="py-4" />
+                                              </tr>
+                                            </tfoot>
+                                          </table>
+                                        </div>
+
+                                        <div>
+                                          <div className="font-display text-[14px] font-800 text-text mb-4 uppercase tracking-[0.5px]">Job Details</div>
+                                          <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+                                            {[
+                                              ['Job ID', job.id.slice(0, 8) + '…', job.id],
+                                              ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? '…' : ''), job.paymentId],
+                                              ['Rule type', job.rule?.ruleType ?? '—', job.rule?.ruleType],
+                                              ['Created', new Date(job.createdAt).toLocaleString(), job.createdAt],
+                                              ...(job.completedAt
+                                                ? [['Completed', new Date(job.completedAt).toLocaleString(), job.completedAt]]
+                                                : []),
+                                            ].map(([k, v, full]) => (
+                                              <div key={k} className="flex justify-between items-center py-2 border-b border-border last:border-none">
+                                                <span className="text-[11px] font-700 uppercase text-text-3 tracking-[0.5px]">{k}</span>
+                                                <span className="text-[13px] font-600 text-text font-mono truncate max-w-[200px]" title={full as string}>{v}</span>
+                                              </div>
+                                            ))}
+                                            <div className="flex justify-between items-center py-3 border-b border-border last:border-none">
+                                              <span className="text-[12px] font-800 text-text-3 uppercase tracking-wider">Total amount</span>
+                                              <span className="text-[18px] font-display font-800 text-accent-2 tracking-tight">${fmt(job.totalAmount)}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {tab === 'remittance' && (
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Remittance Uploads</span>
+                <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1" onClick={() => setShowPricingModal(true)}>Upload CSV...</button>
+              </div>
+              <div className="p-[72px_24px] text-center">
+                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📄</span>
+                <div className="font-display text-[15px] font-800 text-text mb-[7px]">Upload Remittance History</div>
+                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Upload bulk clearing lists from payment providers directly. Support for this feature requires Professional plan or higher.</div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'ap' && (
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">AP Bill Splitting</span>
+              </div>
+              <div className="p-[72px_24px] text-center">
+                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📤</span>
+                <div className="font-display text-[15px] font-800 text-text mb-[7px]">Split AP Bills Automatically</div>
+                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Accounts Payable bill splitting is an upcoming feature. Automate vendor disbursement across branches.</div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'trust' && (
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Trust Accounting</span>
+              </div>
+              <div className="p-[72px_24px] text-center">
+                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">🏛️</span>
+                <div className="font-display text-[15px] font-800 text-text mb-[7px]">Trust Ledger Management</div>
+                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Manage pre-funded retainers, trust-to-operating transfers, and compliance reporting. Feature currently in beta.</div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'rules' && (
+            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Routing Rules</span>
+                {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
+                  <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600 ml-3">
+                    {rules.length} of 3 rules used
+                  </span>
+                )}
+                <div className="flex-1" />
+                <button
+                  className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1"
+                  onClick={() => {
+                    if (!hasAccess) {
+                      addToast(`Your access has expired. Please subscribe to create or edit rules.`, 'error')
+                      setShowPricingModal(true)
+                      return
+                    }
+                    if ((firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && rules.length >= 3) {
+                      addToast(`Your ${firm?.plan} plan allows up to 3 rules. Upgrade for more.`, 'info')
+                      setShowPricingModal(true)
+                      return
+                    }
+                    setEditingRule(null)
+                    setShowRuleModal(true)
+                  }}
+                >
+                  <span className="text-[16px] font-semibold mr-1">+</span> New Rule
+                </button>
+              </div>
+
+              {rules.length === 0 ? (
+                <div className="p-16 text-center" role="status">
+                  <div className="text-[40px] mb-4">⚖️</div>
+                  <div className="font-display text-[15px] font-800 text-text mb-[7px]">No rules yet</div>
+                  <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Rules determine how payments are split between your branch locations.</div>
+                  <div className="mt-6">
+                    <button
+                      className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 mx-auto"
+                      onClick={() => {
+                        if (!hasAccess) {
+                          addToast(`Your access has expired. Please subscribe to create rules.`, 'error')
+                          setShowPricingModal(true)
+                          return
+                        }
+                        setEditingRule(null)
+                        setShowRuleModal(true)
+                      }}
+                    >
+                      + Create your first rule
+                    </button>
                   </div>
                 </div>
               ) : (
                 <div className="w-full overflow-x-auto">
                   <table className="w-full border-collapse table-fixed min-w-[800px]">
-                    <colgroup>
-                      <col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[13%]" /><col className="w-[12%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[14%]" />
-                    </colgroup>
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Payment ID</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Amount</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Status</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Splits</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Rule</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">When</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Parent Customer</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Type</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Weights / Order</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Status</th>
+                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Created</th>
                         <th className="p-[11px_20px]" />
                       </tr>
                     </thead>
                     <tbody>
-                      {jobs.map((job, i) => {
-                        const isOpen = selected === job.id
+                      {rules.map(rule => {
+                        const parent = customers.find(c => c.Id === rule.parentCustomerId)
                         return (
-                          <Fragment key={job.id}>
-                            <tr
-                              className={`border-b border-border cursor-pointer transition-colors duration-[0.12s] animate-fadeUp hover:bg-surface-2 ${isOpen ? 'bg-accent-glow border-b-transparent' : ''}`}
-                              onClick={() => toggleRow(job.id)}
-                              style={{ animationDelay: `${i * 35}ms` }}
-                              aria-expanded={isOpen}
-                            >
-                              <td className="p-[11px_20px]">
-                                <span className="font-mono text-[13px]">
-                                  {job.paymentId.length > 24
-                                    ? job.paymentId.slice(0, 24) + '…'
-                                    : job.paymentId}
-                                </span>
-                              </td>
-                              <td className="p-[11px_20px]">
-                                <span className="font-mono font-bold text-accent-2 text-[13px]">${fmt(job.totalAmount)}</span>
-                              </td>
-                              <td className="p-[11px_20px]">
-                                <StatusBadge status={job.status} />
-                              </td>
-                              <td className="p-[11px_20px]">
-                                <span className="text-[12px] text-text-2">
-                                  {job.auditEntries.length} invoice{job.auditEntries.length !== 1 ? 's' : ''}
-                                </span>
-                              </td>
-                              <td className="p-[11px_20px]">
-                                {job.rule?.ruleType
-                                  ? <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{job.rule.ruleType}</span>
-                                  : <span className="font-mono text-text-3">—</span>
-                                }
-                              </td>
-                              <td className="p-[11px_20px]">
-                                <span className="text-[12px] text-text-3">{timeAgo(job.createdAt)}</span>
-                              </td>
-                              <td className="p-[11px_20px]">
-                                <div className="flex items-center gap-3">
-                                  {(job.status === 'FAILED' || job.status === 'ROLLED_BACK') && (
-                                    <button
-                                      className="text-[11px] font-700 text-accent border border-accent bg-transparent p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-accent hover:text-white transition-all"
-                                      onClick={e => retryJob(e, job.id)}
-                                      disabled={retrying === job.id}
-                                    >
-                                      {retrying === job.id ? '···' : 'Retry'}
-                                    </button>
-                                  )}
-                                  {job.status === 'REVIEW_REQUIRED' && (
-                                    <button
-                                      className="text-[11px] font-700 text-white border border-[#db2777] bg-[#ec4899] p-[4px_10px] rounded-[6px] cursor-pointer hover:opacity-90 transition-all shadow-[0_2px_8px_rgba(236,72,153,0.3)]"
-                                      onClick={e => approveJob(e, job.id)}
-                                      disabled={retrying === job.id}
-                                    >
-                                      {retrying === job.id ? '···' : 'Approve'}
-                                    </button>
-                                  )}
-                                  <Chevron open={isOpen} />
-                                </div>
-                              </td>
-                            </tr>
-
-                            {/* Audit trail expansion */}
-                            {isOpen && (
-                              <tr key={`${job.id}-audit`} className="bg-surface-2 border-b border-border">
-                                <td colSpan={7} className="p-0">
-                                  <div className="p-8 animate-fadeIn border-t border-border">
-
-                                    {job.errorMessage && (
-                                      <div className="flex items-center gap-3 p-[14px_18px] mb-6 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl text-[#ef4444] text-[13px] font-600 animate-slideUp">
-                                        <span className="text-[16px]">⚠</span>
-                                        <span>{job.errorMessage}</span>
-                                      </div>
-                                    )}
-
-                                    <div className="grid grid-cols-2 gap-8 max-[1024px]:grid-cols-1">
-                                      <div>
-                                        <div className="flex justify-between items-center mb-4">
-                                          <div className="font-display text-[14px] font-800 text-text uppercase tracking-[0.5px]">Audit Trail</div>
-                                          <button className="p-[5px_10px] text-[11px] font-700 font-display text-text-3 bg-transparent border border-border rounded-[7px] cursor-pointer transition-all flex items-center gap-[5px] hover:text-text hover:border-border-strong hover:bg-surface" onClick={() => window.print()} title="Export to PDF">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                              <polyline points="7 10 12 15 17 10" />
-                                              <line x1="12" y1="15" x2="12" y2="3" />
-                                            </svg>
-                                            PDF
-                                          </button>
-                                        </div>
-                                        <table className="w-full border-collapse">
-                                          <thead>
-                                            <tr className="border-b border-border">
-                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Sub-Location</th>
-                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Invoice</th>
-                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Amount Applied</th>
-                                              <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">QBO Payment ID</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {job.auditEntries.map(entry => (
-                                              <tr key={entry.id} className="border-b border-border last:border-none">
-                                                <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.subLocationId}</span></td>
-                                                <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.invoiceId}</span></td>
-                                                <td className="py-3">
-                                                  <span className="text-accent-2 font-extrabold font-mono text-[13px]">
-                                                    ${fmt(entry.amountApplied)}
-                                                  </span>
-                                                </td>
-                                                <td className="py-3">
-                                                  <span className="font-mono text-[12px] text-text-3">
-                                                    {entry.qboPaymentId ?? '—'}
-                                                  </span>
-                                                </td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                          <tfoot>
-                                            <tr className="border-t border-border-strong">
-                                              <td colSpan={2} className="py-4 text-text-3 text-[11px] font-700 uppercase tracking-wider">
-                                                Total allocated
-                                              </td>
-                                              <td className="py-4">
-                                                <span className="text-accent-2 font-extrabold font-display text-[15px] tracking-tight">
-                                                  ${fmt(job.auditEntries.reduce((s, e) => s + Number(e.amountApplied), 0))}
-                                                </span>
-                                              </td>
-                                              <td className="py-4" />
-                                            </tr>
-                                          </tfoot>
-                                        </table>
-                                      </div>
-
-                                      <div>
-                                        <div className="font-display text-[14px] font-800 text-text mb-4 uppercase tracking-[0.5px]">Job Details</div>
-                                        <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
-                                          {[
-                                            ['Job ID', job.id.slice(0, 8) + '…', job.id],
-                                            ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? '…' : ''), job.paymentId],
-                                            ['Rule type', job.rule?.ruleType ?? '—', job.rule?.ruleType],
-                                            ['Created', new Date(job.createdAt).toLocaleString(), job.createdAt],
-                                            ...(job.completedAt
-                                              ? [['Completed', new Date(job.completedAt).toLocaleString(), job.completedAt]]
-                                              : []),
-                                          ].map(([k, v, full]) => (
-                                            <div key={k} className="flex justify-between items-center py-2 border-b border-border last:border-none">
-                                              <span className="text-[11px] font-700 uppercase text-text-3 tracking-[0.5px]">{k}</span>
-                                              <span className="text-[13px] font-600 text-text font-mono truncate max-w-[200px]" title={full as string}>{v}</span>
-                                            </div>
-                                          ))}
-                                            <div className="flex justify-between items-center py-3 border-b border-border last:border-none">
-                                              <span className="text-[12px] font-800 text-text-3 uppercase tracking-wider">Total amount</span>
-                                              <span className="text-[18px] font-display font-800 text-accent-2 tracking-tight">${fmt(job.totalAmount)}</span>
-                                            </div>
-                                        </div>
-                                      </div>
+                          <tr key={rule.id} className="border-b border-border hover:bg-surface-2 transition-colors">
+                            <td className="p-[11px_20px]">
+                              <div className="font-bold text-[13px] text-text">{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
+                            </td>
+                            <td className="p-[11px_20px]">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{rule.ruleType}</span>
+                                {rule.isLocked && <span title={`Locked: ${rule.lockedReason}`} className="cursor-help">🔒</span>}
+                              </div>
+                            </td>
+                            <td className="p-[11px_20px]">
+                              <div className="font-mono text-[11px] max-w-[300px]">
+                                {rule.ruleType === 'proportional'
+                                  ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
+                                    const loc = locations.find(l => String(l.Id) === String(id) || String(l.id) === String(id))
+                                    return (
+                                      <span key={id} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap mr-1 mb-1 inline-block">
+                                        {loc?.Name || loc?.name || `Location ${id}`}: {w}%
+                                      </span>
+                                    )
+                                  })
+                                  : (
+                                    <div className="flex flex-wrap gap-1 items-center">
+                                      {(rule.ruleConfig.locationIds as string[]).map((locId, idx) => {
+                                        const loc = locations.find(l => String(l.Id) === String(locId) || String(l.id) === String(locId))
+                                        return (
+                                          <span key={locId} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap">
+                                            {idx + 1}. {loc?.Name || loc?.name || `Location ${locId}`}
+                                          </span>
+                                        )
+                                      })}
                                     </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </>
+                                  )
+                                }
+                              </div>
+                            </td>
+                            <td className="p-[11px_20px]">
+                              <button
+                                className={`appearance-none border-none p-[4px_10px] rounded-[6px] text-[10.5px] font-800 uppercase tracking-[0.5px] cursor-pointer transition-all ${rule.isActive ? 'bg-accent-glow text-accent' : 'bg-surface-2 text-text-3'}`}
+                                disabled={!hasAccess}
+                                onClick={() => {
+                                  if (!hasAccess) {
+                                    addToast('Your access has expired. Please subscribe.', 'error')
+                                    setShowPricingModal(true)
+                                  } else {
+                                    toggleRule(rule.id, !rule.isActive)
+                                  }
+                                }}
+                              >
+                                {rule.isActive ? 'Active' : 'Disabled'}
+                              </button>
+                            </td>
+                            <td className="p-[11px_20px]"><span className="text-[12px] text-text-3">{new Date(rule.createdAt).toLocaleDateString()}</span></td>
+                            <td className="p-[11px_20px]">
+                              <div className="flex gap-2">
+                                <button
+                                  className={`text-[11px] font-700 text-text bg-surface-2 border border-border py-1 px-2 rounded-[6px] hover:bg-surface-3 transition-colors ${rule.isLocked || !hasAccess ? 'opacity-70' : 'opacity-100'}`}
+                                  onClick={() => {
+                                    if (!hasAccess) {
+                                      addToast('Your access has expired. Please subscribe.', 'error')
+                                      setShowPricingModal(true)
+                                      return
+                                    }
+                                    if (rule.isLocked) {
+                                      addToast(`This rule is locked due to a plan downgrade. Upgrade to Professional to edit.`, 'info')
+                                      setShowPricingModal(true)
+                                      return
+                                    }
+                                    setEditingRule(rule);
+                                    setShowRuleModal(true);
+                                  }}
+                                >
+                                  {rule.isLocked ? 'View' : 'Edit'}
+                                </button>
+                                <button className="text-[10px] font-700 text-red bg-transparent border border-red/20 p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-red/10 hover:border-red/40 transition-all font-display uppercase tracking-wider" onClick={() => deleteRule(rule.id)}>Delete</button>
+                              </div>
+                            </td>
+                          </tr>
                         )
                       })}
                     </tbody>
@@ -1391,522 +1594,326 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          </>
-        )}
+          )}
 
-        {tab === 'remittance' && (
-          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Remittance Uploads</span>
-              <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1" onClick={() => setShowPricingModal(true)}>Upload CSV...</button>
+          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
             </div>
-            <div className="p-[72px_24px] text-center">
-              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📄</span>
-              <div className="font-display text-[15px] font-800 text-text mb-[7px]">Upload Remittance History</div>
-              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Upload bulk clearing lists from payment providers directly. Support for this feature requires Professional plan or higher.</div>
-            </div>
-          </div>
-        )}
-
-        {tab === 'ap' && (
-          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">AP Bill Splitting</span>
-            </div>
-            <div className="p-[72px_24px] text-center">
-              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📤</span>
-              <div className="font-display text-[15px] font-800 text-text mb-[7px]">Split AP Bills Automatically</div>
-              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Accounts Payable bill splitting is an upcoming feature. Automate vendor disbursement across branches.</div>
-            </div>
-          </div>
-        )}
-
-        {tab === 'trust' && (
-          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Trust Accounting</span>
-            </div>
-            <div className="p-[72px_24px] text-center">
-              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">🏛️</span>
-              <div className="font-display text-[15px] font-800 text-text mb-[7px]">Trust Ledger Management</div>
-              <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Manage pre-funded retainers, trust-to-operating transfers, and compliance reporting. Feature currently in beta.</div>
-            </div>
-          </div>
-        )}
-
-        {tab === 'rules' && (
-          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Routing Rules</span>
-              {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
-                <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600 ml-3">
-                  {rules.length} of 3 rules used
-                </span>
-              )}
-              <div className="flex-1" />
-              <button
-                className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1"
-                onClick={() => {
-                  if (!hasAccess) {
-                    addToast(`Your access has expired. Please subscribe to create or edit rules.`, 'error')
-                    setShowPricingModal(true)
-                    return
-                  }
-                  if ((firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && rules.length >= 3) {
-                    addToast(`Your ${firm?.plan} plan allows up to 3 rules. Upgrade for more.`, 'info')
-                    setShowPricingModal(true)
-                    return
-                  }
-                  setEditingRule(null)
-                  setShowRuleModal(true)
-                }}
-              >
-                <span className="text-[16px] font-semibold mr-1">+</span> New Rule
-              </button>
-            </div>
-
-            {rules.length === 0 ? (
-              <div className="p-16 text-center" role="status">
-                <div className="text-[40px] mb-4">⚖️</div>
-                <div className="font-display text-[15px] font-800 text-text mb-[7px]">No rules yet</div>
-                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Rules determine how payments are split between your branch locations.</div>
-                <div className="mt-6">
-                  <button 
-                    className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 mx-auto" 
-                    onClick={() => {
-                       if (!hasAccess) {
-                         addToast(`Your access has expired. Please subscribe to create rules.`, 'error')
-                         setShowPricingModal(true)
-                         return
-                       }
-                       setEditingRule(null)
-                       setShowRuleModal(true)
-                    }}
-                  >
-                    + Create your first rule
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="w-full border-collapse table-fixed min-w-[800px]">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Parent Customer</th>
-                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Type</th>
-                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Weights / Order</th>
-                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Status</th>
-                      <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Created</th>
-                      <th className="p-[11px_20px]" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rules.map(rule => {
-                      const parent = customers.find(c => c.Id === rule.parentCustomerId)
-                      return (
-                        <tr key={rule.id} className="border-b border-border hover:bg-surface-2 transition-colors">
-                          <td className="p-[11px_20px]">
-                            <div className="font-bold text-[13px] text-text">{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
-                          </td>
-                          <td className="p-[11px_20px]">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{rule.ruleType}</span>
-                              {rule.isLocked && <span title={`Locked: ${rule.lockedReason}`} className="cursor-help">🔒</span>}
-                            </div>
-                          </td>
-                          <td className="p-[11px_20px]">
-                            <div className="font-mono text-[11px] max-w-[300px]">
-                              {rule.ruleType === 'proportional'
-                                ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
-                                  const loc = locations.find(l => String(l.Id) === String(id) || String(l.id) === String(id))
-                                  return (
-                                    <span key={id} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap mr-1 mb-1 inline-block">
-                                      {loc?.Name || loc?.name || `Location ${id}`}: {w}%
-                                    </span>
-                                  )
-                                })
-                                : (
-                                  <div className="flex flex-wrap gap-1 items-center">
-                                    {(rule.ruleConfig.locationIds as string[]).map((locId, idx) => {
-                                      const loc = locations.find(l => String(l.Id) === String(locId) || String(l.id) === String(locId))
-                                      return (
-                                        <span key={locId} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap">
-                                          {idx + 1}. {loc?.Name || loc?.name || `Location ${locId}`}
-                                        </span>
-                                      )
-                                    })}
-                                  </div>
-                                )
-                              }
-                            </div>
-                          </td>
-                          <td className="p-[11px_20px]">
-                            <button
-                              className={`appearance-none border-none p-[4px_10px] rounded-[6px] text-[10.5px] font-800 uppercase tracking-[0.5px] cursor-pointer transition-all ${rule.isActive ? 'bg-accent-glow text-accent' : 'bg-surface-2 text-text-3'}`}
-                              disabled={!hasAccess}
-                              onClick={() => {
-                                if (!hasAccess) {
-                                  addToast('Your access has expired. Please subscribe.', 'error')
-                                  setShowPricingModal(true)
-                                } else {
-                                  toggleRule(rule.id, !rule.isActive)
-                                }
-                              }}
-                            >
-                              {rule.isActive ? 'Active' : 'Disabled'}
-                            </button>
-                          </td>
-                          <td className="p-[11px_20px]"><span className="text-[12px] text-text-3">{new Date(rule.createdAt).toLocaleDateString()}</span></td>
-                          <td className="p-[11px_20px]">
-                            <div className="flex gap-2">
-                              <button
-                                className={`text-[11px] font-700 text-text bg-surface-2 border border-border py-1 px-2 rounded-[6px] hover:bg-surface-3 transition-colors ${rule.isLocked || !hasAccess ? 'opacity-70' : 'opacity-100'}`}
-                                onClick={() => {
-                                  if (!hasAccess) {
-                                    addToast('Your access has expired. Please subscribe.', 'error')
-                                    setShowPricingModal(true)
-                                    return
-                                  }
-                                  if (rule.isLocked) {
-                                    addToast(`This rule is locked due to a plan downgrade. Upgrade to Professional to edit.`, 'info')
-                                    setShowPricingModal(true)
-                                    return
-                                  }
-                                  setEditingRule(rule);
-                                  setShowRuleModal(true);
-                                }}
-                              >
-                                {rule.isLocked ? 'View' : 'Edit'}
-                              </button>
-                              <button className="text-[10px] font-700 text-red bg-transparent border border-red/20 p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-red/10 hover:border-red/40 transition-all font-display uppercase tracking-wider" onClick={() => deleteRule(rule.id)}>Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div>
-                    <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
-                    <div className="text-[12px] text-text-3">
-                      {firm?.qboRealmId ? (
-                        <span className="flex items-center gap-1.5 text-accent-2 font-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-2" />
-                          Connected to Realm ID: {firm.qboRealmId}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-text-3">
-                          <span className="w-1.5 h-1.5 rounded-full bg-border" />
-                          Not connected to any QBO company
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <a
-                    href={`${API}/auth/qbo/connect?firmId=${firmId}`}
-                    className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
-                  >
-                    {firm?.qboRealmId ? 'Reconnect QBO' : 'Connect QBO'}
-                  </a>
-                </div>
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div>
-                    <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
-                    <div className="text-[12px] text-text-3 flex items-center gap-2">
-                       Current tier: 
-                       <span className="bg-accent/10 text-accent font-900 px-2 py-0.5 rounded-full text-[10px] border border-accent/20 uppercase tracking-wider">{firm?.plan || 'TRIAL'}</span>
-                    </div>
-                  </div>
-                  <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[8px_16px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors" onClick={() => setShowPricingModal(true)}>
-                    {firm?.plan === 'TRIAL' ? 'Upgrade Plan' : 'Change Plan'}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div className="w-full">
-                    <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
-                    <div className="text-[12px] text-text-3 mb-4">Choose how payments are posted to QBO.</div>
-                    <div className="flex gap-2">
-                      <button
-                        className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent shadow-lg shadow-accent/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
-                        onClick={() => updateAllocationMode('AUTO')}
-                      >
-                        Auto-Post (Instant)
-                      </button>
-                      <button
-                        className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899] shadow-lg shadow-[#ec4899]/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
-                        onClick={() => updateAllocationMode('REVIEW')}
-                      >
-                        Manual Review
-                      </button>
-                    </div>
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div>
+                  <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
+                  <div className="text-[12px] text-text-3">
+                    {firm?.qboRealmId ? (
+                      <span className="flex items-center gap-1.5 text-accent-2 font-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-2" />
+                        Connected to Realm ID: {firm.qboRealmId}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-text-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-border" />
+                        Not connected to any QBO company
+                      </span>
+                    )}
                   </div>
                 </div>
+                <a
+                  href={`${API}/auth/qbo/connect?firmId=${firmId}`}
+                  className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
+                >
+                  {firm?.qboRealmId ? 'Reconnect QBO' : 'Connect QBO'}
+                </a>
               </div>
-            </div>
-
-            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div>
+                  <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
+                  <div className="text-[12px] text-text-3 flex items-center gap-2">
+                    Current tier:
+                    <span className="bg-accent/10 text-accent font-900 px-2 py-0.5 rounded-full text-[10px] border border-accent/20 uppercase tracking-wider">{firm?.plan || 'TRIAL'}</span>
+                  </div>
+                </div>
+                <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[8px_16px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors" onClick={() => setShowPricingModal(true)}>
+                  {firm?.plan === 'TRIAL' ? 'Upgrade Plan' : 'Change Plan'}
+                </button>
               </div>
-              <div className="p-6">
-                <div className="mb-4">
-                  <label className="block text-[11px] font-800 text-text-3 uppercase tracking-wider mb-2">Alert Recipients</label>
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div className="w-full">
+                  <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
+                  <div className="text-[12px] text-text-3 mb-4">Choose how payments are posted to QBO.</div>
                   <div className="flex gap-2">
-                    <input 
-                      type="email" 
-                      placeholder="admin@firm.com" 
-                      readOnly 
-                      className="flex-1 bg-surface-2 border border-border p-2.5 rounded-lg text-[13px] text-text-3 outline-none cursor-not-allowed" 
-                    />
-                    <button className="px-4 py-2 bg-surface-3 border border-border rounded-lg text-[12px] font-700 text-text-3 cursor-not-allowed" onClick={() => addToast('Notification configuration requires Practice plan.', 'info')}>Save</button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-accent-2/5 rounded-xl border border-accent-2/10">
-                  <span className="w-2 h-2 rounded-full bg-accent-2 animate-pulse" />
-                  <p className="text-[12px] text-text-2 leading-relaxed">
-                    System alerts are <strong>active</strong>. Internal webhooks are monitoring all API activity and failed reconciliation jobs.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none group">
-                  <div>
-                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                      Xero Integration
-                      <span className="bg-surface-3 text-text-3 text-[9px] px-1.5 py-0.5 rounded-full border border-border uppercase tracking-tight font-900">Coming Soon</span>
-                    </div>
-                    <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero.</div>
-                  </div>
-                  <button className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-40 cursor-not-allowed" disabled>Connect Xero</button>
-                </div>
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div>
-                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                      Multi-Entity Portal
-                      <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                    </div>
-                    <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof.</div>
-                  </div>
-                  <button 
-                    className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2" 
-                    onClick={() => { addToast('Multi-Entity setup requires Practice Plan.', 'info'); setShowPricingModal(true); }}
-                  >
-                    Configure 🔒
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security & Branding</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div>
-                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                      Fraud & Anomaly Detection
-                      <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                    </div>
-                    <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review.</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-800 text-text-3 uppercase tracking-wider">Unconfigured</span>
-                    <button 
-                      className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[6px_10px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors"
-                      onClick={() => { addToast('Fraud protection requires Practice plan.', 'info'); setShowPricingModal(true); }}
+                    <button
+                      className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent shadow-lg shadow-accent/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
+                      onClick={() => updateAllocationMode('AUTO')}
                     >
-                      Enable 🔒
+                      Auto-Post (Instant)
+                    </button>
+                    <button
+                      className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899] shadow-lg shadow-[#ec4899]/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
+                      onClick={() => updateAllocationMode('REVIEW')}
+                    >
+                      Manual Review
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                  <div>
-                    <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                      White-label Reporting
-                      <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                    </div>
-                    <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-[11px] font-800 text-text-3 uppercase tracking-wider mb-2">Alert Recipients</label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="admin@firm.com"
+                    readOnly
+                    className="flex-1 bg-surface-2 border border-border p-2.5 rounded-lg text-[13px] text-text-3 outline-none cursor-not-allowed"
+                  />
+                  <button className="px-4 py-2 bg-surface-3 border border-border rounded-lg text-[12px] font-700 text-text-3 cursor-not-allowed" onClick={() => addToast('Notification configuration requires Practice plan.', 'info')}>Save</button>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-accent-2/5 rounded-xl border border-accent-2/10">
+                <span className="w-2 h-2 rounded-full bg-accent-2 animate-pulse" />
+                <p className="text-[12px] text-text-2 leading-relaxed">
+                  System alerts are <strong>active</strong>. Internal webhooks are monitoring all API activity and failed reconciliation jobs.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none group">
+                <div>
+                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                    Xero Integration
+                    <span className="bg-surface-3 text-text-3 text-[9px] px-1.5 py-0.5 rounded-full border border-border uppercase tracking-tight font-900">Coming Soon</span>
                   </div>
-                  <button 
-                    className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2" 
-                    onClick={() => { addToast('White-labeling is a Practice plan feature.', 'info'); setShowPricingModal(true); }}
+                  <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero.</div>
+                </div>
+                <button className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-40 cursor-not-allowed" disabled>Connect Xero</button>
+              </div>
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div>
+                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                    Multi-Entity Portal
+                    <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                  </div>
+                  <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof.</div>
+                </div>
+                <button
+                  className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
+                  onClick={() => { addToast('Multi-Entity setup requires Practice Plan.', 'info'); setShowPricingModal(true); }}
+                >
+                  Configure 🔒
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
+            <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
+              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security & Branding</span>
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div>
+                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                    Fraud & Anomaly Detection
+                    <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                  </div>
+                  <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review.</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-800 text-text-3 uppercase tracking-wider">Unconfigured</span>
+                  <button
+                    className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[6px_10px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors"
+                    onClick={() => { addToast('Fraud protection requires Practice plan.', 'info'); setShowPricingModal(true); }}
                   >
-                    Customize 🔒
+                    Enable 🔒
                   </button>
                 </div>
               </div>
-            </div>
-
-          </div>
-        )}
-
-        {tab === 'audit' && (
-          <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-            <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-              <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Audit Feed</span>
-              <div className="flex-1" />
-              <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1 mr-2" onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
-                ⬇ Bulk Attachment Export
-              </button>
-              <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => fetchActivity(firmId)}>Refresh</button>
-            </div>
-            {activity.length === 0 ? (
-              <div className="p-[72px_24px] text-center">
-                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📜</span>
-                <div className="font-display text-[15px] font-800 text-text mb-[7px]">No activity logged yet</div>
+              <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
+                <div>
+                  <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
+                    White-label Reporting
+                    <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
+                  </div>
+                  <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports.</div>
+                </div>
+                <button
+                  className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
+                  onClick={() => { addToast('White-labeling is a Practice plan feature.', 'info'); setShowPricingModal(true); }}
+                >
+                  Customize 🔒
+                </button>
               </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th>Time</th>
-                      <th>Event</th>
-                      <th>Actor</th>
-                      <th>Detail</th>
-                      <th>Job ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activity.map(log => {
-                      const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
-                      const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
-                      return (
-                        <tr key={log.id} className="border-b border-border hover:bg-surface-2 transition-colors">
-                          <td className="p-[11px_20px]"><span className="text-[12px] text-text-3 font-mono">{new Date(log.createdAt).toLocaleString()}</span></td>
-                          <td className="p-[11px_20px]">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full" style={{ background: sevColor }} />
-                              <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
-                            </div>
-                          </td>
-                          <td className="p-[11px_20px]">
-                            <span className="inline-flex items-center justify-center rounded-[4px] font-bold uppercase text-[9px] px-1.5 py-0.5 border" style={{ background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
-                              {log.actorType}
-                            </span>
-                          </td>
-                          <td className="p-[11px_20px]">
-                            <div className="text-[11px] text-text-3 max-w-[400px] whitespace-nowrap overflow-hidden text-ellipsis font-mono">
-                              {JSON.stringify(log.details)}
-                            </div>
-                          </td>
-                          <td className="p-[11px_20px]"><span className="font-mono text-[10px] text-text-2">{log.jobId?.slice(0, 8) || '—'}</span></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            </div>
           </div>
+
+      </div>
         )}
 
-
-        {showRuleModal && (
-          <RuleBuilderModal
-            customers={customers}
-            locations={locations}
-            onClose={() => {
-              setShowRuleModal(false);
-              setEditingRule(null);
-            }}
-            onSave={() => fetchRules(firmId)} // Corrected to just refetch
-            loading={loadingQBO}
-            plan={firm?.plan || 'trial'}
-            firmId={firmId}
-            addToast={addToast}
-            setShowPricingModal={setShowPricingModal}
-            editingRule={editingRule}
-          />
-        )}
-
-        {showPricingModal && (
-          <PricingModal
-            currentPlan={firm?.plan || 'TRIAL'}
-            onClose={() => setShowPricingModal(false)}
-            onUpgrade={handleUpgrade}
-          />
-        )}
-
-        {/* Toast Container */}
-        <div className="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
-          {toasts.map(t => (
-            <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
-          ))}
+      {tab === 'audit' && (
+        <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
+          <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
+            <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Audit Feed</span>
+            <div className="flex-1" />
+            <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1 mr-2" onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
+              ⬇ Bulk Attachment Export
+            </button>
+            <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => fetchActivity(firmId)}>Refresh</button>
+          </div>
+          {activity.length === 0 ? (
+            <div className="p-[72px_24px] text-center">
+              <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">📜</span>
+              <div className="font-display text-[15px] font-800 text-text mb-[7px]">No activity logged yet</div>
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th>Time</th>
+                    <th>Event</th>
+                    <th>Actor</th>
+                    <th>Detail</th>
+                    <th>Job ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activity.map(log => {
+                    const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
+                    const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
+                    return (
+                      <tr key={log.id} className="border-b border-border hover:bg-surface-2 transition-colors">
+                        <td className="p-[11px_20px]"><span className="text-[12px] text-text-3 font-mono">{new Date(log.createdAt).toLocaleString()}</span></td>
+                        <td className="p-[11px_20px]">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full" style={{ background: sevColor }} />
+                            <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
+                          </div>
+                        </td>
+                        <td className="p-[11px_20px]">
+                          <span className="inline-flex items-center justify-center rounded-[4px] font-bold uppercase text-[9px] px-1.5 py-0.5 border" style={{ background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
+                            {log.actorType}
+                          </span>
+                        </td>
+                        <td className="p-[11px_20px]">
+                          <div className="text-[11px] text-text-3 max-w-[400px] whitespace-nowrap overflow-hidden text-ellipsis font-mono">
+                            {JSON.stringify(log.details)}
+                          </div>
+                        </td>
+                        <td className="p-[11px_20px]"><span className="font-mono text-[10px] text-text-2">{log.jobId?.slice(0, 8) || '—'}</span></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+      )}
 
-        {showDeleteModal && (
-          <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowDeleteModal(false)}>
-            <div className="bg-surface border border-border w-full max-w-[440px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
-              <h2 className="font-display text-[20px] font-800 text-red mb-2 tracking-tight" id="delete-modal-title">Delete Rule</h2>
-              <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to permanently delete this rule? This cannot be undone.</p>
-              <div className="flex gap-3 mt-6">
-                <button
-                  className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
-                  onClick={() => setShowDeleteModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
-                  onClick={confirmDelete}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
 
-      {/* Logout confirmation modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
-          <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
-            <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-            </div>
-            <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
-            <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
-            <div className="flex gap-3">
+      {showRuleModal && (
+        <RuleBuilderModal
+          customers={customers}
+          locations={locations}
+          onClose={() => {
+            setShowRuleModal(false);
+            setEditingRule(null);
+          }}
+          onSave={() => fetchRules(firmId)} // Corrected to just refetch
+          loading={loadingQBO}
+          plan={firm?.plan || 'trial'}
+          firmId={firmId}
+          addToast={addToast}
+          setShowPricingModal={setShowPricingModal}
+          editingRule={editingRule}
+        />
+      )}
+
+      {showPricingModal && (
+        <PricingModal
+          currentPlan={firm?.plan || 'TRIAL'}
+          onClose={() => setShowPricingModal(false)}
+          onUpgrade={handleUpgrade}
+        />
+      )}
+
+      {/* Toast Container */}
+      <div className="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
+        ))}
+      </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-surface border border-border w-full max-w-[440px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+            <h2 className="font-display text-[20px] font-800 text-red mb-2 tracking-tight" id="delete-modal-title">Delete Rule</h2>
+            <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to permanently delete this rule? This cannot be undone.</p>
+            <div className="flex gap-3 mt-6">
               <button
                 className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
-                onClick={() => setShowLogoutModal(false)}
+                onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
               </button>
               <button
                 className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
-                onClick={handleLogout}
+                onClick={confirmDelete}
               >
-                Sign Out
+                Delete
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </main>
+
+      {/* Logout confirmation modal */ }
+  {
+    showLogoutModal && (
+      <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
+        <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
+          <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </div>
+          <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
+          <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
+          <div className="flex gap-3">
+            <button
+              className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
+              onClick={() => setShowLogoutModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
+              onClick={handleLogout}
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+    </div >
   )
 }
