@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                             </div>
                           )}
 
-                          {job.errorMessage && (
+                          {job.errorMessage ? (
                             <div className="p-4 bg-[#ef444410] border border-[#ef444420] rounded-xl flex items-start gap-3">
                               <span className="text-[#ef4444] text-[16px]">⚠️</span>
                               <div className="flex flex-col gap-1">
@@ -463,14 +463,12 @@ export default function DashboardPage() {
                                 <span className="text-[13px] font-600 text-[#ef4444] leading-relaxed">{job.errorMessage}</span>
                               </div>
                             </div>
-                          ) || (
-                              job.status === 'COMPLETE' && (
-                                <div className="p-4 bg-[#10b98110] border border-[#10b98120] rounded-xl flex items-center gap-3">
-                                  <span className="text-[#10b981] text-[16px]">✓</span>
-                                  <span className="text-[12px] font-700 text-[#10b981]">All funds successfully allocated in QuickBooks Online.</span>
-                                </div>
-                              )
-                            )}
+                          ) : job.status === 'COMPLETE' ? (
+                            <div className="p-4 bg-[#10b98110] border border-[#10b98120] rounded-xl flex items-center gap-3">
+                              <span className="text-[#10b981] text-[16px]">✓</span>
+                              <span className="text-[12px] font-700 text-[#10b981]">All funds successfully allocated in QuickBooks Online.</span>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     )}
