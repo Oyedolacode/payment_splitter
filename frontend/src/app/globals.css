@@ -1,3 +1,16 @@
+/* Emergency Fallback Check */
+body::before {
+  content: "CSS LOADED";
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: red;
+  color: white;
+  font-size: 10px;
+  z-index: 9999;
+  padding: 2px 5px;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 @tailwind base;
@@ -50,7 +63,12 @@
     font-family: var(--font-body);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     @apply font-bold tracking-tight text-text;
   }
@@ -64,17 +82,22 @@
     font-family: inherit;
   }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     @apply bg-surface border border-border rounded-md px-3 py-2 outline-none transition-all duration-200;
     font-family: inherit;
   }
 
-  input:focus, select:focus, textarea:focus {
+  input:focus,
+  select:focus,
+  textarea:focus {
     @apply border-accent ring-4 ring-accent-glow;
   }
 }
 
 @layer utilities {
+
   /* Scrollbar Customization */
   ::-webkit-scrollbar {
     @apply w-1.5;
