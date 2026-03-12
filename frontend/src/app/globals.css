@@ -1,24 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* Emergency Fallback Check - MUST BE AT TOP AFTER IMPORTS */
-body {
-  background-color: #ff0000 !important;
-}
-
-body::before {
-  content: "CSS FILE LOADED";
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  background: black;
-  color: white;
-  font-size: 20px;
-  font-weight: bold;
-  z-index: 99999;
-  padding: 10px;
-  border: 4px solid white;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
