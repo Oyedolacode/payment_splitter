@@ -5,7 +5,13 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+declare var process: {
+  env: {
+    [key: string]: string | undefined
+  }
+}
+
+const API = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : null) || 'http://localhost:3001'
 
 // ── Animated split diagram ────────────────────────────────────────────────────
 
@@ -167,9 +173,9 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
             </div>
             <button
               className="w-full bg-surface border border-accent-2 text-accent-2 rounded-[11px] p-3.5 flex items-center justify-center gap-2.5 font-display text-[13.5px] font-800 cursor-pointer transition-all hover:bg-accent-glow hover:-translate-y-px"
-              onClick={() => { 
+              onClick={() => {
                 const connectUrl = `${API}/auth/qbo/connect?firmId=${firmId}`
-                window.location.assign(connectUrl) 
+                window.location.assign(connectUrl)
               }}
               aria-label="Connect with QuickBooks Online"
             >

@@ -4,7 +4,13 @@ import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { useRouter } from 'next/navigation'
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+declare var process: {
+  env: {
+    [key: string]: string | undefined
+  }
+}
+
+// ── Types ───────────────────────────────────────────────────────────────────
 type RuleType = 'proportional' | 'oldest_first' | 'location_priority'
 
 interface Rule {
@@ -59,10 +65,10 @@ interface Toast {
   type: 'success' | 'error' | 'info'
 }
 
-// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Constants ───────────────────────────────────────────────────────────────
 
 // FIRM_ID is now handled dynamically in the component
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : null) || 'http://localhost:3001'
 
 const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
   COMPLETE: { label: 'Complete', color: '#10b981' },
@@ -70,11 +76,11 @@ const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
   ROLLED_BACK: { label: 'Rolled Back', color: '#6366f1' },
   PROCESSING: { label: 'Processing', color: '#f59e0b' },
   QUEUED: { label: 'Queued', color: '#2d31fa' },
-  REVIEW_REQUIRED: { label: 'Manual Review', color: '#ec4899' }, // Pink for attention
-  ANOMALY_PAUSED: { label: 'Anomaly Detected', color: '#f97316' }, // Orange for warning
+  REVIEW_REQUIRED: { label: 'Manual Review', color: '#ec4899' },
+  ANOMALY_PAUSED: { label: 'Anomaly Detected', color: '#f97316' },
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n: string | number) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -90,7 +96,7 @@ function timeAgo(date: string) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-// â”€â”€ Logo icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Logo icon ────────────────────────────────────────────────────────────────
 
 function LogoIcon() {
   return (
@@ -102,8 +108,7 @@ function LogoIcon() {
     </svg>
   )
 }
-
-// â”€â”€ Status badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: JobStatus }) {
   const { label, color } = STATUS_META[status]
@@ -123,16 +128,22 @@ function StatusBadge({ status }: { status: JobStatus }) {
   )
 }
 
-function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
+interface ToastProps {
+  toast: Toast
+  onClose: () => void
+  key?: any
+}
+
+function Toast({ toast, onClose }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(onClose, 5000)
     return () => clearTimeout(timer)
   }, [onClose])
 
   const icons = {
-    success: 'âœ“',
-    error: 'âœ•',
-    info: 'â„¹'
+    success: '✓',
+    error: '✕',
+    info: 'ℹ'
   }
 
   const borderColors = {
@@ -158,7 +169,7 @@ function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   )
 }
 
-// â”€â”€ Chevron icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Chevron icon ─────────────────────────────────────────────────────────────
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -173,6 +184,7 @@ function Chevron({ open }: { open: boolean }) {
     </svg>
   )
 }
+
 function PricingModal({
   onClose,
   onUpgrade,
@@ -187,7 +199,7 @@ function PricingModal({
       <div className="bg-surface border border-border-strong rounded-[20px] w-full max-w-[500px] p-8 relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideUp max-[768px]:w-[95%] max-[768px]:p-5 max-[768px]:max-h-[90vh] max-[768px]:overflow-y-auto" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title">
         <div className="flex justify-between items-center mb-6 pt-8 px-8 pb-0 max-[768px]:px-0">
           <h2 className="font-display text-[20px] font-800 text-text tracking-[-0.5px]" id="pricing-modal-title">Upgrade Your Splitter</h2>
-          <button className="bg-none border-none text-text-3 text-[20px] cursor-pointer p-1 transition-colors hover:text-text" onClick={onClose} aria-label="Close modal">âœ•</button>
+          <button className="bg-none border-none text-text-3 text-[20px] cursor-pointer p-1 transition-colors hover:text-text" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div className="flex flex-col gap-4 mt-6">
           <div className="bg-surface border border-border rounded-[18px] p-[32px_24px] display-flex flex-col transition-all duration-300 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:translate-y-[-4px] hover:border-accent hover:shadow-[0_12px_30px_rgba(0,0,0,0.06)]">
@@ -202,7 +214,6 @@ function PricingModal({
               {currentPlan === 'STANDARD' ? 'Current Plan' : 'Select Standard'}
             </button>
           </div>
-
           <div className="bg-surface border border-accent rounded-[18px] p-[32px_24px] display-flex flex-col transition-all duration-300 relative scale-[1.05] shadow-[0_8px_24px_var(--accent-glow)] hover:translate-y-[-4px] hover:scale-[1.05]">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white text-[10px] font-800 p-[4px_12px] rounded-[20px] tracking-[0.8px]">RECOMMENDED</div>
             <div className="font-display text-[14px] font-700 text-text-3 mb-4 uppercase tracking-[1px]">Professional</div>
@@ -278,7 +289,6 @@ function RuleBuilderModal({
   )
   const [saving, setSaving] = useState(false)
 
-  // Downgrade check: is the current rule's type locked?
   const isRuleTypeLocked = editingRule && !allowed.includes(editingRule.ruleType)
 
   useEffect(() => {
@@ -297,10 +307,9 @@ function RuleBuilderModal({
     const newOrder = [...order]
     const targetIndex = direction === 'up' ? index - 1 : index + 1
     if (targetIndex < 0 || targetIndex >= newOrder.length) return
-    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]]
+      ;[newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]]
     setOrder(newOrder)
   }
-
   const handleWeightChange = (locId: string, val: string) => {
     setWeights(prev => ({ ...prev, [locId]: Number(val) }))
   }
@@ -310,7 +319,7 @@ function RuleBuilderModal({
 
     const ruleConfig: any = { type: ruleType }
     if (ruleType === 'proportional') {
-      const total = Object.values(weights).reduce((s, w) => s + w, 0)
+      const total = Object.values(weights).reduce((s: number, w: number) => s + w, 0)
       if (Math.abs(total - 100) > 0.01) return addToast(`Weights must sum to 100% (currently ${total}%)`, 'error')
       ruleConfig.weights = weights
     } else if (ruleType === 'oldest_first') {
@@ -337,7 +346,7 @@ function RuleBuilderModal({
       }
 
       addToast(`Rule ${editingRule ? 'updated' : 'created'} successfully!`, 'success')
-      onSave(data) // Refetch rules in parent
+      onSave(data)
       onClose()
     } catch (e) {
       console.error(e)
@@ -347,7 +356,7 @@ function RuleBuilderModal({
     }
   }
 
-  const totalWeight = Object.values(weights).reduce((s, w) => s + w, 0)
+  const totalWeight = Object.values(weights).reduce((s: number, w: number) => s + w, 0)
   const isEmpty = customers.length === 0 || locations.length === 0
 
   return (
@@ -371,10 +380,10 @@ function RuleBuilderModal({
             </div>
           ) : isEmpty ? (
             <div className="p-12 text-center" role="status">
-              <div className="text-[40px] mb-4">ðŸ“­</div>
+              <div className="text-[40px] mb-4">🔭</div>
               <div className="font-display text-[15px] font-800 text-text mb-[7px]">No QBO Data Available</div>
               <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">
-                We couldn't find any customers or locations in your QuickBooks account.
+                We couldn&apos;t find any customers or locations in your QuickBooks account.
                 Please ensure you have sub-customers created to split payments across.
               </div>
             </div>
@@ -417,9 +426,9 @@ function RuleBuilderModal({
                             setRuleType(strat.id as RuleType)
                           }
                         }}
-                        disabled={isRuleTypeLocked && !isActive} // Prevent changing type if existing rule is locked
+                        disabled={isRuleTypeLocked && !isActive}
                       >
-                        {strat.label} {isLocked && 'ðŸ”’'}
+                        {strat.label} {isLocked && '🔒'}
                       </button>
                     )
                   })}
@@ -431,12 +440,11 @@ function RuleBuilderModal({
                 )}
                 {isRuleTypeLocked && (
                   <div className="mt-3 text-[12px] bg-red/10 border border-red/20 text-red p-3 rounded-lg flex gap-2">
-                    <span>âš ï¸</span>
+                    <span>⚠️</span>
                     <span>This rule is currently <strong>locked</strong> due to a plan change. You can toggle it on/off, but cannot modify its configuration or strategy.</span>
                   </div>
                 )}
               </div>
-
               {ruleType === 'proportional' && (
                 <div className="mt-6 grid grid-cols-1 gap-3">
                   <label className="block text-[12px] font-700 text-text-3 uppercase tracking-[0.5px] mb-2">Location Weights (Must sum to 100%)</label>
@@ -457,7 +465,6 @@ function RuleBuilderModal({
                   ))}
                 </div>
               )}
-
 
               {(ruleType === 'oldest_first' || ruleType === 'location_priority') && (
                 <div className={`transition-opacity ${isRuleTypeLocked ? 'opacity-60 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
@@ -483,14 +490,14 @@ function RuleBuilderModal({
                                 onClick={() => moveOrder(idx, 'up')}
                                 disabled={idx === 0}
                               >
-                                â†‘
+                                ↑
                               </button>
                               <button
                                 className="bg-surface border border-border-strong text-text-2 rounded p-1 text-[10px] font-bold cursor-pointer transition-all hover:bg-surface-2 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => moveOrder(idx, 'down')}
                                 disabled={idx === order.length - 1}
                               >
-                                â†“
+                                ↓
                               </button>
                             </div>
                           )}
@@ -525,7 +532,8 @@ function RuleBuilderModal({
   )
 }
 
-// â”€â”€ Main dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main dashboard ────────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('reconciliation')
@@ -538,1382 +546,636 @@ export default function DashboardPage() {
   const [locations, setLocations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
-  const [retrying, setRetrying] = useState<string | null>(null)
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [checklistDismissed, setChecklistDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('ps_checklist_dismissed') === '1'
-  })
-  const [connected, setConnected] = useState(false)
-  const [loadingQBO, setLoadingQBO] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [showPricingModal, setShowPricingModal] = useState(false)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [qboConnected, setQboConnected] = useState<boolean | null>(null)
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null)
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const [showPricingModal, setShowPricingModal] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
-  const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
-
-  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now()
     setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => removeToast(id), 5000)
-  }, [removeToast])
+  }, [])
 
-  const fetchJobs = useCallback(async (id: string) => {
-    if (!id) return
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }
+
+  const fetchDashboardData = useCallback(async (fid: string) => {
     try {
-      const res = await fetch(`${API}/api/jobs?firmId=${id}`)
-      if (!res.ok) {
-        const data = await res.json()
-        addToast(`Failed to fetch jobs: ${data.details || data.error || res.statusText}`, 'error')
-        return
-      }
-      const data = await res.json()
-      setJobs(Array.isArray(data) ? data : [])
-    } catch (e: any) {
-      console.error('Failed to fetch jobs:', e)
-      addToast(`Jobs Fetch Error: ${e.message || 'Unknown network error'}`, 'error')
+      const [jRes, rRes, aRes, fRes, cRes, lRes] = await Promise.all([
+        fetch(`${API}/api/jobs?firmId=${fid}`),
+        fetch(`${API}/api/rules?firmId=${fid}`),
+        fetch(`${API}/api/activity?firmId=${fid}`),
+        fetch(`${API}/api/firm/${fid}`),
+        fetch(`${API}/api/qbo/customers?firmId=${fid}`),
+        fetch(`${API}/api/qbo/locations?firmId=${fid}`),
+      ])
+
+      if (jRes.ok) setJobs(await jRes.json())
+      if (rRes.ok) setRules(await rRes.json())
+      if (aRes.ok) setActivity(await aRes.json())
+      if (fRes.ok) setFirm(await fRes.json())
+      if (cRes.ok) setCustomers(await cRes.json())
+      if (lRes.ok) setLocations(await lRes.json())
+    } catch (e) {
+      console.error('Fetch error:', e)
     } finally {
       setLoading(false)
     }
-  }, [addToast])
+  }, [])
 
-  const fetchRules = useCallback(async (id: string) => {
-    if (!id) return
+  const fetchSyncStatus = useCallback(async (fid: string) => {
     try {
-      const res = await fetch(`${API}/api/rules?firmId=${id}`)
-      const data = await res.json()
-      setRules(data)
+      const res = await fetch(`${API}/api/qbo/status?firmId=${fid}`)
+      if (res.ok) {
+        const data = await res.json()
+        setQboConnected(data.connected)
+      }
     } catch (e) {
-      console.error('Failed to fetch rules:', e)
-      addToast('Failed to fetch rules', 'error')
-    }
-  }, [addToast])
-
-  const fetchActivity = useCallback(async (id: string) => {
-    if (!id) return
-    try {
-      const res = await fetch(`${API}/api/jobs/activity?firmId=${id}`)
-      const data = await res.json()
-      setActivity(data)
-    } catch (e) {
-      console.error('Failed to fetch activity:', e)
+      console.error('Status fetch error:', e)
     }
   }, [])
 
-  const fetchFirm = useCallback(async (id: string) => {
-    if (!id) return
-    try {
-      const res = await fetch(`${API}/auth/firms/${id}/status`)
-      const data = await res.json()
-      setFirm(data)
-    } catch (e) {
-      console.error('Failed to fetch firm status:', e)
-      addToast('Failed to fetch firm status', 'error')
-    }
-  }, [addToast])
-
-  const fetchQBOData = useCallback(async (id: string) => {
-    if (!id) return
-    setLoadingQBO(true)
-    try {
-      const [cRes, lRes] = await Promise.all([
-        fetch(`${API}/api/qbo/customers?firmId=${id}`),
-        fetch(`${API}/api/qbo/locations?firmId=${id}`)
-      ])
-      if (cRes.ok) {
-        setCustomers(await cRes.json())
-      } else {
-        const errData = await cRes.json().catch(() => ({}))
-        addToast(`QBO Customers: ${errData.details || errData.error || cRes.statusText}`, 'error')
-      }
-
-      if (lRes.ok) {
-        setLocations(await lRes.json())
-      } else {
-        const errData = await lRes.json().catch(() => ({}))
-        addToast(`QBO Locations: ${errData.details || errData.error || lRes.statusText}`, 'error')
-      }
-    } catch (e: any) {
-      console.error('Failed to fetch QBO data:', e)
-      addToast(`QBO Data Error: ${e.message || 'Unknown network error'}`, 'error')
-    } finally {
-      setLoadingQBO(false)
-    }
-  }, [addToast])
-
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    let activeId = params.get('id')
-
-    // Resolve Firm ID: URL -> LocalStorage
-    if (activeId) {
-      localStorage.setItem('ps_firm_id', activeId)
-    } else {
-      activeId = localStorage.getItem('ps_firm_id')
-    }
-
-    if (!activeId) {
-      // No ID found, redirect back to landing
-      router.push('/')
+    const storedFirmId = localStorage.getItem('firmId')
+    if (!storedFirmId) {
+      router.push('/login')
       return
     }
-
-    setFirmId(activeId)
-    if (params.get('connected') === 'true') {
-      setConnected(true)
-      // Clean up URL params
-      router.replace('/dashboard')
-    }
-
-    fetchJobs(activeId)
-    fetchRules(activeId)
-    fetchFirm(activeId)
-    fetchQBOData(activeId)
-
-    // If we just returned from Stripe, poll the firm status specifically
-    let pollFirm: NodeJS.Timeout | null = null
-    if (params.get('session_id')) {
-      pollFirm = setInterval(() => {
-        fetchFirm(activeId!)
-      }, 2000)
-    }
+    setFirmId(storedFirmId)
+    fetchDashboardData(storedFirmId)
+    fetchSyncStatus(storedFirmId)
 
     const interval = setInterval(() => {
-      fetchJobs(activeId!)
-    }, 5000)
+      fetchDashboardData(storedFirmId)
+      fetchSyncStatus(storedFirmId)
+    }, 10000)
 
-    return () => {
-      clearInterval(interval)
-      if (pollFirm) clearInterval(pollFirm)
-    }
-  }, [fetchJobs, fetchRules, fetchFirm, fetchQBOData])
+    return () => clearInterval(interval)
+  }, [router, fetchDashboardData, fetchSyncStatus])
 
-  const retryJob = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    setRetrying(id)
+  const handleManualSync = async () => {
+    if (!firmId) return
+    setSyncing(true)
     try {
-      const resp = await fetch(`${API}/api/jobs/${id}/retry`, { method: 'POST' })
-      if (!resp.ok) throw new Error('Retry failed')
-      addToast('Job re-queued for processing', 'success')
-      fetchJobs(firmId)
-    } catch (err: any) {
-      addToast(err.message, 'error')
-    } finally {
-      setRetrying(null)
-    }
-  }
-
-  const approveJob = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    setRetrying(id) // Reuse retrying state for loading indicator
-    try {
-      const resp = await fetch(`${API}/api/jobs/${id}/approve`, { method: 'POST' })
-      if (!resp.ok) throw new Error('Approval failed')
-      addToast('Job approved and moved to processing', 'success')
-      fetchJobs(firmId)
-    } catch (err: any) {
-      addToast(err.message, 'error')
-    } finally {
-      setRetrying(null)
-    }
-  }
-
-  const updateAllocationMode = async (mode: 'AUTO' | 'REVIEW') => {
-    try {
-      const resp = await fetch(`${API}/api/stripe/firm/${firmId}`, {
-        method: 'PATCH',
+      const res = await fetch(`${API}/api/jobs/sync`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ allocationMode: mode }),
+        body: JSON.stringify({ firmId })
       })
-      if (!resp.ok) throw new Error('Failed to update settings')
-      addToast(`Allocation mode set to ${mode}`, 'success')
-      setFirm(prev => prev ? { ...prev, allocationMode: mode } : prev)
-    } catch (err: any) {
-      addToast(err.message, 'error')
-    }
-  }
-
-  function toggleRow(jobId: string) {
-    setSelected(prev => prev === jobId ? null : jobId)
-  }
-
-  // Focus trap for modals would usually go here using a hook or Ref
-  const modalRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (showRuleModal || showPricingModal || showLogoutModal || showDeleteModal) {
-      modalRef.current?.focus()
-    }
-  }, [showRuleModal, showPricingModal, showLogoutModal, showDeleteModal])
-
-  async function toggleRule(ruleId: string, isActive: boolean) {
-    try {
-      const res = await fetch(`${API}/api/rules/${ruleId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        addToast(data.error || 'Failed to update rule', 'error')
-        return
+      if (res.ok) {
+        addToast('Sync initiated...', 'success')
+        fetchDashboardData(firmId)
+      } else {
+        addToast('Sync failed to start', 'error')
       }
-
-      addToast(`Rule ${isActive ? 'enabled' : 'disabled'} successfully`, 'success')
-      setRules(prev => prev.map(r => r.id === ruleId ? { ...r, isActive } : r))
     } catch (e) {
-      console.error('Failed to toggle rule:', e)
-      addToast('An unexpected error occurred while toggling the rule', 'error')
+      addToast('Error starting sync', 'error')
+    } finally {
+      setSyncing(false)
+    }
+  }
+  const toggleRule = async (id: string, current: boolean) => {
+    try {
+      const res = await fetch(`${API}/api/rules/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !current })
+      })
+      if (res.ok) {
+        addToast(`Rule ${!current ? 'enabled' : 'disabled'}`, 'success')
+        fetchDashboardData(firmId)
+      }
+    } catch (e) {
+      addToast('Failed to toggle rule', 'error')
     }
   }
 
   const deleteRule = async (id: string) => {
-    setDeletingRuleId(id)
-    setShowDeleteModal(true)
-  }
-
-  const confirmDelete = async () => {
-    if (!deletingRuleId) return
+    if (!confirm('Are you sure you want to delete this rule?')) return
     try {
-      const res = await fetch(`${API}/api/rules/${deletingRuleId}`, {
-        method: 'DELETE'
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        addToast(data.error || 'Failed to delete rule', 'error')
-      } else {
-        setRules(prev => prev.filter(r => r.id !== deletingRuleId))
-        addToast('Rule deleted successfully', 'success')
+      const res = await fetch(`${API}/api/rules/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        addToast('Rule deleted', 'success')
+        fetchDashboardData(firmId)
       }
     } catch (e) {
-      console.error('Failed to delete rule:', e)
-      addToast('An unexpected error occurred while deleting the rule', 'error')
-    } finally {
-      setShowDeleteModal(false)
-      setDeletingRuleId(null)
+      addToast('Failed to delete rule', 'error')
     }
   }
 
-  async function createRule(rule: any) {
+  const handleUpgrade = async (plan: string) => {
     try {
-      const res = await fetch(`${API}/api/rules`, {
-        method: 'POST',
+      const res = await fetch(`${API}/api/firm/${firmId}/plan`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rule)
+        body: JSON.stringify({ plan: plan.toUpperCase() })
       })
-      if (!res.ok) {
-        const err = await res.json()
-        addToast(err.error || 'Failed to create rule', 'error')
-        return
+      if (res.ok) {
+        addToast(`Upgraded to ${plan}!`, 'success')
+        setShowPricingModal(false)
+        fetchDashboardData(firmId)
       }
-      await fetchRules(firmId)
-      addToast('Rule created successfully!', 'success')
     } catch (e) {
-      console.error('Failed to create rule:', e)
-      addToast(e instanceof Error ? e.message : 'Failed to create rule', 'error')
+      addToast('Upgrade failed', 'error')
     }
   }
 
-  // â”€â”€ Derived stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const complete = jobs.filter(j => j.status === 'COMPLETE')
-  const failed = jobs.filter(j => j.status === 'FAILED' || j.status === 'ROLLED_BACK')
-  const totalProcessed = complete.reduce((s, j) => s + Number(j.totalAmount), 0)
-  const totalSplits = complete.reduce((s, j) => s + j.auditEntries.length, 0)
-  const successRate = jobs.length ? Math.round((complete.length / jobs.length) * 100) : null
+  const getRuleDetails = (rule: Rule) => {
+    if (rule.ruleType === 'proportional') {
+      return Object.entries(rule.ruleConfig.weights || {})
+        .map(([id, w]) => {
+          const loc = locations.find(l => String(l.Id) === String(id))
+          return `${loc?.Name || id}: ${w}%`
+        })
+        .join(', ')
+    }
+    if (rule.ruleType === 'oldest_first' || rule.ruleType === 'location_priority') {
+      const ids = rule.ruleConfig.locationIds || rule.ruleConfig.order || []
+      return ids.map((id: string, i: number) => {
+        const loc = locations.find(l => String(l.Id) === String(id))
+        return `${i + 1}. ${loc?.Name || id}`
+      }).join(' → ')
+    }
+    return 'Custom strategy'
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg p-8" aria-busy="true" aria-live="polite">
-        <div className="flex flex-col gap-8 max-w-[1400px] mx-auto">
-          <div className="h-12 w-1/3 bg-surface-2 animate-pulse rounded-lg" />
-          <div className="grid grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-32 bg-surface-2 animate-pulse rounded-xl" />
-            ))}
-          </div>
-          <div className="h-96 bg-surface-2 animate-pulse rounded-2xl" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-text-3 font-display font-700 text-[13px] tracking-wide uppercase">Initializing Dashboard...</p>
         </div>
       </div>
     )
   }
 
-  const isTrialExpired = firm?.trialEndsAt ? new Date(firm.trialEndsAt) < new Date() : false
-  const hasAccess = firm?.isSubscribed || !isTrialExpired
-
-  // Month-over-month comparison
-  const now = new Date()
-  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const thisMonthJobs = complete.filter(j => new Date(j.createdAt) >= startOfThisMonth)
-  const lastMonthJobs = complete.filter(j => {
-    const d = new Date(j.createdAt)
-    return d >= startOfLastMonth && d < startOfThisMonth
-  })
-  const thisMonthTotal = thisMonthJobs.reduce((s, j) => s + Number(j.totalAmount), 0)
-  const lastMonthTotal = lastMonthJobs.reduce((s, j) => s + Number(j.totalAmount), 0)
-  const momDelta = lastMonthTotal > 0
-    ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
-    : null
-
-  function dismissChecklist() {
-    localStorage.setItem('ps_checklist_dismissed', '1')
-    setChecklistDismissed(true)
-  }
-
-  async function handleUpgrade(tier: string) {
-    try {
-      const res = await fetch(`${API}/api/stripe/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firmId, tier })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        addToast(data.message || data.error || 'Failed to start checkout', 'error')
-        return
-      }
-      const checkoutUrl = data.url
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
-      } else {
-        addToast('Checkout session failed to initialize', 'error')
-      }
-    } catch (e: any) {
-      console.error('Failed to start checkout:', e)
-      addToast(e.message || 'Failed to start checkout', 'error')
-    }
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('ps_firm_id')
-    window.location.href = '/'
-  }
-
-  function confirmLogout() {
-    setShowLogoutModal(true)
-  }
-
   return (
-    <div className="min-h-screen bg-bg text-text relative overflow-x-hidden">
-      <div className="fixed inset-0 bg-[linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] bg-[length:52px_52px] pointer-events-none z-0 opacity-50" aria-hidden="true" />
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent/5 blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-2/5 blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
+    <div className="min-h-screen bg-background text-text selection:bg-accent/20 selection:text-accent">
+      {/* Toast Overlay */}
+      <div className="fixed top-6 right-6 z-[10000] flex flex-col gap-3">
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
+        ))}
+      </div>
 
-      <div ref={modalRef} tabIndex={-1} className="outline-none">
-        {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <header className="sticky top-0 z-[50] w-full bg-surface/80 backdrop-blur-md border-b border-border transition-all duration-300" role="banner">
-          <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2 font-display font-800 text-[18px] text-text cursor-pointer" onClick={() => router.push('/')} aria-label="PaySplit dashboard">
-                <LogoIcon />
-                PaySplit
-              </div>
-
-              <nav className="hidden md:flex items-center gap-1">
-                {[
-                  { id: 'reconciliation', label: 'Reconciliation' },
-                  { id: 'rules', label: 'Routing Rules' },
-                  { id: 'audit', label: 'Audit Feed', gated: true },
-                  { id: 'remittance', label: 'CSV Remittance', gated: true },
-                  { id: 'ap', label: 'AP Bills', gated: true },
-                  { id: 'trust', label: 'Trust', gated: true },
-                  { id: 'settings', label: 'Settings' }
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    role="tab"
-                    aria-selected={tab === t.id}
-                    className={`px-4 py-2 rounded-lg text-[13px] font-700 transition-all flex items-center gap-2 ${tab === t.id ? 'bg-surface-2 text-accent shadow-sm' : 'text-text-3 hover:text-text hover:bg-surface-2'}`}
-                    onClick={() => {
-                      if (t.gated) {
-                        addToast(`${t.label} is available on Professional and Practice plans.`, 'info')
-                        setShowPricingModal(true)
-                      } else {
-                        setTab(t.id as Tab)
-                        if (t.id === 'rules') fetchRules(firmId)
-                        if (t.id === 'audit') fetchActivity(firmId)
-                      }
-                    }}
-                  >
-                    {t.label}
-                    {t.gated && <span className="flex items-center gap-1 bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-900 border border-accent/20">Pro ðŸ”’</span>}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:flex flex-col items-end">
-                <div className="text-[12px] font-800 text-text max-w-[120px] truncate">{firm?.name || 'My Firm'}</div>
-                {firm?.qboRealmId ? (
-                  <div className="flex items-center gap-1.5 text-[10px] font-900 text-accent-2 uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent-2 animate-pulse" />
-                    QBO Connected
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[10px] font-900 text-text-3 uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-border" />
-                    QBO Disconnected
-                  </div>
-                )}
-              </div>
-              <ThemeToggle />
-              <button
-                className="w-10 h-10 rounded-xl bg-surface-2 border border-border text-text-3 hover:text-text hover:border-text-3/30 transition-all flex items-center justify-center"
-                onClick={confirmLogout}
-                aria-label="Log out"
-                title="Log out"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-              <button
-                className="md:hidden w-10 h-10 rounded-xl bg-surface-2 border border-border text-text transition-all flex items-center justify-center p-0"
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                aria-label="Toggle menu"
-              >
-                {showMobileMenu ? 'âœ•' : 'â˜°'}
-              </button>
-            </div>
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20">
+            <LogoIcon />
           </div>
-
-          {/* Mobile Menu */}
-          {showMobileMenu && (
-            <div className="md:hidden border-t border-border bg-surface w-full animate-fadeIn overflow-hidden pb-4">
-              <nav className="flex flex-col p-4 gap-1">
-                {[
-                  { id: 'reconciliation', label: 'Reconciliation' },
-                  { id: 'rules', label: 'Routing Rules' },
-                  { id: 'audit', label: 'Audit Feed', gated: true },
-                  { id: 'remittance', label: 'CSV Remittance', gated: true },
-                  { id: 'ap', label: 'AP Bills', gated: true },
-                  { id: 'trust', label: 'Trust', gated: true },
-                  { id: 'settings', label: 'Settings' }
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    className={`w-full text-left px-4 py-3 rounded-xl text-[14px] font-700 transition-all flex items-center justify-between ${tab === t.id ? 'bg-surface-2 text-accent' : 'text-text-3'}`}
-                    onClick={() => {
-                      if (t.gated) {
-                        addToast(`${t.label} is available on Professional and Practice plans.`, 'info')
-                        setShowPricingModal(true)
-                      } else {
-                        setTab(t.id as Tab)
-                        setShowMobileMenu(false)
-                      }
-                    }}
-                  >
-                    {t.label}
-                    {t.gated && <span className="bg-accent/10 text-accent text-[9px] px-2 py-0.5 rounded-full border border-accent/20">Pro ðŸ”’</span>}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          )}
-        </header>
-
-        {/* â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <main className="max-w-[1400px] mx-auto px-6 py-8">
-          {/* Connected toast */}
-          {connected && tab === 'reconciliation' && (
-            <div className="bg-accent-2/10 border border-accent-2/20 text-accent-2 p-4 rounded-xl mb-6 flex items-center gap-3 animate-slideIn" role="status">
-              <span className="bg-accent-2 text-white w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-900">âœ“</span>
-              QuickBooks Online connected â€” payment monitoring is now active.
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mb-8">
-            {tab === 'reconciliation' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Reconciliation History</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">Automated payment splits across all branch locations</p>
-              </div>
-            )}
-            {tab === 'rules' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Split Rules</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">Define how incoming payments should be distributed</p>
-              </div>
-            )}
-            {tab === 'audit' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Audit Feed</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">System and user activity logs</p>
-              </div>
-            )}
-            {tab === 'remittance' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">CSV Remittance</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">Upload bulk clearing files and remittance advice</p>
-              </div>
-            )}
-            {tab === 'ap' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">AP Bill Splitting</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">Automatically split and route Accounts Payable bills</p>
-              </div>
-            )}
-            {tab === 'trust' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Trust Accounting</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">Manage compliance and transfers for trust ledger funds</p>
-              </div>
-            )}
-            {tab === 'settings' && (
-              <div>
-                <h1 className="font-display text-[28px] font-800 text-text tracking-[-0.03em]">Firm Settings</h1>
-                <p className="text-text-3 text-[14px] mt-1 font-medium">Manage your connection and account preferences</p>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1.5 bg-accent-2/10 text-accent-2 px-3 py-1.5 rounded-full text-[11px] font-800 uppercase tracking-wider border border-accent-2/20" aria-label="Live data">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-2 animate-pulse" />
-              Live
-            </div>
+          <div className="flex flex-col">
+            <span className="font-display font-800 text-[14px] leading-tight tracking-tight">Antigravity Splitter</span>
+            <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">{firm?.name || 'Loading...'}</span>
           </div>
+        </div>
 
-          {/* Expired Paywall Banner */}
-          {!loading && !hasAccess && (
-            <div className="bg-red/5 border border-red/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <span className="text-[24px]">ðŸš«</span>
-                <div>
-                  <div className="text-[16px] font-800 text-red">
-                    Subscription or Trial Expired
-                  </div>
-                  <div className="text-[13px] text-text-3 mt-0.5">
-                    Your automated payment splitting is paused. Please subscribe to reactivate your rules and continue processing payments.
-                  </div>
-                </div>
-              </div>
-              <button className="bg-red text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
-                Subscribe Now
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border">
+            {(['reconciliation', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`p-[6px_14px] rounded-[8px] text-[11.5px] font-700 transition-all ${tab === t ? 'bg-surface text-accent shadow-sm border border-border' : 'text-text-3 hover:text-text'}`}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
-            </div>
-          )}
-
-          {/* Upgrade Banner for TRIAL/STANDARD */}
-          {hasAccess && (firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && tab === 'reconciliation' && (
-            <div className="bg-accent/5 border border-accent/20 p-6 rounded-2xl mb-8 flex items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <span className="text-[24px]">ðŸ’Ž</span>
-                <div>
-                  <div className="text-[16px] font-800 text-text">
-                    Upgrade to Professional
-                  </div>
-                  <div className="text-[13px] text-text-3 mt-0.5">
-                    Unlock unlimited rules and waterfall allocation logic.
-                  </div>
-                </div>
-              </div>
-              <button className="bg-accent text-white px-5 py-2.5 rounded-xl text-[13px] font-800 hover:opacity-90 transition-all" onClick={() => setShowPricingModal(true)}>
-                View Plans
-              </button>
-            </div>
-          )}
-
-          {/* â”€â”€ Tab Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-
-          {tab === 'reconciliation' && (
-            <div className="animate-fadeIn">
-              {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Total Processed</div>
-                  <div className="text-[28px] font-display font-800 text-accent-2 tracking-tight">${fmt(totalProcessed)}</div>
-                  <div className="text-[12px] text-text-3 mt-1 font-medium flex items-center gap-1.5">
-                    <span>{complete.length} payment{complete.length !== 1 ? 's' : ''}</span>
-                    {momDelta !== null && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${momDelta >= 0 ? 'bg-accent-2/10 text-accent-2' : 'bg-red/10 text-red'}`}>
-                        {momDelta >= 0 ? 'â–²' : 'â–¼'} {Math.abs(momDelta)}% vs last mo.
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Invoice Splits</div>
-                  <div className="text-[28px] font-display font-800 text-text tracking-tight">{totalSplits}</div>
-                  <div className="text-[12px] text-text-3 mt-1 font-medium">across all jobs</div>
-                </div>
-                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Success Rate</div>
-                  <div className="text-[28px] font-display font-800 text-text tracking-tight">{successRate !== null ? `${successRate}%` : 'â€”'}</div>
-                  <div className="text-[12px] text-text-3 mt-1 font-medium">{jobs.length} total job{jobs.length !== 1 ? 's' : ''}</div>
-                </div>
-                <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                  <div className="text-[12px] font-800 text-text-3 uppercase tracking-wider mb-2">Needs Attention</div>
-                  <div
-                    className={`text-[28px] font-display font-800 tracking-tight ${failed.length > 0 ? 'text-red' : 'text-text'}`}
-                  >
-                    {failed.length}
-                  </div>
-                  <div className="text-[12px] text-text-3 mt-1 font-medium">failed / rolled back</div>
-                </div>
-              </div>
-
-              {/* Onboarding checklist â€” shown until dismissed */}
-              {!loading && !checklistDismissed && jobs.length === 0 && (
-                <div className="bg-white dark:bg-surface border border-border rounded-[18px] p-6 mb-8 shadow-sm animate-fadeUp">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <div className="font-display text-[17px] font-800 text-text tracking-[-0.2px]">Getting started with PaySplit</div>
-                      <div className="text-[13px] text-text-3 mt-0.5">Complete these steps to start splitting payments automatically</div>
-                    </div>
-                    <button className="w-7 h-7 flex items-center justify-center rounded-lg bg-surface-2 border border-transparent text-text-3 hover:text-text hover:bg-surface-3 transition-all" onClick={dismissChecklist} aria-label="Dismiss">âœ•</button>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { label: 'Create your account', done: true },
-                      { label: 'Connect QuickBooks Online', done: !!firm?.connected },
-                      { label: 'Create your first split rule', done: rules.length > 0, action: () => setTab('rules') },
-                      { label: 'Receive your first payment split', done: false },
-                    ].map((item, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-center gap-4 p-4 rounded-xl border border-border transition-all ${item.done ? 'bg-accent-2/5 border-accent-2/20 opacity-80' : ''} ${item.action && !item.done ? 'cursor-pointer hover:bg-surface-2 hover:border-border-strong' : ''}`}
-                        onClick={item.action && !item.done ? item.action : undefined}
-                      >
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-900 border border-border ${item.done ? 'bg-accent-2 border-accent-2 text-white' : 'bg-surface-2 text-text-3'}`}>{item.done ? 'âœ“' : `${i + 1}`}</span>
-                        <span className="text-[13.5px] font-600 text-text">{item.label}</span>
-                        {item.action && !item.done && <span className="ml-auto text-text-3 font-medium">â†’</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Jobs table */}
-              <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-                <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                  <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Jobs</span>
-                  <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600">{jobs.length} total</span>
-                </div>
-
-                {loading ? (
-                  <div className="p-[16px_24px_20px] flex flex-col gap-[10px]">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="h-[46px] rounded-[8px] bg-[linear-gradient(90deg,var(--surface-2)_25%,var(--surface-3)_50%,var(--surface-2)_75%)] bg-[length:200%_100%] animate-pulse" style={{ opacity: 1.1 - i * 0.3 }} />
-                    ))}
-                  </div>
-                ) : jobs.length === 0 ? (
-                  <div className="p-[72px_24px] text-center">
-                    <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">âš¡</span>
-                    <div className="font-display text-[15px] font-800 text-text mb-[7px]">Waiting for payments</div>
-                    <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">
-                      Jobs appear automatically when QBO payments are received via webhook.
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full overflow-x-auto">
-                    <table className="w-full border-collapse table-fixed min-w-[800px]">
-                      <colgroup>
-                        <col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[13%]" /><col className="w-[12%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[14%]" />
-                      </colgroup>
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Payment ID</th>
-                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Amount</th>
-                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Status</th>
-                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Splits</th>
-                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">Rule</th>
-                          <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3 whitespace-nowrap overflow-hidden">When</th>
-                          <th className="p-[11px_20px]" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {jobs.map((job, i) => {
-                          const isOpen = selected === job.id
-                          return (
-                            <Fragment key={job.id}>
-                              <tr
-                                className={`border-b border-border cursor-pointer transition-colors duration-[0.12s] animate-fadeUp hover:bg-surface-2 ${isOpen ? 'bg-accent-glow border-b-transparent' : ''}`}
-                                onClick={() => toggleRow(job.id)}
-                                style={{ animationDelay: `${i * 35}ms` }}
-                                aria-expanded={isOpen}
-                              >
-                                <td className="p-[11px_20px]">
-                                  <span className="font-mono text-[13px]">
-                                    {job.paymentId.length > 24
-                                      ? job.paymentId.slice(0, 24) + 'â€¦'
-                                      : job.paymentId}
-                                  </span>
-                                </td>
-                                <td className="p-[11px_20px]">
-                                  <span className="font-mono font-bold text-accent-2 text-[13px]">${fmt(job.totalAmount)}</span>
-                                </td>
-                                <td className="p-[11px_20px]">
-                                  <StatusBadge status={job.status} />
-                                </td>
-                                <td className="p-[11px_20px]">
-                                  <span className="text-[12px] text-text-2">
-                                    {job.auditEntries.length} invoice{job.auditEntries.length !== 1 ? 's' : ''}
-                                  </span>
-                                </td>
-                                <td className="p-[11px_20px]">
-                                  {job.rule?.ruleType
-                                    ? <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{job.rule.ruleType}</span>
-                                    : <span className="font-mono text-text-3">â€”</span>
-                                  }
-                                </td>
-                                <td className="p-[11px_20px]">
-                                  <span className="text-[12px] text-text-3">{timeAgo(job.createdAt)}</span>
-                                </td>
-                                <td className="p-[11px_20px]">
-                                  <div className="flex items-center gap-3">
-                                    {(job.status === 'FAILED' || job.status === 'ROLLED_BACK') && (
-                                      <button
-                                        className="text-[11px] font-700 text-accent border border-accent bg-transparent p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-accent hover:text-white transition-all"
-                                        onClick={e => retryJob(e, job.id)}
-                                        disabled={retrying === job.id}
-                                      >
-                                        {retrying === job.id ? 'Â·Â·Â·' : 'Retry'}
-                                      </button>
-                                    )}
-                                    {job.status === 'REVIEW_REQUIRED' && (
-                                      <button
-                                        className="text-[11px] font-700 text-white border border-[#db2777] bg-[#ec4899] p-[4px_10px] rounded-[6px] cursor-pointer hover:opacity-90 transition-all shadow-[0_2px_8px_rgba(236,72,153,0.3)]"
-                                        onClick={e => approveJob(e, job.id)}
-                                        disabled={retrying === job.id}
-                                      >
-                                        {retrying === job.id ? 'Â·Â·Â·' : 'Approve'}
-                                      </button>
-                                    )}
-                                    <Chevron open={isOpen} />
-                                  </div>
-                                </td>
-                              </tr>
-
-                              {/* Audit trail expansion */}
-                              {isOpen && (
-                                <tr key={`${job.id}-audit`} className="bg-surface-2 border-b border-border">
-                                  <td colSpan={7} className="p-0">
-                                    <div className="p-8 animate-fadeIn border-t border-border">
-
-                                      {job.errorMessage && (
-                                        <div className="flex items-center gap-3 p-[14px_18px] mb-6 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl text-[#ef4444] text-[13px] font-600 animate-slideUp">
-                                          <span className="text-[16px]">âš </span>
-                                          <span>{job.errorMessage}</span>
-                                        </div>
-                                      )}
-
-                                      <div className="grid grid-cols-2 gap-8 max-[1024px]:grid-cols-1">
-                                        <div>
-                                          <div className="flex justify-between items-center mb-4">
-                                            <div className="font-display text-[14px] font-800 text-text uppercase tracking-[0.5px]">Audit Trail</div>
-                                            <button className="p-[5px_10px] text-[11px] font-700 font-display text-text-3 bg-transparent border border-border rounded-[7px] cursor-pointer transition-all flex items-center gap-[5px] hover:text-text hover:border-border-strong hover:bg-surface" onClick={() => window.print()} title="Export to PDF">
-                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                <polyline points="7 10 12 15 17 10" />
-                                                <line x1="12" y1="15" x2="12" y2="3" />
-                                              </svg>
-                                              PDF
-                                            </button>
-                                          </div>
-                                          <table className="w-full border-collapse">
-                                            <thead>
-                                              <tr className="border-b border-border">
-                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Sub-Location</th>
-                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Invoice</th>
-                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">Amount Applied</th>
-                                                <th className="p-[10px_0] text-left text-[10px] font-800 uppercase text-text-3 tracking-[0.5px]">QBO Payment ID</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {job.auditEntries.map(entry => (
-                                                <tr key={entry.id} className="border-b border-border last:border-none">
-                                                  <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.subLocationId}</span></td>
-                                                  <td className="py-3"><span className="font-mono text-[12px] text-text">{entry.invoiceId}</span></td>
-                                                  <td className="py-3">
-                                                    <span className="text-accent-2 font-extrabold font-mono text-[13px]">
-                                                      ${fmt(entry.amountApplied)}
-                                                    </span>
-                                                  </td>
-                                                  <td className="py-3">
-                                                    <span className="font-mono text-[12px] text-text-3">
-                                                      {entry.qboPaymentId ?? 'â€”'}
-                                                    </span>
-                                                  </td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                            <tfoot>
-                                              <tr className="border-t border-border-strong">
-                                                <td colSpan={2} className="py-4 text-text-3 text-[11px] font-700 uppercase tracking-wider">
-                                                  Total allocated
-                                                </td>
-                                                <td className="py-4">
-                                                  <span className="text-accent-2 font-extrabold font-display text-[15px] tracking-tight">
-                                                    ${fmt(job.auditEntries.reduce((s, e) => s + Number(e.amountApplied), 0))}
-                                                  </span>
-                                                </td>
-                                                <td className="py-4" />
-                                              </tr>
-                                            </tfoot>
-                                          </table>
-                                        </div>
-
-                                        <div>
-                                          <div className="font-display text-[14px] font-800 text-text mb-4 uppercase tracking-[0.5px]">Job Details</div>
-                                          <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
-                                            {[
-                                              ['Job ID', job.id.slice(0, 8) + 'â€¦', job.id],
-                                              ['Payment ID', job.paymentId.slice(0, 16) + (job.paymentId.length > 16 ? 'â€¦' : ''), job.paymentId],
-                                              ['Rule type', job.rule?.ruleType ?? 'â€”', job.rule?.ruleType],
-                                              ['Created', new Date(job.createdAt).toLocaleString(), job.createdAt],
-                                              ...(job.completedAt
-                                                ? [['Completed', new Date(job.completedAt).toLocaleString(), job.completedAt]]
-                                                : []),
-                                            ].map(([k, v, full]) => (
-                                              <div key={k} className="flex justify-between items-center py-2 border-b border-border last:border-none">
-                                                <span className="text-[11px] font-700 uppercase text-text-3 tracking-[0.5px]">{k}</span>
-                                                <span className="text-[13px] font-600 text-text font-mono truncate max-w-[200px]" title={full as string}>{v}</span>
-                                              </div>
-                                            ))}
-                                            <div className="flex justify-between items-center py-3 border-b border-border last:border-none">
-                                              <span className="text-[12px] font-800 text-text-3 uppercase tracking-wider">Total amount</span>
-                                              <span className="text-[18px] font-display font-800 text-accent-2 tracking-tight">${fmt(job.totalAmount)}</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {tab === 'remittance' && (
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Remittance Uploads</span>
-                <button className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1" onClick={() => setShowPricingModal(true)}>Upload CSV...</button>
-              </div>
-              <div className="p-[72px_24px] text-center">
-                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">ðŸ“„</span>
-                <div className="font-display text-[15px] font-800 text-text mb-[7px]">Upload Remittance History</div>
-                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Upload bulk clearing lists from payment providers directly. Support for this feature requires Professional plan or higher.</div>
-              </div>
-            </div>
-          )}
-
-          {tab === 'ap' && (
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">AP Bill Splitting</span>
-              </div>
-              <div className="p-[72px_24px] text-center">
-                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">ðŸ“¤</span>
-                <div className="font-display text-[15px] font-800 text-text mb-[7px]">Split AP Bills Automatically</div>
-                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Accounts Payable bill splitting is an upcoming feature. Automate vendor disbursement across branches.</div>
-              </div>
-            </div>
-          )}
-
-          {tab === 'trust' && (
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Trust Accounting</span>
-              </div>
-              <div className="p-[72px_24px] text-center">
-                <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">ðŸ›ï¸</span>
-                <div className="font-display text-[15px] font-800 text-text mb-[7px]">Trust Ledger Management</div>
-                <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Manage pre-funded retainers, trust-to-operating transfers, and compliance reporting. Feature currently in beta.</div>
-              </div>
-            </div>
-          )}
-
-          {tab === 'rules' && (
-            <div className="animate-fadeIn">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Payment Routing Rules</span>
-                {(firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && (
-                  <span className="text-[11.5px] text-text-2 bg-surface-2 border border-border rounded-[20px] p-[3px_11px] font-600 ml-3">
-                    {rules.length} of 3 rules used
-                  </span>
-                )}
-                <div className="flex-1" />
-                <button
-                  className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1"
-                  onClick={() => {
-                    if (!hasAccess) {
-                      addToast(`Your access has expired. Please subscribe to create or edit rules.`, 'error')
-                      setShowPricingModal(true)
-                      return
-                    }
-                    if ((firm?.plan === 'TRIAL' || firm?.plan === 'STANDARD') && rules.length >= 3) {
-                      addToast(`Your ${firm?.plan} plan allows up to 3 rules. Upgrade for more.`, 'info')
-                      setShowPricingModal(true)
-                      return
-                    }
-                    setEditingRule(null)
-                    setShowRuleModal(true)
-                  }}
-                >
-                  <span className="text-[16px] font-semibold mr-1">+</span> New Rule
-                </button>
-              </div>
-
-              {rules.length === 0 ? (
-                <div className="p-16 text-center" role="status">
-                  <div className="text-[40px] mb-4">âš–ï¸</div>
-                  <div className="font-display text-[15px] font-800 text-text mb-[7px]">No rules yet</div>
-                  <div className="text-[13px] text-text-3 max-w-[360px] mx-auto leading-[1.6]">Rules determine how payments are split between your branch locations.</div>
-                  <div className="mt-6">
-                    <button
-                      className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 mx-auto"
-                      onClick={() => {
-                        if (!hasAccess) {
-                          addToast(`Your access has expired. Please subscribe to create rules.`, 'error')
-                          setShowPricingModal(true)
-                          return
-                        }
-                        setEditingRule(null)
-                        setShowRuleModal(true)
-                      }}
-                    >
-                      + Create your first rule
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full border-collapse table-fixed min-w-[800px]">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Parent Customer</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Type</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Weights / Order</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Status</th>
-                        <th className="p-[11px_20px] text-left text-[10.5px] font-700 uppercase tracking-[0.75px] text-text-3">Created</th>
-                        <th className="p-[11px_20px]" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rules.map(rule => {
-                        const parent = customers.find(c => c.Id === rule.parentCustomerId)
-                        return (
-                          <tr key={rule.id} className="border-b border-border hover:bg-surface-2 transition-colors">
-                            <td className="p-[11px_20px]">
-                              <div className="font-bold text-[13px] text-text">{parent?.DisplayName || `Customer ${rule.parentCustomerId}`}</div>
-                            </td>
-                            <td className="p-[11px_20px]">
-                              <div className="flex items-center gap-1">
-                                <span className="text-[11px] font-700 uppercase tracking-[0.5px] text-accent p-[2px_8px] bg-accent-glow rounded-[4px]">{rule.ruleType}</span>
-                                {rule.isLocked && <span title={`Locked: ${rule.lockedReason}`} className="cursor-help">ðŸ”’</span>}
-                              </div>
-                            </td>
-                            <td className="p-[11px_20px]">
-                              <div className="font-mono text-[11px] max-w-[300px]">
-                                {rule.ruleType === 'proportional'
-                                  ? Object.entries(rule.ruleConfig.weights as Record<string, number>).map(([id, w]) => {
-                                    const loc = locations.find(l => String(l.Id) === String(id) || String(l.id) === String(id))
-                                    return (
-                                      <span key={id} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap mr-1 mb-1 inline-block">
-                                        {loc?.Name || loc?.name || `Location ${id}`}: {w}%
-                                      </span>
-                                    )
-                                  })
-                                  : (
-                                    <div className="flex flex-wrap gap-1 items-center">
-                                      {(rule.ruleConfig.locationIds as string[]).map((locId, idx) => {
-                                        const loc = locations.find(l => String(l.Id) === String(locId) || String(l.id) === String(locId))
-                                        return (
-                                          <span key={locId} className="text-[10px] font-700 bg-surface-2 border border-border p-[3px_8px] rounded-[20px] text-text-2 whitespace-nowrap">
-                                            {idx + 1}. {loc?.Name || loc?.name || `Location ${locId}`}
-                                          </span>
-                                        )
-                                      })}
-                                    </div>
-                                  )
-                                }
-                              </div>
-                            </td>
-                            <td className="p-[11px_20px]">
-                              <button
-                                className={`appearance-none border-none p-[4px_10px] rounded-[6px] text-[10.5px] font-800 uppercase tracking-[0.5px] cursor-pointer transition-all ${rule.isActive ? 'bg-accent-glow text-accent' : 'bg-surface-2 text-text-3'}`}
-                                disabled={!hasAccess}
-                                onClick={() => {
-                                  if (!hasAccess) {
-                                    addToast('Your access has expired. Please subscribe.', 'error')
-                                    setShowPricingModal(true)
-                                  } else {
-                                    toggleRule(rule.id, !rule.isActive)
-                                  }
-                                }}
-                              >
-                                {rule.isActive ? 'Active' : 'Disabled'}
-                              </button>
-                            </td>
-                            <td className="p-[11px_20px]"><span className="text-[12px] text-text-3">{new Date(rule.createdAt).toLocaleDateString()}</span></td>
-                            <td className="p-[11px_20px]">
-                              <div className="flex gap-2">
-                                <button
-                                  className={`text-[11px] font-700 text-text bg-surface-2 border border-border py-1 px-2 rounded-[6px] hover:bg-surface-3 transition-colors ${rule.isLocked || !hasAccess ? 'opacity-70' : 'opacity-100'}`}
-                                  onClick={() => {
-                                    if (!hasAccess) {
-                                      addToast('Your access has expired. Please subscribe.', 'error')
-                                      setShowPricingModal(true)
-                                      return
-                                    }
-                                    if (rule.isLocked) {
-                                      addToast(`This rule is locked due to a plan downgrade. Upgrade to Professional to edit.`, 'info')
-                                      setShowPricingModal(true)
-                                      return
-                                    }
-                                    setEditingRule(rule);
-                                    setShowRuleModal(true);
-                                  }}
-                                >
-                                  {rule.isLocked ? 'View' : 'Edit'}
-                                </button>
-                                <button className="text-[10px] font-700 text-red bg-transparent border border-red/20 p-[4px_10px] rounded-[6px] cursor-pointer hover:bg-red/10 hover:border-red/40 transition-all font-display uppercase tracking-wider" onClick={() => deleteRule(rule.id)}>Delete</button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {tab === 'settings' && (
-            <div className="animate-fadeIn">
-              <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-                <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                  <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Account Connection</span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                    <div>
-                      <div className="font-bold text-[14px] text-text mb-1">QuickBooks Online</div>
-                      <div className="text-[12px] text-text-3">
-                        {firm?.qboRealmId ? (
-                          <span className="flex items-center gap-1.5 text-accent-2 font-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-accent-2" />
-                            Connected to Realm ID: {firm.qboRealmId}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-text-3">
-                            <span className="w-1.5 h-1.5 rounded-full bg-border" />
-                            Not connected to any QBO company
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <a
-                      href={`${API}/auth/qbo/connect?firmId=${firmId}`}
-                      className="text-[11px] font-700 text-white bg-accent border border-accent p-[7px_14px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1 no-underline text-center"
-                    >
-                      {firm?.qboRealmId ? 'Reconnect QBO' : 'Connect QBO'}
-                    </a>
-                  </div>
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                    <div>
-                      <div className="font-bold text-[14px] text-text mb-1">Subscription Plan</div>
-                      <div className="text-[12px] text-text-3 flex items-center gap-2">
-                        Current tier:
-                        <span className="bg-accent/10 text-accent font-900 px-2 py-0.5 rounded-full text-[10px] border border-accent/20 uppercase tracking-wider">{firm?.plan || 'TRIAL'}</span>
-                      </div>
-                    </div>
-                    <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[8px_16px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors" onClick={() => setShowPricingModal(true)}>
-                      {firm?.plan === 'TRIAL' ? 'Upgrade Plan' : 'Change Plan'}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                    <div className="w-full">
-                      <div className="font-bold text-[14px] text-text mb-1">Allocation Enforcement</div>
-                      <div className="text-[12px] text-text-3 mb-4">Choose how payments are posted to QBO.</div>
-                      <div className="flex gap-2">
-                        <button
-                          className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'AUTO' ? 'bg-accent text-white border-accent shadow-lg shadow-accent/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
-                          onClick={() => updateAllocationMode('AUTO')}
-                        >
-                          Auto-Post (Instant)
-                        </button>
-                        <button
-                          className={`flex-1 py-2 px-3 rounded-xl text-[12px] font-700 border transition-all ${firm?.allocationMode === 'REVIEW' ? 'bg-[#ec4899] text-white border-[#ec4899] shadow-lg shadow-[#ec4899]/20' : 'bg-surface-2 text-text-3 border-border hover:bg-surface-3'}`}
-                          onClick={() => updateAllocationMode('REVIEW')}
-                        >
-                          Manual Review
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-                <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                  <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Notifications</span>
-                </div>
-                <div className="p-6">
-                  <div className="mb-4">
-                    <label className="block text-[11px] font-800 text-text-3 uppercase tracking-wider mb-2">Alert Recipients</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="email"
-                        placeholder="admin@firm.com"
-                        readOnly
-                        className="flex-1 bg-surface-2 border border-border p-2.5 rounded-lg text-[13px] text-text-3 outline-none cursor-not-allowed"
-                      />
-                      <button className="px-4 py-2 bg-surface-3 border border-border rounded-lg text-[12px] font-700 text-text-3 cursor-not-allowed" onClick={() => addToast('Notification configuration requires Practice plan.', 'info')}>Save</button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-accent-2/5 rounded-xl border border-accent-2/10">
-                    <span className="w-2 h-2 rounded-full bg-accent-2 animate-pulse" />
-                    <p className="text-[12px] text-text-2 leading-relaxed">
-                      System alerts are <strong>active</strong>. Internal webhooks are monitoring all API activity and failed reconciliation jobs.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-                <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                  <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Advanced Integrations</span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none group">
-                    <div>
-                      <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                        Xero Integration
-                        <span className="bg-surface-3 text-text-3 text-[9px] px-1.5 py-0.5 rounded-full border border-border uppercase tracking-tight font-900">Coming Soon</span>
-                      </div>
-                      <div className="text-[12px] text-text-3">Sync payments and reconciliations with Xero.</div>
-                    </div>
-                    <button className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] opacity-40 cursor-not-allowed" disabled>Connect Xero</button>
-                  </div>
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                    <div>
-                      <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                        Multi-Entity Portal
-                        <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                      </div>
-                      <div className="text-[12px] text-text-3">Manage multiple QBO files under one firm roof.</div>
-                    </div>
-                    <button
-                      className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
-                      onClick={() => { addToast('Multi-Entity setup requires Practice Plan.', 'info'); setShowPricingModal(true); }}
-                    >
-                      Configure ðŸ”’
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-surface border border-border shadow-sm rounded-[18px] overflow-hidden mb-6 animate-fadeUp">
-                <div className="flex items-center justify-between p-[16px_24px] border-b border-border bg-surface-2/30">
-                  <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Security &amp; Branding</span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                    <div>
-                      <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                        Fraud &amp; Anomaly Detection
-                        <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                      </div>
-                      <div className="text-[12px] text-text-3">Automatically pause payments above $5,000 for manual review.</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-800 text-text-3 uppercase tracking-wider">Unconfigured</span>
-                      <button
-                        className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[6px_10px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors"
-                        onClick={() => { addToast('Fraud protection requires Practice plan.', 'info'); setShowPricingModal(true); }}
-                      >
-                        Enable ðŸ”’
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-6 border-b border-border last:border-none">
-                    <div>
-                      <div className="font-bold text-[14px] text-text mb-1 flex items-center gap-2">
-                        White-label Reporting
-                        <span className="bg-accent/10 text-accent text-[9px] px-1.5 py-0.5 rounded-full border border-accent/20 uppercase tracking-tight font-900">Practice</span>
-                      </div>
-                      <div className="text-[12px] text-text-3">Use your firm's logo and branding on audit reports.</div>
-                    </div>
-                    <button
-                      className="text-[11px] font-700 text-text-3 bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-2"
-                      onClick={() => { addToast('White-labeling is a Practice plan feature.', 'info'); setShowPricingModal(true); }}
-                    >
-                      Customize ðŸ”’
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {tab === 'audit' && (
-            <div className="bg-surface border border-border shadow-[0_8px_32px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] rounded-[18px] overflow-hidden mb-6 animate-fadeUp backdrop-blur-[10px]">
-              <div className="flex items-center justify-between p-[16px_24px] border-b border-border">
-                <span className="font-display text-[13.5px] font-700 text-text tracking-[-0.2px]">Audit Feed</span>
-                <div className="flex-1" />
-                <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1 mr-2" onClick={() => addToast('Bulk export queued. You will receive an email shortly.', 'info')}>
-                  â¬‡ Bulk Attachment Export
-                </button>
-                <button className="text-[11px] font-700 text-text bg-surface-2 border border-border p-[7px_14px] rounded-[8px] cursor-pointer hover:bg-surface-3 transition-colors flex items-center gap-1" onClick={() => fetchActivity(firmId)}>Refresh</button>
-              </div>
-              {activity.length === 0 ? (
-                <div className="p-[72px_24px] text-center">
-                  <span className="text-[36px] mb-[14px] block filter grayscale-[0.3]">ðŸ“œ</span>
-                  <div className="font-display text-[15px] font-800 text-text mb-[7px]">No activity logged yet</div>
-                </div>
-              ) : (
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th>Time</th>
-                        <th>Event</th>
-                        <th>Actor</th>
-                        <th>Detail</th>
-                        <th>Job ID</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activity.map(log => {
-                        const sevColor = log.severity === 'ERROR' ? '#ef4444' : log.severity === 'WARNING' ? '#f59e0b' : '#3b82f6'
-                        const actorColor = log.actorType === 'USER' ? '#ec4899' : log.actorType === 'WEBHOOK' ? '#8b5cf6' : '#64748b'
-                        return (
-                          <tr key={log.id} className="border-b border-border hover:bg-surface-2 transition-colors">
-                            <td className="p-[11px_20px]"><span className="text-[12px] text-text-3 font-mono">{new Date(log.createdAt).toLocaleString()}</span></td>
-                            <td className="p-[11px_20px]">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full" style={{ background: sevColor }} />
-                                <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
-                              </div>
-                            </td>
-                            <td className="p-[11px_20px]">
-                              <span className="inline-flex items-center justify-center rounded-[4px] font-bold uppercase text-[9px] px-1.5 py-0.5 border" style={{ background: `${actorColor}20`, color: actorColor, borderColor: `${actorColor}40` }}>
-                                {log.actorType}
-                              </span>
-                            </td>
-                            <td className="p-[11px_20px]">
-                              <div className="text-[11px] text-text-3 max-w-[400px] whitespace-nowrap overflow-hidden text-ellipsis font-mono">
-                                {JSON.stringify(log.details)}
-                              </div>
-                            </td>
-                            <td className="p-[11px_20px]"><span className="font-mono text-[10px] text-text-2">{log.jobId?.slice(0, 8) || 'â€”'}</span></td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-
-          {showRuleModal && (
-            <RuleBuilderModal
-              customers={customers}
-              locations={locations}
-              onClose={() => {
-                setShowRuleModal(false);
-                setEditingRule(null);
-              }}
-              onSave={() => fetchRules(firmId)}
-              loading={loadingQBO}
-              plan={firm?.plan || 'trial'}
-              firmId={firmId}
-              addToast={addToast}
-              setShowPricingModal={setShowPricingModal}
-              editingRule={editingRule}
-            />
-          )}
-
-          {showPricingModal && (
-            <PricingModal
-              currentPlan={firm?.plan || 'TRIAL'}
-              onClose={() => setShowPricingModal(false)}
-              onUpgrade={handleUpgrade}
-            />
-          )}
-
-          {/* Toast Container */}
-          <div className="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
-            {toasts.map(t => (
-              <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
             ))}
           </div>
 
-          {showDeleteModal && (
-            <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowDeleteModal(false)}>
-              <div className="bg-surface border border-border w-full max-w-[440px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
-                <h2 className="font-display text-[20px] font-800 text-red mb-2 tracking-tight" id="delete-modal-title">Delete Rule</h2>
-                <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to permanently delete this rule? This cannot be undone.</p>
-                <div className="flex gap-3 mt-6">
-                  <button
-                    className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
-                    onClick={() => setShowDeleteModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
-                    onClick={confirmDelete}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </main>
+          <div className="h-6 w-[1px] bg-border mx-1" />
 
-        {showLogoutModal && (
-          <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-4" onClick={() => setShowLogoutModal(false)}>
-            <div className="bg-surface border border-border w-full max-w-[400px] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-slideUp overflow-hidden p-8 text-center" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
-              <div className="w-14 h-14 bg-red/10 text-red rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
+          <button
+            onClick={() => setShowPricingModal(true)}
+            className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group"
+          >
+            <span>✨</span>
+            <span>{firm?.plan === 'TRIAL' ? 'Upgrade Plan' : `${firm?.plan} Plan`}</span>
+          </button>
+
+          <ThemeToggle />
+        </div>
+      </nav>
+
+      <main className="pt-24 pb-12 px-8 max-w-[1400px] mx-auto">
+        {tab === 'reconciliation' && (
+          <div className="animate-fadeIn">
+            <header className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Payment Reconciliation</h1>
+                <p className="text-text-3 text-[14px]">Monitor and manage automated payment splits from QuickBooks.</p>
               </div>
-              <h2 className="font-display text-[20px] font-800 text-text mb-2 tracking-tight" id="logout-modal-title">Sign Out</h2>
-              <p className="text-[14px] text-text-2 leading-relaxed mb-6">Are you sure you want to sign out? You&apos;ll need to re-enter your firm ID to access your dashboard.</p>
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 p-[8px_16px] bg-surface border border-border rounded-xl">
+                  <div className={`w-2 h-2 rounded-full ${qboConnected ? 'bg-[#10b981] shadow-[0_0_8px_#10b981]' : 'bg-[#ef4444]'}`} />
+                  <span className="text-[12px] font-700 text-text-2">{qboConnected ? 'QBO Linked' : 'QBO Disconnected'}</span>
+                </div>
                 <button
-                  className="flex-1 p-[11px] bg-surface-2 border border-border rounded-[10px] font-bold cursor-pointer hover:bg-surface-3 transition-all text-[13px] text-text"
-                  onClick={() => setShowLogoutModal(false)}
+                  onClick={handleManualSync}
+                  disabled={syncing}
+                  className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
                 >
-                  Cancel
+                  <span>{syncing ? 'Syncing...' : 'Force Sync'}</span>
                 </button>
-                <button
-                  className="flex-1 p-[11px] bg-red text-white border border-red rounded-[10px] font-bold cursor-pointer hover:bg-red/90 transition-all text-[13px]"
-                  onClick={handleLogout}
-                >
-                  Sign Out
-                </button>
+              </div>
+            </header>
+            <div className="grid grid-cols-1 gap-4">
+              {jobs.length === 0 ? (
+                <div className="p-20 bg-surface border border-border rounded-[24px] text-center border-dashed">
+                  <div className="text-[48px] mb-4 opacity-50">📑</div>
+                  <h3 className="font-display text-[16px] font-800 text-text mb-2">No jobs found</h3>
+                  <p className="text-text-3 text-[14px]">As payments arrive in QBO, they will appear here for splitting.</p>
+                </div>
+              ) : (
+                jobs.map(job => (
+                  <div
+                    key={job.id}
+                    className="group bg-surface border border-border rounded-[20px] overflow-hidden transition-all hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
+                  >
+                    <div
+                      className="p-6 flex items-center justify-between cursor-pointer"
+                      onClick={() => setSelected(selected === job.id ? null : job.id)}
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Payment ID</span>
+                          <span className="font-mono text-[13px] font-bold text-text underline decoration-accent/20 underline-offset-4">{job.paymentId}</span>
+                        </div>
+                        <div className="h-8 w-[1px] bg-border/60" />
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Total Amount</span>
+                          <span className="text-[15px] font-800 text-text tracking-tight">${fmt(job.totalAmount)}</span>
+                        </div>
+                        <div className="h-8 w-[1px] bg-border/60" />
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Created</span>
+                          <span className="text-[13px] font-600 text-text-2">{timeAgo(job.createdAt)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <StatusBadge status={job.status} />
+                        <div className={`p-2 rounded-lg bg-surface-2 border border-border text-text-3 transition-all group-hover:border-text-3/30 ${selected === job.id ? 'rotate-90 bg-accent/5 border-accent/20 text-accent' : ''}`}>
+                          <Chevron open={selected === job.id} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {selected === job.id && (
+                      <div className="px-6 pb-6 animate-slideDown">
+                        <div className="pt-6 border-t border-border flex flex-col gap-6">
+                          {job.rule && (
+                            <div className="bg-surface-2 p-4 rounded-xl border border-border flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="p-2 bg-accent/10 text-accent rounded-lg text-[12px]">⚖️</span>
+                                <div className="flex flex-col">
+                                  <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Applied Rule</span>
+                                  <span className="text-[13px] font-700 text-text">{job.rule.ruleType.replace('_', ' ')} strategy</span>
+                                </div>
+                              </div>
+                              <div className="text-[12px] font-600 text-text-3">Target: {job.rule.parentCustomerId}</div>
+                            </div>
+                          )}
+                          {job.auditEntries.length > 0 ? (
+                            <div className="flex flex-col gap-3">
+                              <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Allocations</span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {job.auditEntries.map((ae, i) => (
+                                  <div key={i} className="p-4 bg-surface p-4 rounded-xl border border-border flex items-center justify-between transition-all hover:bg-surface-2">
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Location</span>
+                                      <span className="text-[13px] font-700 text-text">{ae.subLocationId}</span>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Amount</span>
+                                      <span className="text-[14px] font-800 text-[#10b981]">+${fmt(ae.amountApplied)}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-8 text-center bg-surface-2 rounded-xl border border-border border-dashed">
+                              <p className="text-text-3 text-[12px] font-600">No split details available for this job.</p>
+                            </div>
+                          )}
+
+                          {job.errorMessage && (
+                            <div className="p-4 bg-[#ef444410] border border-[#ef444420] rounded-xl flex items-start gap-3">
+                              <span className="text-[#ef4444] text-[16px]">⚠️</span>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[11px] font-800 text-[#ef4444] uppercase tracking-wider">Error Details</span>
+                                <span className="text-[13px] font-600 text-[#ef4444] leading-relaxed">{job.errorMessage}</span>
+                              </div>
+                            </div>
+                          ) || (
+                              job.status === 'COMPLETE' && (
+                                <div className="p-4 bg-[#10b98110] border border-[#10b98120] rounded-xl flex items-center gap-3">
+                                  <span className="text-[#10b981] text-[16px]">✓</span>
+                                  <span className="text-[12px] font-700 text-[#10b981]">All funds successfully allocated in QuickBooks Online.</span>
+                                </div>
+                              )
+                            )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        {tab === 'rules' && (
+          <div className="animate-fadeIn">
+            <header className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Split Rules</h1>
+                <p className="text-text-3 text-[14px]">Define how incoming payments should be distributed across sub-locations.</p>
+              </div>
+              <button
+                onClick={() => { setEditingRule(null); setShowRuleModal(true); }}
+                className="flex items-center gap-2 p-[10px_24px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
+              >
+                <span>+</span>
+                <span>New Split Rule</span>
+              </button>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rules.length === 0 ? (
+                <div className="col-span-full p-20 bg-surface border border-border rounded-[24px] text-center border-dashed">
+                  <div className="text-[48px] mb-4 opacity-50">⚖️</div>
+                  <h3 className="font-display text-[16px] font-800 text-text mb-2">No rules defined</h3>
+                  <p className="text-text-3 text-[14px]">Create your first split rule to start automating your reconciliation.</p>
+                </div>
+              ) : (
+                rules.map(rule => (
+                  <div key={rule.id} className="group bg-surface border border-border rounded-[24px] p-6 flex flex-col gap-6 transition-all hover:border-accent/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.04)] relative overflow-hidden">
+                    <div className="flex items-center justify-between relative z-10">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Parent Customer</span>
+                        <span className="text-[15px] font-800 text-text tracking-tight">{rule.parentCustomerId}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { setEditingRule(rule); setShowRuleModal(true); }}
+                          className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-accent hover:border-accent/20 transition-all"
+                          title="Edit rule"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
+                        </button>
+                        <button
+                          onClick={() => deleteRule(rule.id)}
+                          className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-[#ef4444] hover:border-[#ef4444]/20 transition-all"
+                          title="Delete rule"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-surface-2 rounded-2xl border border-border flex flex-col gap-3 relative z-10">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">Strategy</span>
+                        <span className="p-[3px_10px] bg-accent/10 text-accent text-[10px] font-bold rounded-full border border-accent/20 uppercase tracking-wider">{rule.ruleType.replace('_', ' ')}</span>
+                      </div>
+                      <div className="text-[12px] font-600 text-text-2 leading-relaxed italic">&quot;{getRuleDetails(rule)}&quot;</div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 relative z-10">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${rule.isActive ? 'bg-[#10b981]' : 'bg-text-3'}`} />
+                        <span className="text-[11px] font-700 text-text-3 uppercase tracking-wider">{rule.isActive ? 'Active' : 'Paused'}</span>
+                      </div>
+                      <button
+                        onClick={() => toggleRule(rule.id, rule.isActive)}
+                        className={`p-[6px_16px] rounded-xl text-[11px] font-800 transition-all ${rule.isActive ? 'bg-surface border border-border text-text-2 hover:bg-surface-2' : 'bg-accent text-white hover:opacity-90 shadow-sm'}`}
+                      >
+                        {rule.isActive ? 'Pause' : 'Activate'}
+                      </button>
+                    </div>
+
+                    {/* Locked Background Decor */}
+                    {rule.isLocked && (
+                      <div className="absolute inset-0 bg-surface/40 backdrop-blur-[1px] flex items-center justify-center z-20">
+                        <div className="bg-surface border border-border shadow-xl p-4 rounded-2xl flex flex-col items-center gap-2 max-w-[80%] text-center animate-fadeIn">
+                          <span className="text-[20px]">🔒</span>
+                          <span className="text-[12px] font-800 text-text uppercase tracking-tight">Strategy Locked</span>
+                          <p className="text-[10px] text-text-3 font-600 leading-tight">Your current plan does not support this strategy.</p>
+                          <button
+                            onClick={() => setShowPricingModal(true)}
+                            className="mt-2 text-[10px] font-800 text-accent uppercase tracking-wider hover:underline"
+                          >
+                            Upgrade to Unlock
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === 'audit' && (
+          <div className="animate-fadeIn">
+            <header className="mb-8">
+              <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Audit Registry</h1>
+              <p className="text-text-3 text-[14px]">System-wide activity log for transparency and debugging.</p>
+            </header>
+
+            <div className="bg-surface border border-border rounded-[24px] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-2 border-b border-border">
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] first:pl-8">Timestamp</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Event Type</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Actor</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Details</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] last:pr-8">Severity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activity.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-20 text-center">
+                          <p className="text-text-3 text-[13px] font-600">No activity recorded yet.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      activity.map(log => (
+                        <tr key={log.id} className="border-b border-border/60 hover:bg-surface-2/40 transition-colors group">
+                          <td className="p-5 first:pl-8 text-[12px] font-600 text-text-3 tabular-nums">{new Date(log.createdAt).toLocaleString()}</td>
+                          <td className="p-5">
+                            <span className="font-mono text-[12px] font-semibold text-text">{log.type}</span>
+                          </td>
+                          <td className="p-5">
+                            <span className={`p-[3px_10px] rounded-full text-[10px] font-bold border ${log.actorType === 'SYSTEM' ? 'bg-[#2d31fa10] border-[#2d31fa20] text-[#2d31fa]' : 'bg-[#10b98110] border-[#10b98120] text-[#10b981]'}`}>{log.actorType}</span>
+                          </td>
+                          <td className="p-5 text-[13px] font-500 text-text-2 max-w-[400px] truncate group-hover:whitespace-normal">{JSON.stringify(log.details)}</td>
+                          <td className="p-5 last:pr-8">
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-1.5 h-1.5 rounded-full ${log.severity === 'ERROR' ? 'bg-[#ef4444]' : log.severity === 'WARNING' ? 'bg-[#f59e0b]' : 'bg-[#10b981]'}`} />
+                              <span className="text-[11px] font-700 text-text-3 uppercase tracking-wider">{log.severity}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         )}
-      </div>
+
+        {tab === 'settings' && (
+          <div className="animate-fadeIn max-w-[800px]">
+            <header className="mb-8">
+              <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Firm Settings</h1>
+              <p className="text-text-3 text-[14px]">Manage your firm configuration and billing preferences.</p>
+            </header>
+
+            <div className="flex flex-col gap-6">
+              <div className="bg-surface border border-border rounded-[24px] p-8 flex flex-col gap-8">
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-display text-[16px] font-800 text-text uppercase tracking-tight">Organization Profile</h3>
+                  <p className="text-text-3 text-[13px] font-500">Global settings for your payment reconciliation firm.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm Name</label>
+                    <input
+                      className="bg-surface-2 border border-border text-text rounded-xl p-[12px_16px] text-[14px] font-600 outline-none focus:border-accent transition-all"
+                      value={firm?.name || ''}
+                      disabled
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm ID (Read-only)</label>
+                    <input
+                      className="bg-surface-2 border border-border text-text-3 rounded-xl p-[12px_16px] text-[13px] font-mono outline-none"
+                      value={firmId}
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div className="pt-8 border-t border-border flex flex-col gap-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-display text-[15px] font-800 text-text">Data Retention Policy</span>
+                      <span className="text-[12px] text-text-3 font-500">Keep audit logs for 12 months after job completion.</span>
+                    </div>
+                    <div className="w-12 h-6 bg-accent rounded-full border border-accent relative">
+                      <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-display text-[15px] font-800 text-text">Email Notifications</span>
+                      <span className="text-[12px] text-text-3 font-500">Receive summaries of payment batches and failures.</span>
+                    </div>
+                    <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative">
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-text-3 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-surface border border-border rounded-[24px] p-8 flex items-center justify-between bg-gradient-to-br from-surface to-accent/5">
+                <div className="flex items-center gap-6">
+                  <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-[24px] border border-accent/20">✨</div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-display text-[16px] font-800 text-text">Standard Plan</span>
+                    <span className="text-[12px] text-text-3 font-600 uppercase tracking-widest">Next billing date: April 1, 2026</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPricingModal(true)}
+                  className="p-[10px_24px] bg-white text-black border border-black rounded-xl text-[12px] font-800 hover:bg-black hover:text-white transition-all"
+                >
+                  Manage Billing
+                </button>
+              </div>
+
+              <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 flex flex-col gap-6">
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-display text-[16px] font-800 text-[#ef4444] uppercase tracking-tight">Danger Zone</h3>
+                  <p className="text-text-3 text-[13px] font-500">Irreversible actions for your organization data.</p>
+                </div>
+                <div className="flex items-center justify-between p-6 bg-white border border-[#ef444415] rounded-2xl">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-display text-[15px] font-800 text-text">Purge Audit Logs</span>
+                    <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
+                  </div>
+                  <button className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider">Empty Registry</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+      {/* Modals */}
+      {showRuleModal && (
+        <RuleBuilderModal
+          customers={customers}
+          locations={locations}
+          onClose={() => { setShowRuleModal(false); setEditingRule(null); }}
+          onSave={() => fetchDashboardData(firmId)}
+          loading={loading}
+          plan={firm?.plan || 'TRIAL'}
+          firmId={firmId}
+          editingRule={editingRule}
+          addToast={addToast}
+          setShowPricingModal={setShowPricingModal}
+        />
+      )}
+
+      {showPricingModal && (
+        <PricingModal
+          onClose={() => setShowPricingModal(false)}
+          onUpgrade={handleUpgrade}
+          currentPlan={firm?.plan || 'TRIAL'}
+        />
+      )}
+
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); height: 0; }
+          to { opacity: 1; transform: translateY(0); height: auto; }
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slideIn { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slideUp { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slideDown { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-pulseDot { animation: pulseDot 2s ease-in-out infinite; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      `}</style>
     </div>
   )
 }
