@@ -186,14 +186,20 @@ export default function DashboardPage() {
         fetch(`${API}/api/qbo/locations?firmId=${fid}`),
       ])
 
-      if (fRes.ok) setFirm(await fRes.json())
+      let firmData = null
+      if (fRes.ok) {
+        firmData = await fRes.json()
+        setFirm(firmData)
+        setQboConnected(firmData.qboConnected || false)
+      } else {
+        setQboConnected(false)
+      }
+
       if (jRes.ok) setJobs(await jRes.json())
       if (rRes.ok) setRules(await rRes.json())
       if (aRes.ok) setActivity(await aRes.json())
       if (cRes.ok) setCustomers(await cRes.json())
       if (lRes.ok) setLocations(await lRes.json())
-
-      setQboConnected(fRes.ok ? (await fRes.clone().json()).qboConnected : false)
     } catch (e) {
       addToast('Failed to refresh dashboard data', 'error')
     } finally {
