@@ -293,7 +293,7 @@ export default function LandingPage() {
   useEffect(() => {
     const firmId = localStorage.getItem('ps_firm_id')
     if (firmId && window.location.pathname === '/') {
-      // router.push(`/dashboard?id=${firmId}`)
+      router.push(`/dashboard?id=${firmId}`)
     }
   }, [router])
 

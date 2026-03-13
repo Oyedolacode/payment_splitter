@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
@@ -599,9 +599,9 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    const storedFirmId = localStorage.getItem('firmId')
+    const storedFirmId = localStorage.getItem('ps_firm_id')
     if (!storedFirmId) {
-      router.push('/login')
+      router.push('/')
       return
     }
     setFirmId(storedFirmId)
