@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
@@ -178,12 +178,12 @@ export default function DashboardPage() {
     if (!fid) return
     try {
       const [fRes, jRes, rRes, aRes, cRes, lRes] = await Promise.all([
-        fetch(`${API}/auth/firms/${fid}`),
-        fetch(`${API}/reconciliation/jobs?firmId=${fid}`),
-        fetch(`${API}/reconciliation/rules?firmId=${fid}`),
-        fetch(`${API}/audit/activity?firmId=${fid}`),
-        fetch(`${API}/qbo/customers?firmId=${fid}`),
-        fetch(`${API}/qbo/locations?firmId=${fid}`),
+        fetch(`${API}/auth/firms/${fid}/status`),
+        fetch(`${API}/api/jobs?firmId=${fid}`),
+        fetch(`${API}/api/rules?firmId=${fid}`),
+        fetch(`${API}/api/jobs/activity?firmId=${fid}`),
+        fetch(`${API}/api/qbo/customers?firmId=${fid}`),
+        fetch(`${API}/api/qbo/locations?firmId=${fid}`),
       ])
 
       if (fRes.ok) setFirm(await fRes.json())
@@ -217,7 +217,7 @@ export default function DashboardPage() {
   const handleManualSync = async () => {
     setSyncing(true)
     try {
-      const res = await fetch(`${API}/reconciliation/sync`, {
+      const res = await fetch(`${API}/api/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firmId }),
@@ -235,7 +235,7 @@ export default function DashboardPage() {
   const deleteRule = async (id: string) => {
     if (!confirm('Are you sure you want to delete this rule?')) return
     try {
-      const res = await fetch(`${API}/reconciliation/rules/${id}`, { method: 'DELETE' })
+      const res = await fetch(`${API}/api/rules/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Delete failed')
       addToast('Split rule deleted', 'success')
       fetchDashboardData(firmId)
@@ -246,7 +246,7 @@ export default function DashboardPage() {
 
   const toggleRule = async (id: string, current: boolean) => {
     try {
-      const res = await fetch(`${API}/reconciliation/rules/${id}`, {
+      const res = await fetch(`${API}/api/rules/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !current }),
@@ -261,7 +261,7 @@ export default function DashboardPage() {
 
   const handleUpgrade = async (plan: string) => {
     try {
-      const res = await fetch(`${API}/billing/upgrade`, {
+      const res = await fetch(`${API}/api/stripe/upgrade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firmId, plan }),
@@ -734,7 +734,7 @@ export default function DashboardPage() {
                 onSave={async (rule) => {
                   try {
                     const method = editingRule ? 'PATCH' : 'POST'
-                    const url = editingRule ? `${API}/reconciliation/rules/${editingRule.id}` : `${API}/reconciliation/rules`
+                    const url = editingRule ? `${API}/api/rules/${editingRule.id}` : `${API}/api/rules`
                     const res = await fetch(url, {
                       method,
                       headers: { 'Content-Type': 'application/json' },
