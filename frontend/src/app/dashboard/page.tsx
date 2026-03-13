@@ -321,8 +321,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 flex items-center justify-between max-[768px]:px-4 max-[768px]:overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-4 shrink-0">
           <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 text-accent">
             <LogoIcon />
           </div>
@@ -332,20 +332,20 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 max-[768px]:gap-3 shrink-0 ml-4">
           <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border">
             {(['reconciliation', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`p-[6px_14px] rounded-[8px] text-[11.5px] font-700 transition-all ${tab === t ? 'bg-surface text-accent shadow-sm border border-border' : 'text-text-3 hover:text-text'}`}
+                className={`p-[6px_14px] rounded-[8px] text-[11.5px] font-700 transition-all whitespace-nowrap ${tab === t ? 'bg-surface text-accent shadow-sm border border-border' : 'text-text-3 hover:text-text'}`}
               >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
             ))}
           </div>
 
-          <div className="h-6 w-[1px] bg-border mx-1" />
+          <div className="h-6 w-[1px] bg-border mx-1 shrink-0" />
 
           <button
             onClick={() => setShowPricingModal(true)}
@@ -359,15 +359,15 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <main className="pt-24 pb-12 px-8 max-w-[1400px] mx-auto">
+      <main className="pt-24 pb-12 px-8 max-[768px]:px-4 max-[768px]:pt-20 max-w-[1400px] mx-auto">
         {tab === 'reconciliation' && (
           <div className="animate-fadeIn">
-            <header className="flex items-center justify-between mb-8">
+            <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
               <div>
-                <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Payment Reconciliation</h1>
+                <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Payment Reconciliation</h1>
                 <p className="text-text-3 text-[14px]">Monitor and manage automated payment splits from QuickBooks.</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 w-full max-[768px]:justify-between">
                 <div className="flex items-center gap-2 p-[8px_16px] bg-surface border border-border rounded-xl">
                   <div className={`w-2 h-2 rounded-full ${qboConnected ? 'bg-[#10b981] shadow-[0_0_8px_#10b981]' : 'bg-[#ef4444]'}`} />
                   <span className="text-[12px] font-700 text-text-2">{qboConnected ? 'QBO Linked' : 'QBO Disconnected'}</span>
@@ -395,26 +395,26 @@ export default function DashboardPage() {
                     className="group bg-surface border border-border rounded-[20px] overflow-hidden transition-all hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
                   >
                     <div
-                      className="p-6 flex items-center justify-between cursor-pointer"
+                      className="p-6 flex items-center justify-between cursor-pointer relative max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4"
                       onClick={() => setSelected(selected === job.id ? null : job.id)}
                     >
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-6 max-[1024px]:gap-4 max-[768px]:grid max-[768px]:grid-cols-2 max-[768px]:w-full">
                         <div className="flex flex-col gap-1">
                           <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Payment ID</span>
-                          <span className="font-mono text-[13px] font-bold text-text underline decoration-accent/20 underline-offset-4">{job.paymentId}</span>
+                          <span className="font-mono text-[13px] font-bold text-text underline decoration-accent/20 underline-offset-4 line-clamp-1 break-all">{job.paymentId}</span>
                         </div>
-                        <div className="h-8 w-[1px] bg-border/60" />
+                        <div className="h-8 w-[1px] bg-border/60 max-[768px]:hidden" />
                         <div className="flex flex-col gap-1">
                           <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Total Amount</span>
                           <span className="text-[15px] font-800 text-text tracking-tight">${fmt(job.totalAmount)}</span>
                         </div>
-                        <div className="h-8 w-[1px] bg-border/60" />
+                        <div className="h-8 w-[1px] bg-border/60 max-[768px]:hidden" />
                         <div className="flex flex-col gap-1">
                           <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Created</span>
                           <span className="text-[13px] font-600 text-text-2">{timeAgo(job.createdAt)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 max-[768px]:absolute max-[768px]:top-6 max-[768px]:right-4">
                         <StatusBadge status={job.status} />
                         <div className={`p-2 rounded-lg bg-surface-2 border border-border text-text-3 transition-all group-hover:border-text-3/30 ${selected === job.id ? 'rotate-90 bg-accent/5 border-accent/20 text-accent' : ''}`}>
                           <Chevron open={selected === job.id} />
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                       <div className="px-6 pb-6 animate-slideDown">
                         <div className="pt-6 border-t border-border flex flex-col gap-6">
                           {job.rule && (
-                            <div className="bg-surface-2 p-4 rounded-xl border border-border flex items-center justify-between">
+                            <div className="bg-surface-2 p-4 rounded-xl border border-border flex items-center justify-between max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-3">
                               <div className="flex items-center gap-3">
                                 <span className="p-2 bg-accent/10 text-accent rounded-lg text-[12px]">⚖️</span>
                                 <div className="flex flex-col">
@@ -489,9 +489,9 @@ export default function DashboardPage() {
 
         {tab === 'rules' && (
           <div className="animate-fadeIn">
-            <header className="flex items-center justify-between mb-8">
+            <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
               <div>
-                <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Split Rules</h1>
+                <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Split Rules</h1>
                 <p className="text-text-3 text-[14px]">Define how incoming payments should be distributed across sub-locations.</p>
               </div>
               <button
@@ -513,12 +513,12 @@ export default function DashboardPage() {
               ) : (
                 rules.map(rule => (
                   <div key={rule.id} className="group bg-surface border border-border rounded-[24px] p-6 flex flex-col gap-6 transition-all hover:border-accent/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.04)] relative overflow-hidden">
-                    <div className="flex items-center justify-between relative z-10">
+                    <div className="flex items-center justify-between relative z-10 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Parent Customer</span>
-                        <span className="text-[15px] font-800 text-text tracking-tight">{rule.parentCustomerId}</span>
+                        <span className="text-[15px] font-800 text-text tracking-tight line-clamp-1 break-all">{rule.parentCustomerId}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 max-[768px]:absolute max-[768px]:top-0 max-[768px]:right-0">
                         <button
                           onClick={() => { setEditingRule(rule); setShowRuleModal(true); }}
                           className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-accent hover:border-accent/20 transition-all"
@@ -581,14 +581,14 @@ export default function DashboardPage() {
 
         {tab === 'audit' && (
           <div className="animate-fadeIn">
-            <header className="mb-8">
-              <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Audit Registry</h1>
+            <header className="mb-8 max-[768px]:mb-6">
+              <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Audit Registry</h1>
               <p className="text-text-3 text-[14px]">System-wide activity log for transparency and debugging.</p>
             </header>
 
             <div className="bg-surface border border-border rounded-[24px] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto pb-4">
+                <table className="w-full text-left border-collapse whitespace-nowrap min-w-[700px]">
                   <thead>
                     <tr className="bg-surface-2 border-b border-border">
                       <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] first:pl-8">Timestamp</th>
@@ -634,13 +634,13 @@ export default function DashboardPage() {
 
         {tab === 'settings' && (
           <div className="animate-fadeIn max-w-[800px]">
-            <header className="mb-8">
-              <h1 className="font-display text-[28px] font-800 tracking-tight text-text mb-2">Firm Settings</h1>
+            <header className="mb-8 max-[768px]:mb-6">
+              <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Firm Settings</h1>
               <p className="text-text-3 text-[14px]">Manage your firm configuration and billing preferences.</p>
             </header>
 
             <div className="flex flex-col gap-6">
-              <div className="bg-surface border border-border rounded-[24px] p-8 flex flex-col gap-8">
+              <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8">
                 <div className="flex flex-col gap-1">
                   <h3 className="font-display text-[16px] font-800 text-text uppercase tracking-tight">Organization Profile</h3>
                   <p className="text-text-3 text-[13px] font-500">Global settings for your payment reconciliation firm.</p>
@@ -721,18 +721,18 @@ export default function DashboardPage() {
       </main>
 
       {showRuleModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 max-[768px]:p-0 max-[768px]:items-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={() => setShowRuleModal(false)} />
-          <div className="bg-surface border border-border rounded-[32px] w-full max-w-[600px] shadow-2xl relative z-10 animate-slideUp overflow-hidden max-h-[90vh] flex flex-col">
-            <header className="p-8 border-b border-border flex items-center justify-between bg-surface-2/50">
+          <div className="bg-surface border border-border rounded-[32px] w-full max-w-[600px] shadow-2xl relative z-10 animate-slideUp overflow-hidden max-h-[90vh] flex flex-col max-[768px]:rounded-b-none max-[768px]:rounded-t-[24px]">
+            <header className="p-8 max-[768px]:p-5 border-b border-border flex items-center justify-between bg-surface-2/50">
               <div>
-                <h2 className="font-display text-[20px] font-800 tracking-tight text-text">{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
+                <h2 className="font-display text-[20px] max-[768px]:text-[18px] font-800 tracking-tight text-text">{editingRule ? 'Edit Split Rule' : 'New Split Rule'}</h2>
                 <p className="text-[12px] text-text-3 font-600 mt-1 uppercase tracking-wider">Configure your distribution strategy</p>
               </div>
               <button onClick={() => setShowRuleModal(false)} className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-text-3 hover:bg-surface-3 transition-all">✕</button>
             </header>
 
-            <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+            <div className="p-8 max-[768px]:p-5 overflow-y-auto flex-1 custom-scrollbar">
               <RuleForm
                 editingRule={editingRule}
                 customers={customers}
@@ -827,9 +827,9 @@ function RuleForm({ editingRule, customers, locations, onSave }: any) {
           <div className="flex flex-col gap-4">
             <span className="text-[11px] font-800 text-text-3 uppercase tracking-widest ml-1">Set Weights (%)</span>
             {locations.map((loc: any) => (
-              <div key={loc.id} className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border">
-                <span className="text-[13px] font-700 text-text">{loc.name}</span>
-                <div className="flex items-center gap-3">
+              <div key={loc.id} className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-3">
+                <span className="text-[13px] font-700 text-text max-[768px]:pb-2 max-[768px]:border-b max-[768px]:border-border max-[768px]:w-full">{loc.name}</span>
+                <div className="flex items-center gap-3 max-[768px]:w-full max-[768px]:justify-end">
                   <input
                     type="number"
                     value={ruleConfig.weights?.[loc.name] || 0}
@@ -870,16 +870,16 @@ function PricingModal({ currentPlan, onClose, onUpgrade }: any) {
   ]
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 max-[768px]:p-4 max-[768px]:items-end">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="bg-surface border border-border rounded-[40px] w-full max-w-[900px] p-10 relative z-10 shadow-3xl animate-fadeIn">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-[32px] font-800 tracking-tight text-text mb-3">Upgrade Your Operations</h2>
+      <div className="bg-surface border border-border rounded-[40px] w-full max-w-[900px] p-10 relative z-10 shadow-3xl animate-fadeIn max-[768px]:p-6 max-[768px]:rounded-[24px] max-[768px]:max-h-[85vh] max-[768px]:overflow-y-auto custom-scrollbar">
+        <div className="text-center mb-12 max-[768px]:mb-6">
+          <h2 className="font-display text-[32px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-3">Upgrade Your Operations</h2>
           <p className="text-text-3 text-[15px]">Scale your financial automation with elite features.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-[768px]:gap-4">
           {plans.map(p => (
-            <div key={p.id} className={`p-8 rounded-[32px] border-2 flex flex-col gap-6 transition-all ${currentPlan === p.id ? 'border-accent bg-accent/5' : 'border-border bg-surface'}`}>
+            <div key={p.id} className={`p-8 max-[768px]:p-6 rounded-[32px] max-[768px]:rounded-[24px] border-2 flex flex-col gap-6 max-[768px]:gap-4 transition-all ${currentPlan === p.id ? 'border-accent bg-accent/5' : 'border-border bg-surface'}`}>
               <div className="flex flex-col">
                 <span className="text-[11px] font-800 text-text-3 uppercase tracking-widest">{p.name} Plan</span>
                 <div className="flex items-baseline gap-1 mt-2">
