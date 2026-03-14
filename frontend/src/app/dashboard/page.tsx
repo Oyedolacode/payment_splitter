@@ -489,7 +489,23 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-        <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 max-[1024px]:px-4 flex items-center justify-between">
+          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-text-3 font-display font-700 text-[13px] tracking-wide uppercase">Initializing Dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent overflow-x-hidden max-w-full">
+      {/* Toast Overlay */}
+      <div className="fixed top-6 right-6 z-[10000] flex flex-col gap-3">
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
+        ))}
+      </div>
+
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 max-[1024px]:px-4 flex items-center justify-between">
         <div className="flex items-center gap-4 shrink-0">
           <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 text-accent">
             <LogoIcon />
@@ -497,7 +513,7 @@ export default function DashboardPage() {
           <div className="flex flex-col">
             <span className="font-display font-800 text-[14px] leading-tight tracking-tight">PaySplit</span>
             <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider line-clamp-1 max-w-[100px]">
-              {firm?.name || (loading ? 'Loading...' : 'Disconnected')}
+              {firm?.name || 'Disconnected'}
             </span>
           </div>
         </div>
@@ -518,22 +534,6 @@ export default function DashboardPage() {
           <button
             onClick={() => setShowPricingModal(true)}
             className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group shrink-0"
-          >
-            <SparklesIcon className="w-4 h-4" />
-            <span className="max-[480px]:hidden">{firm?.plan ? `${firm.plan} Plan` : 'Plan'}</span>
-          </button>
-
-          <ThemeToggle />
-        </div>
-      </nav>   >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setShowPricingModal(true)}
-            className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group max-[480px]:p-[6px_10px]"
           >
             <SparklesIcon className="w-4 h-4" />
             <span className="max-[480px]:hidden">{firm?.plan ? `${firm.plan} Plan` : 'Plan'}</span>

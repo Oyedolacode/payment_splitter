@@ -35,6 +35,7 @@ export async function exchangeCodeForTokens(
   code: string,
   realmId: string
 ): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> {
+  const credentials = Buffer.from(`${config.QBO_CLIENT_ID}:${config.QBO_CLIENT_SECRET}`).toString('base64')
   console.log(`[QBO Auth] Starting token exchange for realmId: ${realmId}`)
   
   try {
