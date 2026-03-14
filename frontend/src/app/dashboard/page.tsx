@@ -1247,16 +1247,30 @@ export default function DashboardPage() {
                 onCancel={() => { setEditingRule(null); setShowRuleModal(false); }}
                 addToast={addToast}
                 firmPlan={firm?.plan || 'TRIAL'}
-                onSave={async (rule: any) => {
+                onSave={async (ruleData: any) => {
                   try {
                     const method = editingRule ? 'PATCH' : 'POST'
                     const url = editingRule ? `${API}/api/rules/${editingRule.id}` : `${API}/api/rules`
+                    
+                    // Strictly construct payload for POST to satisfy createRuleSchema
+                    const payload = editingRule 
+                      ? ruleData 
+                      : { 
+                          firmId, 
+                          parentCustomerId: ruleData.parentCustomerId, 
+                          ruleConfig: ruleData.ruleConfig 
+                        }
+
                     const res = await fetch(url, {
                       method,
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ ...rule, firmId }),
+                      body: JSON.stringify(payload),
                     })
-                    if (!res.ok) throw new Error('Save failed')
+                    
+                    if (!res.ok) {
+                      const errorData = await res.json().catch(() => ({}))
+                      throw new Error(errorData.error || 'Save failed')
+                    }
                     addToast(`Rule ${editingRule ? 'updated' : 'created'} successfully`, 'success')
                     fetchDashboardData(firmId)
                     setShowRuleModal(false)
@@ -1302,20 +1316,29 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       return
     }
 
-    // Filter out zero weights to keep ruleConfig clean
-    const filteredWeights: Record<string, number> = {}
-    Object.entries(weights).forEach(([loc, val]) => {
-      if (Number(val) > 0) filteredWeights[loc] = Number(val)
-    })
+    const currentWeights = ruleConfig.weights || {}
+    const total = Object.values(currentWeights).reduce((s: number, v: any) => s + Number(v), 0)
 
-    // Ensure ruleConfig has the 'type' field required by backend Zod schema
-    const finalConfig = {
-      ...ruleConfig,
-      weights: filteredWeights,
-      type: ruleType
+    if (ruleType === 'proportional' && Math.abs(total - 100) > 0.01) {
+      addToast(`Total weights must sum to exactly 100% (currently ${total}%)`, 'error')
+      return
     }
 
-    onSave({ ruleType, parentCustomerId, ruleConfig: finalConfig, isActive: true })
+    // Strictly construct finalConfig to match backend discriminated union
+    let finalConfig: any = { type: ruleType }
+    if (ruleType === 'proportional') {
+      const filteredWeights: Record<string, number> = {}
+      Object.entries(currentWeights).forEach(([loc, val]) => {
+        if (Number(val) > 0) filteredWeights[loc] = Number(val)
+      })
+      finalConfig.weights = filteredWeights
+    } else if (ruleType === 'oldest_first') {
+      finalConfig.locationIds = locations.map((l: any) => l.name) // Default to all for now
+    } else if (ruleType === 'location_priority') {
+      finalConfig.order = locations.map((l: any) => l.name) // Default to all for now
+    }
+
+    onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true })
   }
 
   const weights = ruleConfig.weights || {}
