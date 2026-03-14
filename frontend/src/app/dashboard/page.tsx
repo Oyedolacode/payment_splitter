@@ -968,8 +968,8 @@ export default function DashboardPage() {
                 editingRule={editingRule}
                 customers={customers}
                 locations={locations}
-                locations={locations}
                 onCancel={() => { setEditingRule(null); setShowRuleModal(false); }}
+                addToast={addToast}
                 onSave={async (rule: any) => {
                   try {
                     const method = editingRule ? 'PATCH' : 'POST'
@@ -998,6 +998,7 @@ export default function DashboardPage() {
           currentPlan={firm?.plan || 'TRIAL'}
           onClose={() => setShowPricingModal(false)}
           onUpgrade={handleUpgrade}
+          addToast={addToast}
         />
       )}
 
@@ -1013,7 +1014,7 @@ export default function DashboardPage() {
 
 // ── Secondary Components ───────────────────────────────────────────────────
 
-function RuleForm({ editingRule, customers, locations, onSave, onCancel }: any) {
+function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   const [ruleConfig, setRuleConfig] = useState(editingRule?.ruleConfig || { weights: {}, locations: [] })
@@ -1113,7 +1114,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel }: any) 
   )
 }
 
-function PricingModal({ currentPlan, onClose, onUpgrade }: any) {
+function PricingModal({ currentPlan, onClose, onUpgrade, addToast }: any) {
   const plans = [
     { id: 'TRIAL', name: 'Trial', price: '$0', features: ['Manual Syncing', '1 Split Strategy', 'Basic Audits'] },
     { id: 'PRACTICE', name: 'Practice', price: '$49', features: ['Real-time Sync', 'All Split Strategies', 'Priority Support'] },
