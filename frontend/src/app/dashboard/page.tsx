@@ -1308,33 +1308,45 @@ export default function DashboardPage() {
 function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast, firmPlan }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
-  const [ruleConfig, setRuleConfig] = useState(editingRule?.ruleConfig || { weights: {}, locations: [] })
+  
+  // Standalone weights state for maximum stability
+  const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
 
-  // Consolidated weights calculation for UI and Validation
-  const currentWeights = ruleConfig.weights || {}
-  const totalAllocated = Object.values(currentWeights).reduce((s: number, v: any) => s + Number(v || 0), 0) as number
+  // Total calculation derived from the standalone weights state
+  const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0) as number
 
   const handleSave = () => {
+    // Diagnostic log for the user/support
+    console.log('[RuleForm] Attempting to save:', { parentCustomerId, ruleType, weights });
+
     if (!parentCustomerId) {
       addToast('Please select a parent customer', 'error')
       return
     }
 
-    if (ruleType === 'proportional' && Math.abs(totalAllocated - 100) > 0.01) {
-      addToast(`Total weights must sum to exactly 100% (currently ${totalAllocated}%)`, 'error')
+    // Calculate total at the exact moment of click from the current state
+    const currentTotal = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
+
+    if (ruleType === 'proportional' && Math.abs(currentTotal - 100) > 0.01) {
+      if (currentTotal === 0) {
+        addToast('Please allocate at least one percentage weight to a location', 'error')
+      } else {
+        addToast(`Total weights must sum to exactly 100% (currently ${currentTotal}%)`, 'error')
+      }
       return
     }
 
-    // Strictly construct finalConfig to match backend discriminated union
+    // Strictly construct finalConfig for the backend
     let finalConfig: any = { type: ruleType }
+    
     if (ruleType === 'proportional') {
       const filteredWeights: Record<string, number> = {}
-      Object.entries(currentWeights).forEach(([loc, val]) => {
+      Object.entries(weights).forEach(([loc, val]) => {
         if (Number(val) > 0) filteredWeights[loc] = Number(val)
       })
       finalConfig.weights = filteredWeights
     } else if (ruleType === 'oldest_first') {
-      finalConfig.locationIds = locations.map((l: any) => l.name) 
+      finalConfig.locationIds = locations.map((l: any) => l.name)
     } else if (ruleType === 'location_priority') {
       finalConfig.order = locations.map((l: any) => l.name)
     }
@@ -1405,7 +1417,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
             {/* Distribution Visual Bar */}
             <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden flex border border-border/50">
               {locations.map((loc: any, idx: number) => {
-                const val = Number(ruleConfig.weights?.[loc.name] || 0);
+                const val = Number(weights[loc.name] || 0);
                 if (val <= 0) return null;
                 const colors = ['bg-accent', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-blue-500'];
                 return (
@@ -1420,7 +1432,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
             
             <div className="flex flex-col gap-4">
               {locations.map((loc: any) => {
-                const currentWeight = Number(ruleConfig.weights?.[loc.name] || 0);
+                const currentWeight = Number(weights[loc.name] || 0);
                 return (
                   <div key={loc.id} className="group flex flex-col gap-3 p-5 bg-surface rounded-[24px] border border-border hover:border-accent/30 transition-all shadow-sm">
                     <div className="flex items-center justify-between">
@@ -1433,11 +1445,11 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                           type="number"
                           min="0"
                           max="100"
-                          value={ruleConfig.weights?.[loc.name] || ''}
+                          value={weights[loc.name] || ''}
                           placeholder="0"
-                          onChange={(e) => setRuleConfig({
-                            ...ruleConfig,
-                            weights: { ...ruleConfig.weights, [loc.name]: Number(e.target.value) }
+                          onChange={(e) => setWeights({
+                            ...weights,
+                            [loc.name]: Number(e.target.value)
                           })}
                           className="w-16 bg-surface-2 border border-border rounded-lg p-1 text-center text-[13px] font-mono font-900 text-text outline-none focus:border-accent transition-all"
                         />
@@ -1452,9 +1464,9 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                         max="100"
                         step="1"
                         value={currentWeight}
-                        onChange={(e) => setRuleConfig({
-                          ...ruleConfig,
-                          weights: { ...ruleConfig.weights, [loc.name]: Number(e.target.value) }
+                        onChange={(e) => setWeights({
+                          ...weights,
+                          [loc.name]: Number(e.target.value)
                         })}
                         className="w-full h-1.5 bg-surface-3 rounded-full appearance-none cursor-pointer accent-accent"
                       />
