@@ -225,4 +225,20 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       return logs
     }
   )
+
+  // GET /api/jobs/ledger?firmId=xxx — fetch ledger entries
+  fastify.get<{ Querystring: { firmId: string; limit?: string } }>(
+    '/ledger',
+    async (request, reply) => {
+      const { firmId, limit = '200' } = request.query
+      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+      const entries = await prisma.ledgerEntry.findMany({
+        where: { firmId },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit, 10),
+      })
+      return entries
+    }
+  )
 }

@@ -25,29 +25,30 @@
     --red-glow: rgba(220, 38, 38, 0.08);
     --orange: #ea580c;
     --yellow: #ca8a04;
-    --radius: 12px;
-    --radius-sm: 8px;
+    --radius: 16px;
+    --radius-sm: 10px;
     --font-display: 'Syne', sans-serif;
     --font-body: 'DM Sans', sans-serif;
     --font-mono: 'DM Mono', monospace;
   }
 
   [data-theme="dark"] {
-    --bg: #121214;
-    --surface: #1a1a1e;
-    --surface-2: #222226;
-    --surface-3: #2d2d34;
+    --bg: #0f0f11;
+    --surface: #17171a;
+    --surface-2: #1e1e23;
+    --surface-3: #28282f;
     --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-strong: rgba(255, 255, 255, 0.14);
     --text: #ffffff;
     --text-2: #d4d4d8;
     --text-3: #a1a1aa;
-    --header-bg: rgba(26, 26, 30, 0.85);
+    --header-bg: rgba(15, 15, 17, 0.85);
   }
 
   body {
     @apply bg-bg text-text text-[14px] leading-relaxed antialiased transition-colors duration-300;
     font-family: var(--font-body);
+    font-weight: 500;
   }
 
   h1,
@@ -58,6 +59,7 @@
   h6 {
     font-family: var(--font-display);
     @apply font-bold tracking-tight text-text;
+    letter-spacing: -0.02em;
   }
 
   a {
@@ -65,15 +67,16 @@
   }
 
   button {
-    @apply transition-all duration-200 cursor-pointer border-none;
+    @apply transition-all duration-300 cursor-pointer border-none;
     font-family: inherit;
   }
 
   input,
   select,
   textarea {
-    @apply bg-surface border border-border rounded-md px-3 py-2 outline-none transition-all duration-200;
+    @apply bg-surface border border-border rounded-xl px-4 py-3 outline-none transition-all duration-200;
     font-family: inherit;
+    font-weight: 600;
   }
 
   input:focus,
@@ -84,17 +87,11 @@
 }
 
 @layer utilities {
-
-  /* Scrollbar Customization */
-  ::-webkit-scrollbar {
-    @apply w-1.5;
+  .glass {
+    @apply backdrop-blur-md bg-surface/80 border border-border;
   }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-bg;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-surface-3 rounded-full;
+  .shadow-premium {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   }
 }

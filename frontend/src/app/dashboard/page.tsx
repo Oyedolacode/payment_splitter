@@ -24,7 +24,7 @@ interface Rule {
   createdAt: string
 }
 
-type Tab = 'reconciliation' | 'rules' | 'settings' | 'audit' | 'remittance' | 'ap' | 'trust'
+type Tab = 'reconciliation' | 'ledger' | 'rules' | 'settings' | 'audit' | 'remittance' | 'ap' | 'trust'
 
 type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED' | 'ANOMALY_PAUSED'
 
@@ -152,6 +152,7 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<ReconciliationJob[]>([])
   const [rules, setRules] = useState<Rule[]>([])
   const [activity, setActivity] = useState<any[]>([])
+  const [ledgerEntries, setLedgerEntries] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [qboConnected, setQboConnected] = useState(false)
@@ -193,20 +194,21 @@ export default function DashboardPage() {
   const fetchDashboardData = useCallback(async (fid: string) => {
     if (!fid) return
     try {
-      const [fRes, jRes, rRes, aRes, cRes, lRes] = await Promise.all([
+      const [fRes, jRes, rRes, aRes, cRes, lRes, ledRes] = await Promise.all([
         fetch(`${API}/auth/firms/${fid}/status`),
         fetch(`${API}/api/jobs?firmId=${fid}`),
         fetch(`${API}/api/rules?firmId=${fid}`),
         fetch(`${API}/api/jobs/activity?firmId=${fid}`),
         fetch(`${API}/api/qbo/customers?firmId=${fid}`),
         fetch(`${API}/api/qbo/locations?firmId=${fid}`),
+        fetch(`${API}/api/jobs/ledger?firmId=${fid}`),
       ])
 
       let firmData = null
       if (fRes.ok) {
         firmData = await fRes.json()
         setFirm(firmData)
-        setQboConnected(firmData.qboConnected || false)
+        setQboConnected(firmData.connected || false)
       } else {
         setQboConnected(false)
       }
@@ -216,6 +218,7 @@ export default function DashboardPage() {
       if (aRes.ok) setActivity(await aRes.json())
       if (cRes.ok) setCustomers(await cRes.json())
       if (lRes.ok) setLocations(await lRes.json())
+      if (ledRes.ok) setLedgerEntries(await ledRes.json())
     } catch (e) {
       addToast('Failed to refresh dashboard data', 'error')
     } finally {
@@ -232,9 +235,17 @@ export default function DashboardPage() {
     setFirmId(id)
     fetchDashboardData(id)
 
+    // Check for connection success query param
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('connected') === 'true') {
+      addToast('QuickBooks Online successfully connected!', 'success')
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
     const interval = setInterval(() => fetchDashboardData(id), 10000)
     return () => clearInterval(interval)
-  }, [router, fetchDashboardData])
+  }, [router, fetchDashboardData, addToast])
 
   const handleManualSync = async () => {
     setSyncing(true)
@@ -362,7 +373,7 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-6 max-[768px]:gap-3 shrink-0 ml-4">
           <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1024px]:hidden">
-            {(['reconciliation', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+            {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -389,7 +400,7 @@ export default function DashboardPage() {
 
       {/* Mobile Sub-Nav */}
       <div className="fixed top-16 left-0 right-0 h-12 bg-surface/50 backdrop-blur-md border-b border-border z-[90] min-[1025px]:hidden overflow-x-auto no-scrollbar flex items-center px-4 gap-2">
-        {(['reconciliation', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+        {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -610,6 +621,66 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {tab === 'ledger' && (
+          <div className="animate-fadeIn">
+            <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
+              <div>
+                <h1 className="font-display text-[28px] max-[1024px]:text-[24px] font-800 tracking-tight text-text mb-2">Financial Ledger</h1>
+                <p className="text-text-3 text-[14px]">The internal source of truth. Every debit and credit recorded before QBO sync.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-[8px_16px] bg-accent/5 border border-accent/20 rounded-xl text-accent text-[12px] font-800 uppercase tracking-wider">
+                  Trace Integrity: Verified
+                </div>
+              </div>
+            </header>
+
+            <div className="bg-surface border border-border rounded-[24px] overflow-hidden shadow-sm">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-surface-2 border-b border-border">
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] first:pl-8">Date</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Account</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Reference (Job)</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right">Debit</th>
+                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right last:pr-8">Credit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledgerEntries.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-20 text-center">
+                          <p className="text-text-3 text-[13px] font-600">No ledger entries found.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      ledgerEntries.map(entry => (
+                        <tr key={entry.id} className="border-b border-border/60 hover:bg-surface-2/40 transition-colors">
+                          <td className="p-5 first:pl-8 text-[12px] font-600 text-text-3 tabular-nums">{new Date(entry.createdAt).toLocaleDateString()}</td>
+                          <td className="p-5">
+                            <span className="font-mono text-[12px] font-semibold text-text uppercase tracking-tight">{entry.account}</span>
+                          </td>
+                          <td className="p-5">
+                            <span className="text-[12px] font-700 text-text-2">{entry.jobId ? entry.jobId.slice(0, 8) : 'N/A'}</span>
+                          </td>
+                          <td className="p-5 text-right font-mono text-[13px] font-700 text-red-500">
+                            {Number(entry.debit) > 0 ? `-$${fmt(entry.debit)}` : '—'}
+                          </td>
+                          <td className="p-5 text-right font-mono text-[13px] font-700 text-[#10b981] last:pr-8">
+                            {Number(entry.credit) > 0 ? `+$${fmt(entry.credit)}` : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {tab === 'rules' && (
           <div className="animate-fadeIn">
