@@ -1308,6 +1308,10 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
     onSave({ ruleType, parentCustomerId, ruleConfig: finalConfig, isActive: true })
   }
 
+  const weights = ruleConfig.weights || {}
+  const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v), 0) as number
+
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
@@ -1360,12 +1364,8 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
             <div className="flex items-center justify-between px-1">
               <span className="text-[11px] font-800 text-text-3 uppercase tracking-widest leading-none">Percentage Distribution</span>
               <div className="flex items-center gap-2">
-                <span className={`text-[13px] font-900 ${
-                  Object.values(ruleConfig.weights || {}).reduce((s: number, v: any) => s + Number(v), 0) === 100 
-                  ? 'text-accent' 
-                  : 'text-text-3'
-                }`}>
-                  {Object.values(ruleConfig.weights || {}).reduce((s: number, v: any) => s + Number(v), 0)}%
+                <span className={`text-[13px] font-900 ${totalAllocated === 100 ? 'text-accent' : 'text-text-3'}`}>
+                  {totalAllocated}%
                 </span>
                 <span className="text-[11px] text-text-3/50 font-bold uppercase">Allocated</span>
               </div>
@@ -1433,7 +1433,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
               })}
             </div>
 
-            {Object.values(ruleConfig.weights || {}).reduce((s: number, v: any) => s + Number(v), 0) !== 100 && (
+            {totalAllocated !== 100 && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 <span className="text-[11px] font-800 text-amber-600 uppercase tracking-tight">Total weights must sum to exactly 100%</span>
