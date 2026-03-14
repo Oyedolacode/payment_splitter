@@ -25,9 +25,9 @@ const createRuleSchema = z.object({
 
 const allowedStrategiesByPlan: Record<string, string[]> = {
   TRIAL: ['proportional'],
-  STANDARD: ['proportional'],
-  PROFESSIONAL: ['proportional', 'oldest_first'],
-  PRACTICE: ['proportional', 'oldest_first', 'location_priority'],
+  PRACTICE: ['proportional', 'oldest_first'],
+  SCALE: ['proportional', 'oldest_first', 'location_priority'],
+  ELITE: ['proportional', 'oldest_first', 'location_priority'],
 }
 
 export async function rulesRoutes(fastify: FastifyInstance) {

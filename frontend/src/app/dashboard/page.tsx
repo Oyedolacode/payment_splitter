@@ -65,6 +65,17 @@ interface Toast {
 
 const API = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : null) || 'http://localhost:3001'
 
+const PLAN_RANK = {
+  TRIAL: 0,
+  PRACTICE: 1,
+  SCALE: 2,
+  ELITE: 3,
+}
+
+const isPlanAllowed = (minPlan: keyof typeof PLAN_RANK, currentPlan: keyof typeof PLAN_RANK) => {
+  return PLAN_RANK[currentPlan] >= PLAN_RANK[minPlan]
+}
+
 const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
   COMPLETE: { label: 'Complete', color: '#10b981' },
   PROCESSING: { label: 'Processing', color: '#2d31fa' },
@@ -119,10 +130,10 @@ function Toast({ toast, onClose }: ToastProps) {
   }, [onClose])
 
   const icons = {
-    success: '✓',
-    error: '✕',
-    info: 'ℹ',
-    warning: '⚠',
+    success: <CheckIcon className="w-4 h-4" />,
+    error: <XIcon className="w-4 h-4" />,
+    info: <InfoIcon className="w-4 h-4" />,
+    warning: <AlertIcon className="w-4 h-4" />,
   }
 
   const colors = {
@@ -135,11 +146,136 @@ function Toast({ toast, onClose }: ToastProps) {
   return (
     <div className={`p-4 pr-12 rounded-2xl border shadow-xl animate-slideIn relative pointer-events-auto min-w-[300px] backdrop-blur-md ${colors[toast.type]}`}>
       <div className="flex items-start gap-3">
-        <span className="text-[16px] font-bold">{icons[toast.type]}</span>
+        <span className="mt-0.5">{icons[toast.type]}</span>
         <p className="text-[13px] font-700 leading-tight">{toast.message}</p>
       </div>
-      <button onClick={onClose} className="absolute top-4 right-4 opacity-50 hover:opacity-100 transition-opacity">✕</button>
+      <button onClick={onClose} className="absolute top-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
+        <XIcon className="w-4 h-4" />
+      </button>
     </div>
+  )
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────────
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  )
+}
+
+function AlertIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function ZapIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  )
+}
+
+function LayersIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
+    </svg>
+  )
+}
+
+function ScaleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6l3 12h12l3-12" /><path d="M6 18l-3 4" /><path d="M18 18l3 4" /><path d="M12 2v20" /><path d="M7 2h10" />
+    </svg>
+  )
+}
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+}
+
+function BarChartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" />
+    </svg>
+  )
+}
+
+function SettingsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  )
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+
+function SparklesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  )
+}
+
+function DollarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  )
+}
+
+function ActivityIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  )
+}
+
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
   )
 }
 
@@ -377,7 +513,7 @@ export default function DashboardPage() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`p-[6px_14px] rounded-[8px] text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
+                className={`p-[6px_14px] rounded-lg text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
               >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
@@ -390,7 +526,7 @@ export default function DashboardPage() {
             onClick={() => setShowPricingModal(true)}
             className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group"
           >
-            <span>✨</span>
+            <SparklesIcon className="w-4 h-4" />
             <span>{firm?.plan === 'TRIAL' ? 'Upgrade Plan' : `${firm?.plan} Plan`}</span>
           </button>
 
@@ -488,15 +624,15 @@ export default function DashboardPage() {
             {/* Metrics Dashboard */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
-                { label: 'Payments', value: jobs.filter(j => j.status === 'COMPLETE').length, icon: '📈' },
-                { label: 'Total Split', value: `$${fmt(jobs.filter(j => j.status === 'COMPLETE').reduce((acc, j) => acc + Number(j.totalAmount), 0))}`, icon: '💰' },
-                { label: 'Active Rules', value: rules.filter(r => r.isActive).length, icon: '⚖️' },
-                { label: 'Alerts', value: jobs.filter(j => j.status === 'FAILED').length, icon: '⚠️', color: jobs.filter(j => j.status === 'FAILED').length > 0 ? 'text-[#ef4444]' : 'text-text-3' },
+                { label: 'Payments', value: jobs.filter(j => j.status === 'COMPLETE').length, icon: <ActivityIcon className="w-4 h-4" /> },
+                { label: 'Total Split', value: `$${fmt(jobs.filter(j => j.status === 'COMPLETE').reduce((acc, j) => acc + Number(j.totalAmount), 0))}`, icon: <DollarIcon className="w-4 h-4" /> },
+                { label: 'Active Rules', value: rules.filter(r => r.isActive).length, icon: <ScaleIcon className="w-4 h-4" /> },
+                { label: 'Alerts', value: jobs.filter(j => j.status === 'FAILED').length, icon: <AlertIcon className="w-4 h-4" />, color: jobs.filter(j => j.status === 'FAILED').length > 0 ? 'text-[#ef4444]' : 'text-text-3' },
               ].map((m, i) => (
                 <div key={i} className="bg-surface border border-border p-5 rounded-[24px]">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">{m.label}</span>
-                    <span className="text-[14px]">{m.icon}</span>
+                    <span className="text-text-3 opacity-60">{m.icon}</span>
                   </div>
                   <div className={`text-[20px] font-display font-800 ${m.color || 'text-text'}`}>{m.value}</div>
                 </div>
@@ -563,7 +699,9 @@ export default function DashboardPage() {
                           {job.rule && (
                             <div className="bg-surface-2 p-4 rounded-xl border border-border flex items-center justify-between max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-3">
                               <div className="flex items-center gap-3">
-                                <span className="p-2 bg-accent/10 text-accent rounded-lg text-[12px]">⚖️</span>
+                                <span className="p-2 bg-accent/10 text-accent rounded-lg">
+                                  <ScaleIcon className="w-4 h-4" />
+                                </span>
                                 <div className="flex flex-col">
                                   <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Applied Rule</span>
                                   <span className="text-[13px] font-700 text-text">{job.rule.ruleType.replace('_', ' ')} strategy</span>
@@ -598,7 +736,9 @@ export default function DashboardPage() {
 
                           {job.errorMessage && (
                             <div className="p-4 bg-[#ef444410] border border-[#ef444420] rounded-xl flex items-start gap-3">
-                              <span className="text-[#ef4444] text-[16px]">⚠️</span>
+                              <span className="text-[#ef4444] mt-0.5">
+                                <AlertIcon className="w-4 h-4" />
+                              </span>
                               <div className="flex flex-col gap-1">
                                 <span className="text-[11px] font-800 text-[#ef4444] uppercase tracking-wider">Error Details</span>
                                 <span className="text-[13px] font-600 text-[#ef4444] leading-relaxed">{job.errorMessage}</span>
@@ -607,7 +747,9 @@ export default function DashboardPage() {
                           ) || (
                               job.status === 'COMPLETE' && (
                                 <div className="p-4 bg-[#10b98110] border border-[#10b98120] rounded-xl flex items-center gap-3">
-                                  <span className="text-[#10b981] text-[16px]">✓</span>
+                                  <span className="text-[#10b981]">
+                                    <CheckIcon className="w-4 h-4" />
+                                  </span>
                                   <span className="text-[12px] font-700 text-[#10b981]">All funds successfully allocated in QuickBooks Online.</span>
                                 </div>
                               )
@@ -630,8 +772,9 @@ export default function DashboardPage() {
                 <p className="text-text-3 text-[14px]">The internal source of truth. Every debit and credit recorded before QBO sync.</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="p-[8px_16px] bg-accent/5 border border-accent/20 rounded-xl text-accent text-[12px] font-800 uppercase tracking-wider">
-                  Trace Integrity: Verified
+                <div className="p-[8px_16px] bg-accent/5 border border-accent/20 rounded-xl text-accent text-[12px] font-800 uppercase tracking-wider flex items-center gap-2">
+                  <ShieldIcon className="w-3.5 h-3.5" />
+                  <span>Trace Integrity: Verified</span>
                 </div>
               </div>
             </header>
@@ -857,7 +1000,7 @@ export default function DashboardPage() {
             <header className="mb-8 max-[768px]:mb-6 flex flex-col gap-2">
               <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text">Audit Registry</h1>
               <div className="flex items-center gap-3 p-[10px_16px] bg-[#10b98108] border border-[#10b98115] rounded-xl max-w-fit">
-                <span className="text-[14px]">🔒</span>
+                <ShieldIcon className="w-4 h-4 text-[#10b981]" />
                 <p className="text-text-3 text-[12px] font-600">Every automated action performed by PaySplit is logged here for full financial transparency.</p>
               </div>
             </header>
@@ -911,110 +1054,160 @@ export default function DashboardPage() {
         )}
 
         {tab === 'settings' && (
-          <div className="animate-fadeIn max-w-[800px]">
+          <div className="animate-fadeIn">
             <header className="mb-8 max-[768px]:mb-6">
               <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Firm Settings</h1>
               <p className="text-text-3 text-[14px]">Manage your firm configuration and billing preferences.</p>
             </header>
 
-            <div className="flex flex-col gap-6">
-              <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-display text-[16px] font-800 text-text uppercase tracking-tight">Organization Profile</h3>
-                  <p className="text-text-3 text-[13px] font-500">Global settings for your payment reconciliation firm.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm Name</label>
-                    <input
-                      className="bg-surface-2 border border-border text-text rounded-xl p-[12px_16px] text-[14px] font-600 outline-none focus:border-accent transition-all"
-                      value={firm?.name || ''}
-                      disabled
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm ID (Read-only)</label>
-                    <input
-                      className="bg-surface-2 border border-border text-text-3 rounded-xl p-[12px_16px] text-[13px] font-mono outline-none"
-                      value={firmId}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="pt-8 border-t border-border flex flex-col gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display text-[15px] font-800 text-text">Data Retention Policy</span>
-                      <span className="text-[12px] text-text-3 font-500">Keep audit logs for 12 months after job completion.</span>
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
+              {/* Settings Sidebar */}
+              <div className="bg-surface border border-border rounded-[24px] p-2 flex flex-col gap-1 sticky top-24 max-[1024px]:flex-row max-[1024px]:overflow-x-auto max-[1024px]:static max-[1024px]:mb-4 no-scrollbar">
+                {[
+                  { id: 'profile', label: 'Organization', icon: <ShieldIcon className="w-4 h-4" /> },
+                  { id: 'billing', label: 'Billing & Plan', icon: <DollarIcon className="w-4 h-4" /> },
+                  { id: 'security', label: 'Security & SSO', icon: <LockIcon className="w-4 h-4" />, locked: true },
+                  { id: 'notifications', label: 'Notifications', icon: <ActivityIcon className="w-4 h-4" />, locked: true },
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all ${item.id === 'profile' ? 'bg-accent text-white shadow-md' : 'text-text-3 hover:bg-surface-2 hover:text-text'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span>{item.icon}</span>
+                      <span className="text-[13px] font-700 tracking-tight">{item.label}</span>
                     </div>
-                    <div className="w-12 h-6 bg-accent rounded-full border border-accent relative">
-                      <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display text-[15px] font-800 text-text">Email Notifications</span>
-                      <span className="text-[12px] text-text-3 font-500">Receive summaries of payment batches and failures.</span>
-                    </div>
-                    <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative">
-                      <div className="absolute left-1 top-1 w-4 h-4 bg-text-3 rounded-full" />
-                    </div>
-                  </div>
-                </div>
+                    {item.locked && <LockIcon className="w-3 h-3 opacity-50" />}
+                  </button>
+                ))}
               </div>
 
-              <div className="bg-surface border border-border rounded-[24px] p-8 flex items-center justify-between bg-gradient-to-br from-surface to-accent/5">
-                <div className="flex items-center gap-6">
-                  <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-[24px] border border-accent/20">✨</div>
+              {/* Settings Content */}
+              <div className="flex flex-col gap-6">
+                <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8">
                   <div className="flex flex-col gap-1">
-                    <span className="font-display text-[16px] font-800 text-text">{firm?.plan || 'TRIAL'} Plan</span>
-                    <span className="text-[12px] text-text-3 font-600 uppercase tracking-widest">Next billing date: April 1, 2026</span>
+                    <h3 className="font-display text-[16px] font-800 text-text uppercase tracking-tight">Organization Profile</h3>
+                    <p className="text-text-3 text-[13px] font-500">Global settings for your payment reconciliation firm.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm Name</label>
+                        <input
+                          className="bg-surface-2 border border-border text-text rounded-xl p-[12px_16px] text-[14px] font-600 outline-none focus:border-accent transition-all"
+                          value={firm?.name || ''}
+                          disabled
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm ID (Read-only)</label>
+                        <input
+                          className="bg-surface-2 border border-border text-text-3 rounded-xl p-[12px_16px] text-[13px] font-mono outline-none"
+                          value={firmId}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+
+                    {/* Operational Health Card */}
+                    <div className="bg-accent/5 border border-accent/10 rounded-2xl p-6 flex flex-col gap-4">
+                      <div className="flex items-center gap-3 text-accent">
+                        <ActivityIcon className="w-5 h-5" />
+                        <span className="font-display font-800 text-[14px] uppercase tracking-tight">Operational Health</span>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center text-[12px]">
+                          <span className="text-text-3 font-600">QBO Sync Status</span>
+                          <span className="text-[#10b981] font-800">Operational</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[12px]">
+                          <span className="text-text-3 font-600">Rule Engine</span>
+                          <span className="text-[#10b981] font-800">Healthy (0ms lag)</span>
+                        </div>
+                        <div className="h-1 bg-border rounded-full overflow-hidden mt-2">
+                          <div className="w-[85%] h-full bg-accent rounded-full" />
+                        </div>
+                        <span className="text-[10px] text-text-3 font-700 uppercase">Usage: 85% of Trial rules used</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-8 border-t border-border flex flex-col gap-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-display text-[15px] font-800 text-text">Data Retention Policy</span>
+                        <span className="text-[12px] text-text-3 font-500">Keep audit logs for 12 months after job completion.</span>
+                      </div>
+                      <div className="w-12 h-6 bg-accent rounded-full border border-accent relative">
+                        <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-display text-[15px] font-800 text-text">Email Notifications</span>
+                        <span className="text-[12px] text-text-3 font-500">Receive summaries of payment batches and failures.</span>
+                      </div>
+                      <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative">
+                        <div className="absolute left-1 top-1 w-4 h-4 bg-text-3 rounded-full" />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowPricingModal(true)}
-                  className="p-[10px_24px] bg-white text-black border border-black rounded-xl text-[12px] font-800 hover:bg-black hover:text-white transition-all"
-                >
-                  Manage Billing
-                </button>
-              </div>
 
-              <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 flex flex-col gap-6">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-display text-[16px] font-800 text-[#ef4444] uppercase tracking-tight">Danger Zone</h3>
-                  <p className="text-text-3 text-[13px] font-500">Irreversible actions for your organization data.</p>
-                </div>
-                <div className="flex items-center justify-between p-6 bg-white border border-[#ef444415] rounded-2xl">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-display text-[15px] font-800 text-text">Purge Audit Logs</span>
-                    <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
+                <div className="bg-surface border border-border rounded-[24px] p-8 flex items-center justify-between bg-gradient-to-br from-surface to-accent/5">
+                  <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20">
+                      <SparklesIcon className="w-6 h-6" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-display text-[16px] font-800 text-text">{firm?.plan || 'TRIAL'} Plan</span>
+                      <span className="text-[12px] text-text-3 font-600 uppercase tracking-widest">Next billing date: April 1, 2026</span>
+                    </div>
                   </div>
                   <button
-                    onClick={() => {
-                      setConfirmation({
-                        show: true,
-                        title: 'Purge Audit Logs',
-                        message: 'This will permanently delete all system activity records. This action is irreversible.',
-                        confirmText: 'Empty Registry',
-                        type: 'danger',
-                        onConfirm: async () => {
-                          try {
-                            const res = await fetch(`${API}/api/jobs/activity?firmId=${firmId}`, { method: 'DELETE' })
-                            if (!res.ok) throw new Error('Purge failed')
-                            addToast('Audit logs purged', 'success')
-                            fetchDashboardData(firmId)
-                          } catch (e) {
-                            addToast('Failed to purge logs', 'error')
-                          }
-                          setConfirmation(prev => ({ ...prev, show: false }))
-                        }
-                      })
-                    }}
-                    className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider"
+                    onClick={() => setShowPricingModal(true)}
+                    className="p-[10px_24px] bg-white text-black border border-black rounded-xl text-[12px] font-800 hover:bg-black hover:text-white transition-all shadow-sm"
                   >
-                    Empty Registry
+                    Manage Billing
                   </button>
+                </div>
+
+                <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 flex flex-col gap-6">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="font-display text-[16px] font-800 text-[#ef4444] uppercase tracking-tight">Danger Zone</h3>
+                    <p className="text-text-3 text-[13px] font-500">Irreversible actions for your organization data.</p>
+                  </div>
+                  <div className="flex items-center justify-between p-6 bg-white border border-[#ef444415] rounded-2xl">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-display text-[15px] font-800 text-text">Purge Audit Logs</span>
+                      <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setConfirmation({
+                          show: true,
+                          title: 'Purge Audit Logs',
+                          message: 'This will permanently delete all system activity records. This action is irreversible.',
+                          confirmText: 'Empty Registry',
+                          type: 'danger',
+                          onConfirm: async () => {
+                            try {
+                              const res = await fetch(`${API}/api/jobs/activity?firmId=${firmId}`, { method: 'DELETE' })
+                              if (!res.ok) throw new Error('Purge failed')
+                              addToast('Audit logs purged', 'success')
+                              fetchDashboardData(firmId)
+                            } catch (e) {
+                              addToast('Failed to purge logs', 'error')
+                            }
+                            setConfirmation(prev => ({ ...prev, show: false }))
+                          }
+                        })
+                      }}
+                      className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider"
+                    >
+                      Empty Registry
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1041,6 +1234,7 @@ export default function DashboardPage() {
                 locations={locations}
                 onCancel={() => { setEditingRule(null); setShowRuleModal(false); }}
                 addToast={addToast}
+                firmPlan={firm?.plan || 'TRIAL'}
                 onSave={async (rule: any) => {
                   try {
                     const method = editingRule ? 'PATCH' : 'POST'
@@ -1085,7 +1279,7 @@ export default function DashboardPage() {
 
 // ── Secondary Components ───────────────────────────────────────────────────
 
-function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast }: any) {
+function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast, firmPlan }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   const [ruleConfig, setRuleConfig] = useState(editingRule?.ruleConfig || { weights: {}, locations: [] })
@@ -1118,22 +1312,29 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
         <label className="text-[11px] font-800 text-text-3 uppercase tracking-widest ml-1">Splitting Strategy</label>
         <div className="grid grid-cols-1 gap-3">
           {[
-            { id: 'proportional', label: 'Proportional Split', desc: 'Distribute by percentage weights', icon: '📊' },
-            { id: 'oldest_first', label: 'Oldest First', desc: 'Fill invoices from oldest to newest', icon: '⏳' },
-            { id: 'location_priority', label: 'Priority Chain', desc: 'Waterfall through locations in order', icon: '🔗' },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setRuleType(t.id as RuleType)}
-              className={`p-5 rounded-2xl border text-left flex items-start gap-4 transition-all ${ruleType === t.id ? 'bg-accent/5 border-accent shadow-sm' : 'bg-surface hover:bg-surface-2 border-border'}`}
-            >
-              <span className="text-[20px] mt-1">{t.icon}</span>
-              <div className="flex flex-col">
-                <span className={`text-[14px] font-800 tracking-tight ${ruleType === t.id ? 'text-accent' : 'text-text'}`}>{t.label}</span>
-                <span className="text-[11px] text-text-3 font-600 uppercase tracking-tight mt-0.5">{t.desc}</span>
-              </div>
-            </button>
-          ))}
+            { id: 'proportional', label: 'Proportional Split', desc: 'Distribute by percentage weights', icon: <BarChartIcon className="w-5 h-5" />, minPlan: 'TRIAL' as const },
+            { id: 'oldest_first', label: 'Oldest First', desc: 'Fill invoices from oldest to newest', icon: <LayersIcon className="w-5 h-5" />, minPlan: 'PRACTICE' as const },
+            { id: 'location_priority', label: 'Priority Chain', desc: 'Waterfall through locations in order', icon: <ZapIcon className="w-5 h-5" />, minPlan: 'SCALE' as const },
+          ].map((t) => {
+            const isLocked = !isPlanAllowed(t.minPlan, (firmPlan || 'TRIAL') as any);
+            return (
+              <button
+                key={t.id}
+                disabled={isLocked}
+                onClick={() => setRuleType(t.id as RuleType)}
+                className={`p-5 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${ruleType === t.id ? 'bg-accent/5 border-accent shadow-sm' : 'bg-surface hover:bg-surface-2 border-border'} ${isLocked ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
+              >
+                <div className="flex items-start gap-4">
+                  <span className={`mt-1 ${ruleType === t.id ? 'text-accent' : 'text-text-3'}`}>{t.icon}</span>
+                  <div className="flex flex-col">
+                    <span className={`text-[14px] font-800 tracking-tight ${ruleType === t.id ? 'text-accent' : 'text-text'}`}>{t.label}</span>
+                    <span className="text-[11px] text-text-3 font-600 uppercase tracking-tight mt-0.5">{t.desc}</span>
+                  </div>
+                </div>
+                {isLocked && <LockIcon className="w-4 h-4 text-text-3" />}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -1213,7 +1414,7 @@ function PricingModal({ currentPlan, onClose, onUpgrade, addToast }: any) {
               <div className="flex flex-col gap-3 flex-1">
                 {p.features.map((f, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-accent text-[12px]">✓</span>
+                    <CheckIcon className="w-3.5 h-3.5 text-accent" />
                     <span className="text-[13px] font-600 text-text-2">{f}</span>
                   </div>
                 ))}
@@ -1246,7 +1447,7 @@ function ConfirmationModal({ title, message, confirmText, onConfirm, onClose, ty
       <div className="bg-surface border border-border rounded-[32px] w-full max-w-[400px] p-8 relative z-10 shadow-3xl animate-slideUp">
         <div className="flex flex-col items-center text-center gap-4">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-[24px] ${type === 'danger' ? 'bg-[#ef444410] text-[#ef4444] border border-[#ef444420]' : 'bg-accent/10 text-accent border border-accent/20'}`}>
-            {type === 'danger' ? '⚠️' : '❓'}
+            {type === 'danger' ? <AlertIcon className="w-8 h-8" /> : <InfoIcon className="w-8 h-8" />}
           </div>
           <div className="flex flex-col gap-2">
             <h3 className="font-display text-[20px] font-800 text-text tracking-tight">{title}</h3>
