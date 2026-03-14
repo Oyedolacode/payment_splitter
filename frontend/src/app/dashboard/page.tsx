@@ -1399,53 +1399,84 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
 
 function PricingModal({ currentPlan, onClose, onUpgrade, addToast }: any) {
   const plans = [
-    { id: 'TRIAL', name: 'Trial', price: '$0', features: ['Up to 3 Rules', 'Proportional Strategy', 'Basic Audits'] },
-    { id: 'STANDARD', name: 'Standard', price: '$19', features: ['Up to 3 Rules', 'Proportional Strategy', 'Manual Syncing'] },
-    { id: 'PROFESSIONAL', name: 'Professional', price: '$49', features: ['Unlimited Rules', 'FIFO Allocation', 'Automated Sync'] },
-    { id: 'PRACTICE', name: 'Practice', price: '$129', features: ['Multi-Entity Priority', 'Full Automation', 'Priority Support'] },
+    { id: 'TRIAL', name: 'Trial', price: '$0', features: ['Up to 3 Rules', 'Proportional Strategy', 'Basic Audits'], color: 'text-text-3', accent: 'bg-surface-2' },
+    { id: 'STANDARD', name: 'Standard', price: '$19', features: ['Up to 3 Rules', 'Proportional Strategy', 'Manual Syncing'], color: 'text-text', accent: 'bg-surface' },
+    { id: 'PROFESSIONAL', name: 'Professional', price: '$49', features: ['Unlimited Rules', 'FIFO Allocation', 'Automated Sync'], color: 'text-accent', accent: 'bg-accent/5', popular: true },
+    { id: 'PRACTICE', name: 'Practice', price: '$129', features: ['Multi-Entity Priority', 'Full Automation', 'Priority Support'], color: 'text-indigo-500', accent: 'bg-indigo-500/5' },
   ]
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 max-[768px]:p-4 max-[768px]:items-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="bg-surface border border-border rounded-[40px] w-full max-w-[900px] p-10 relative z-10 shadow-3xl animate-fadeIn max-[768px]:p-6 max-[768px]:rounded-[24px] max-[768px]:max-h-[85vh] max-[768px]:overflow-y-auto custom-scrollbar">
-        <div className="text-center mb-12 max-[768px]:mb-6">
-          <h2 className="font-display text-[32px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-3">Upgrade Your Operations</h2>
-          <p className="text-text-3 text-[15px]">Scale your financial automation with elite features.</p>
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 max-[1024px]:p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
+      <div className="bg-surface border border-border rounded-[40px] w-full max-w-[1200px] p-10 relative z-10 shadow-3xl animate-fadeIn max-[1024px]:p-6 max-[1024px]:rounded-[24px] max-[1024px]:max-h-[90vh] max-[1024px]:overflow-y-auto custom-scrollbar">
+        <div className="text-center mb-10 max-[768px]:mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-800 uppercase tracking-widest mb-4">
+            <SparklesIcon className="w-3.5 h-3.5" />
+            Flexible Plans
+          </div>
+          <h2 className="font-display text-[40px] max-[768px]:text-[28px] font-800 tracking-tight text-text mb-3 leading-tight">Scale Your Operation</h2>
+          <p className="text-text-3 text-[16px] max-[768px]:text-[14px]">Choose the tier that matches your firm's volume.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-[768px]:gap-4">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map(p => (
-            <div key={p.id} className={`p-8 max-[768px]:p-6 rounded-[32px] max-[768px]:rounded-[24px] border-2 flex flex-col gap-6 max-[768px]:gap-4 transition-all ${currentPlan === p.id ? 'border-accent bg-accent/5' : 'border-border bg-surface'}`}>
+            <div 
+              key={p.id} 
+              className={`relative p-6 rounded-[32px] border flex flex-col gap-6 transition-all duration-300 hover:scale-[1.02] ${
+                currentPlan === p.id 
+                  ? 'border-accent ring-1 ring-accent/50 bg-accent/[0.03]' 
+                  : 'border-border bg-surface-2 hover:bg-surface hover:border-text/20'
+              }`}
+            >
+              {p.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-accent text-white text-[10px] font-900 uppercase tracking-widest shadow-lg z-20">
+                  Most Popular
+                </div>
+              )}
+              
               <div className="flex flex-col">
-                <span className="text-[11px] font-800 text-text-3 uppercase tracking-widest">{p.name} Plan</span>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-[28px] font-800 text-text tracking-tight">{p.price}</span>
-                  <span className="text-[12px] text-text-3 font-bold">/mo</span>
+                <span className={`text-[12px] font-800 uppercase tracking-widest ${p.color}`}>{p.name}</span>
+                <div className="flex items-baseline gap-1 mt-3">
+                  <span className="text-[32px] font-900 text-text tracking-tight">{p.price}</span>
+                  <span className="text-[14px] text-text-3 font-bold">/mo</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-3 flex-1">
+
+              <div className="flex flex-col gap-3.5 flex-1 min-h-[140px]">
                 {p.features.map((f, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <CheckIcon className="w-3.5 h-3.5 text-accent" />
-                    <span className="text-[13px] font-600 text-text-2">{f}</span>
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="mt-1">
+                      <CheckIcon className={`w-4 h-4 ${currentPlan === p.id ? 'text-accent' : 'text-text-3/50'}`} />
+                    </div>
+                    <span className="text-[13.5px] font-600 text-text-2 leading-tight">{f}</span>
                   </div>
                 ))}
               </div>
+
               <button
                 disabled={currentPlan === p.id}
                 onClick={() => onUpgrade(p.id)}
-                className={`w-full p-4 rounded-2xl text-[12px] font-800 transition-all ${currentPlan === p.id ? 'bg-border text-text-3' : 'bg-black text-white hover:opacity-90 shadow-md'}`}
+                className={`w-full p-4 rounded-2xl text-[13px] font-800 transition-all shadow-sm ${
+                  currentPlan === p.id 
+                    ? 'bg-border/50 text-text-3 cursor-default' 
+                    : p.popular 
+                      ? 'bg-accent text-white hover:bg-accent-deep shadow-accent/20' 
+                      : 'bg-text text-bg hover:bg-text/90'
+                }`}
               >
                 {currentPlan === p.id ? 'Current Plan' : 'Select Plan'}
               </button>
             </div>
           ))}
         </div>
+
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 w-12 h-12 bg-surface border border-border rounded-full flex items-center justify-center text-text-3 hover:text-text hover:bg-surface-2 transition-all shadow-sm"
+          className="absolute top-6 right-6 w-10 h-10 bg-surface-2 border border-border rounded-full flex items-center justify-center text-text-3 hover:text-text hover:bg-surface-3 transition-all transition-transform hover:scale-110"
         >
-          ✕
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
     </div>

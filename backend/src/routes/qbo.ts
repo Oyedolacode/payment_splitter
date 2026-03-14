@@ -13,7 +13,13 @@ export async function qboRoutes(fastify: FastifyInstance) {
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
             const customers = await fetchAllCustomers(firmId, firm.qboRealmId)
-            return customers
+            // Normalize PascalCase from QBO to camelCase for frontend
+            return customers.map(c => ({
+                id: c.Id,
+                displayName: c.DisplayName,
+                companyName: c.CompanyName,
+                active: c.Active
+            }))
         } catch (err: any) {
             console.error('[QBO Customers Error]:', err)
             const message = err instanceof Error ? err.message : 'Failed to fetch customers'
@@ -31,7 +37,12 @@ export async function qboRoutes(fastify: FastifyInstance) {
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
             const locations = await fetchAllLocations(firmId, firm.qboRealmId)
-            return locations
+            // Normalize PascalCase from QBO to camelCase for frontend
+            return locations.map(l => ({
+                id: l.Id,
+                name: l.Name || l.DisplayName,
+                active: l.Active
+            }))
         } catch (err: any) {
             console.error('[QBO Locations Error]:', err)
             const message = err instanceof Error ? err.message : 'Failed to fetch locations'
