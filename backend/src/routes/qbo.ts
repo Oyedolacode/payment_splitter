@@ -60,7 +60,10 @@ export async function qboRoutes(fastify: FastifyInstance) {
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
             const { fetchSubCustomers } = await import('../services/qboClient')
+            console.log(`[QBO Sub-Customers] Fetching for firm ${firmId}, parent ${parentCustomerId}`)
+            
             const subs = await fetchSubCustomers(firmId, firm.qboRealmId, parentCustomerId)
+            console.log(`[QBO Sub-Customers] Found ${subs.length} sub-customers`)
             
             return subs.map(c => ({
                 id: c.Id,
@@ -69,7 +72,10 @@ export async function qboRoutes(fastify: FastifyInstance) {
             }))
         } catch (err: any) {
             console.error('[QBO Sub-Customers Error]:', err)
-            return reply.status(500).send({ error: 'Failed to fetch sub-customers' })
+            return reply.status(500).send({ 
+                error: 'Failed to fetch sub-customers',
+                details: err.message || err 
+            })
         }
     })
 }

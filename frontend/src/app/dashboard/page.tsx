@@ -1325,13 +1325,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
     const fetchSubs = async () => {
       setLoadingSubs(true)
       try {
-        const cust = customers.find((c: any) => c.displayName === parentCustomerId)
-        if (!cust) {
-          setSubCustomers([])
-          return
-        }
-        
-        const res = await fetch(`${API}/api/qbo/sub-customers?firmId=${firmId}&parentCustomerId=${cust.id}`)
+        const res = await fetch(`${API}/api/qbo/sub-customers?firmId=${firmId}&parentCustomerId=${parentCustomerId}`)
         if (!res.ok) throw new Error('Failed to fetch sub-locations')
         const data = await res.json()
         setSubCustomers(data)
@@ -1343,7 +1337,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       }
     }
     fetchSubs()
-  }, [parentCustomerId, firmId, customers, ruleType])
+  }, [parentCustomerId, firmId, ruleType])
 
   const handleSave = () => {
     // Calculate total at the exact moment of click from the current state
@@ -1387,8 +1381,8 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   // Derived for UI rendering
   const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
 
-  // Determine which location list to use for UI
-  const targetLocations = subCustomers.length > 0 ? subCustomers : (parentCustomerId ? [] : locations)
+  // Determine which location list to use for UI - use Jobs if they exist, otherwise fallback to Departments if parent is selected
+  const targetLocations = subCustomers.length > 0 ? subCustomers : (parentCustomerId ? locations : [])
 
   return (
     <div className="flex flex-col gap-8">
@@ -1401,7 +1395,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
         >
           <option value="">Select Customer...</option>
           {customers.map((c: any) => (
-            <option key={c.id} value={c.displayName}>{c.displayName}</option>
+            <option key={c.id} value={c.id}>{c.displayName}</option>
           ))}
         </select>
       </div>
