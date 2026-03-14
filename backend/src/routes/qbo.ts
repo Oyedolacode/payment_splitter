@@ -49,4 +49,27 @@ export async function qboRoutes(fastify: FastifyInstance) {
             return reply.status(500).send({ error: message, details: err.message || err })
         }
     })
+
+    // GET /api/qbo/sub-customers?firmId=xxx&parentCustomerId=yyy
+    fastify.get<{ Querystring: { firmId: string, parentCustomerId: string } }>('/sub-customers', async (request, reply) => {
+        const { firmId, parentCustomerId } = request.query
+        if (!firmId || !parentCustomerId) return reply.status(400).send({ error: 'firmId and parentCustomerId required' })
+
+        try {
+            const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
+            if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
+
+            const { fetchSubCustomers } = await import('../services/qboClient')
+            const subs = await fetchSubCustomers(firmId, firm.qboRealmId, parentCustomerId)
+            
+            return subs.map(c => ({
+                id: c.Id,
+                name: c.DisplayName,
+                active: c.Active
+            }))
+        } catch (err: any) {
+            console.error('[QBO Sub-Customers Error]:', err)
+            return reply.status(500).send({ error: 'Failed to fetch sub-customers' })
+        }
+    })
 }

@@ -1247,6 +1247,7 @@ export default function DashboardPage() {
                 onCancel={() => { setEditingRule(null); setShowRuleModal(false); }}
                 addToast={addToast}
                 firmPlan={firm?.plan || 'TRIAL'}
+                firmId={firmId}
                 onSave={async (ruleData: any) => {
                   try {
                     const method = editingRule ? 'PATCH' : 'POST'
@@ -1305,19 +1306,49 @@ export default function DashboardPage() {
 
 // ── Secondary Components ───────────────────────────────────────────────────
 
-function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast, firmPlan }: any) {
+function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast, firmPlan, firmId }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   
   // Standalone weights state - THE SINGLE SOURCE OF TRUTH
   const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
+  const [subCustomers, setSubCustomers] = useState<any[]>([])
+  const [loadingSubs, setLoadingSubs] = useState(false)
+
+  // Fetch sub-customers (Jobs) whenever the parent changes
+  useEffect(() => {
+    if (!parentCustomerId) {
+      setSubCustomers([])
+      return
+    }
+
+    const fetchSubs = async () => {
+      setLoadingSubs(true)
+      try {
+        const cust = customers.find((c: any) => c.displayName === parentCustomerId)
+        if (!cust) {
+          setSubCustomers([])
+          return
+        }
+        
+        const res = await fetch(`${API}/api/qbo/sub-customers?firmId=${firmId}&parentCustomerId=${cust.id}`)
+        if (!res.ok) throw new Error('Failed to fetch sub-locations')
+        const data = await res.json()
+        setSubCustomers(data)
+      } catch (e) {
+        console.error('[FetchSubs Error]:', e)
+        addToast('Failed to load sub-locations from QBO', 'error')
+      } finally {
+        setLoadingSubs(false)
+      }
+    }
+    fetchSubs()
+  }, [parentCustomerId, firmId, customers, ruleType])
 
   const handleSave = () => {
     // Calculate total at the exact moment of click from the current state
     const currentTotal = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
     
-    console.log('[RuleSave] Diagnostic:', { ruleType, weights, currentTotal });
-
     if (!parentCustomerId) {
       addToast('Please select a parent customer', 'error')
       return
@@ -1342,9 +1373,12 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       })
       finalConfig.weights = filteredWeights
     } else if (ruleType === 'oldest_first') {
-      finalConfig.locationIds = locations.map((l: any) => l.name)
+      // For oldest_first, we use either sub-customers or global locations as fallback
+      const targets = subCustomers.length > 0 ? subCustomers : locations
+      finalConfig.locationIds = targets.map((l: any) => l.name)
     } else if (ruleType === 'location_priority') {
-      finalConfig.order = locations.map((l: any) => l.name)
+      const targets = subCustomers.length > 0 ? subCustomers : locations
+      finalConfig.order = targets.map((l: any) => l.name)
     }
 
     onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true })
@@ -1353,6 +1387,8 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   // Derived for UI rendering
   const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
 
+  // Determine which location list to use for UI
+  const targetLocations = subCustomers.length > 0 ? subCustomers : (parentCustomerId ? [] : locations)
 
   return (
     <div className="flex flex-col gap-8">
@@ -1413,67 +1449,88 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
               </div>
             </div>
 
-            {/* Distribution Visual Bar */}
-            <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden flex border border-border/50">
-              {locations.map((loc: any, idx: number) => {
-                const val = Number(weights[loc.name] || 0);
-                if (val <= 0) return null;
-                const colors = ['bg-accent', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-blue-500'];
-                return (
-                  <div 
-                    key={loc.id} 
-                    className={`${colors[idx % colors.length]} h-full transition-all duration-500`} 
-                    style={{ width: `${val}%` }} 
-                  />
-                );
-              })}
-            </div>
-            
-            <div className="flex flex-col gap-4">
-              {locations.map((loc: any) => {
-                const currentWeight = Number(weights[loc.name] || 0);
-                return (
-                  <div key={loc.id} className="group flex flex-col gap-3 p-5 bg-surface rounded-[24px] border border-border hover:border-accent/30 transition-all shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[14px] font-800 text-text leading-tight">{loc.name}</span>
-                        <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">Sub-Location</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                         <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={weights[loc.name] || ''}
-                          placeholder="0"
-                          onChange={(e) => setWeights({
-                            ...weights,
-                            [loc.name]: Number(e.target.value)
-                          })}
-                          className="w-16 bg-surface-2 border border-border rounded-lg p-1 text-center text-[13px] font-mono font-900 text-text outline-none focus:border-accent transition-all"
-                        />
-                        <span className="text-[12px] text-text-3 font-bold">%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="relative h-6 flex items-center group/slider">
-                      <input 
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={currentWeight}
-                        onChange={(e) => setWeights({
-                          ...weights,
-                          [loc.name]: Number(e.target.value)
-                        })}
-                        className="w-full h-1.5 bg-surface-3 rounded-full appearance-none cursor-pointer accent-accent"
+            {loadingSubs ? (
+              <div className="flex flex-col items-center justify-center p-12 bg-surface-2 rounded-3xl border border-dashed border-border gap-4">
+                <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+                <span className="text-[13px] font-700 text-text-3">Loading sub-locations from QBO...</span>
+              </div>
+            ) : !parentCustomerId ? (
+               <div className="p-8 bg-surface-2 rounded-3xl border border-dashed border-border text-center">
+                <span className="text-[13px] font-600 text-text-3 italic">Please select a parent customer first.</span>
+              </div>
+            ) : targetLocations.length === 0 ? (
+              <div className="p-12 bg-[#ef444408] rounded-3xl border border-dashed border-[#ef444420] text-center">
+                <span className="text-[32px] mb-4 block">⚠️</span>
+                <h4 className="text-[15px] font-800 text-text mb-2">No Sub-Locations Found</h4>
+                <p className="text-[13px] text-text-3 max-w-[300px] mx-auto leading-relaxed">
+                  We couldn't find any Jobs or Sub-Customers under <b>{parentCustomerId}</b> in your QuickBooks account.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Distribution Visual Bar */}
+                <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden flex border border-border/50">
+                  {targetLocations.map((loc: any, idx: number) => {
+                    const val = Number(weights[loc.name] || 0);
+                    if (val <= 0) return null;
+                    const colors = ['bg-accent', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-blue-500'];
+                    return (
+                      <div 
+                        key={loc.id} 
+                        className={`${colors[idx % colors.length]} h-full transition-all duration-500`} 
+                        style={{ width: `${val}%` }} 
                       />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                  {targetLocations.map((loc: any) => {
+                    const currentWeight = Number(weights[loc.name] || 0);
+                    return (
+                      <div key={loc.id} className="group flex flex-col gap-3 p-5 bg-surface rounded-[24px] border border-border hover:border-accent/30 transition-all shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[14px] font-800 text-text leading-tight">{loc.name}</span>
+                            <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">Sub-Location</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={weights[loc.name] || ''}
+                              placeholder="0"
+                              onChange={(e) => setWeights({
+                                ...weights,
+                                [loc.name]: Number(e.target.value)
+                              })}
+                              className="w-16 bg-surface-2 border border-border rounded-lg p-1 text-center text-[13px] font-mono font-900 text-text outline-none focus:border-accent transition-all"
+                            />
+                            <span className="text-[12px] text-text-3 font-bold">%</span>
+                          </div>
+                        </div>
+                        
+                        <div className="relative h-6 flex items-center group/slider">
+                          <input 
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={currentWeight}
+                            onChange={(e) => setWeights({
+                              ...weights,
+                              [loc.name]: Number(e.target.value)
+                            })}
+                            className="w-full h-1.5 bg-surface-3 rounded-full appearance-none cursor-pointer accent-accent"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {totalAllocated !== 100 && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3">
