@@ -339,7 +339,7 @@ export default function DashboardPage() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`p-[6px_14px] rounded-[8px] text-[11.5px] font-700 transition-all whitespace-nowrap ${tab === t ? 'bg-surface text-accent shadow-sm border border-border' : 'text-text-3 hover:text-text'}`}
+                className={`p-[6px_14px] rounded-[8px] text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
               >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
@@ -366,7 +366,7 @@ export default function DashboardPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`p-[4px_12px] rounded-lg text-[11px] font-700 transition-all whitespace-nowrap ${tab === t ? 'bg-accent/10 text-accent border border-accent/20' : 'text-text-3'}`}
+            className={`p-[4px_12px] rounded-lg text-[11px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white' : 'text-text-3 bg-surface-3/50'}`}
           >
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -374,6 +374,39 @@ export default function DashboardPage() {
       </div>
 
       <main className="pt-24 pb-12 px-8 max-[1025px]:pt-32 max-[768px]:px-4 max-w-[1400px] mx-auto overflow-hidden">
+        {/* Guided Onboarding Flow - only shows if not fully set up */}
+        {(!qboConnected || rules.length === 0 || jobs.length === 0) && (
+          <div className="mb-10 bg-[#2d31fa08] border border-[#2d31fa15] rounded-[24px] p-6 flex flex-col gap-6 animate-fadeIn transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <h2 className="font-display text-[15px] font-800 text-text tracking-tight uppercase">Getting Started with PaySplit</h2>
+                <p className="text-[12px] text-text-3 font-600">Complete these steps to activate automated revenue allocation.</p>
+              </div>
+              <div className="text-[11px] font-800 text-accent bg-accent/10 px-3 py-1 rounded-full border border-accent/20">
+                Setup: {qboConnected ? (rules.length > 0 ? (jobs.length > 0 ? '100%' : '75%') : '50%') : '25%'}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Connect QBO', active: qboConnected, desc: 'Link your firm' },
+                { label: 'Add Rules', active: rules.length > 0, desc: 'Define strategies' },
+                { label: 'Import Jobs', active: jobs.length > 0, desc: 'Fetch payments' },
+                { label: 'First Split', active: jobs.some(j => j.status === 'COMPLETE'), desc: 'Automate results' }
+              ].map((step, i) => (
+                <div key={i} className={`flex items-start gap-3 p-4 rounded-xl border transition-all ${step.active ? 'bg-white border-[#10b98130] shadow-sm' : 'bg-surface/40 border-border'}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] shrink-0 font-bold ${step.active ? 'bg-[#10b981] text-white' : 'bg-surface-3 text-text-3'}`}>
+                    {step.active ? '✓' : i + 1}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className={`text-[12px] font-800 ${step.active ? 'text-text' : 'text-text-3'}`}>{step.label}</span>
+                    <span className="text-[10px] text-text-3 font-600 uppercase tracking-tight">{step.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {tab === 'reconciliation' && (
           <div className="animate-fadeIn">
             <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
@@ -384,9 +417,16 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3 w-full max-[768px]:justify-between">
                 <div className="flex items-center gap-2 p-[8px_16px] bg-surface border border-border rounded-xl">
                   <div className={`w-2 h-2 rounded-full ${qboConnected ? 'bg-[#10b981] shadow-[0_0_8px_#10b981]' : 'bg-[#ef4444]'}`} />
-                  <span className="text-[12px] font-700 text-text-2">
-                    {qboConnected ? 'QBO Linked' : 'QBO Disconnected'}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-800 text-text leading-none">
+                      {qboConnected ? 'QuickBooks Online Linked' : 'QBO Disconnected'}
+                    </span>
+                    {qboConnected && (
+                      <span className="text-[9px] text-text-3 font-bold uppercase tracking-tighter mt-1">
+                        Last Live Sync: {timeAgo(jobs[0]?.createdAt || new Date().toISOString())}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {qboConnected ? (
                   <button
@@ -394,7 +434,7 @@ export default function DashboardPage() {
                     disabled={syncing}
                     className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
                   >
-                    <span>{syncing ? 'Syncing...' : 'Sync Payments'}</span>
+                    <span>{syncing ? 'Syncing...' : 'Fetch New Payments'}</span>
                   </button>
                 ) : (
                   <button
@@ -548,24 +588,60 @@ export default function DashboardPage() {
           <div className="animate-fadeIn">
             <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
               <div>
-                <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Split Rules</h1>
-                <p className="text-text-3 text-[14px]">Define how incoming payments should be distributed across sub-locations.</p>
+                <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Allocation Rules</h1>
+                <p className="text-text-3 text-[14px]">Define how incoming revenue should be distributed across sub-locations.</p>
               </div>
-              <button
-                onClick={() => { setEditingRule(null); setShowRuleModal(true); }}
-                className="flex items-center gap-2 p-[10px_24px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
-              >
-                <span>+</span>
-                <span>New Split Rule</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { /* Template logic could go here */ addToast('Rule Templates coming soon!', 'info') }}
+                  className="p-[10px_20px] bg-surface border border-border rounded-xl text-[12px] font-700 text-text-2 hover:bg-surface-2 transition-all max-[768px]:hidden"
+                >
+                  Use Template
+                </button>
+                <button
+                  onClick={() => { setEditingRule(null); setShowRuleModal(true); }}
+                  className="flex items-center gap-2 p-[10px_24px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
+                >
+                  <span>+</span>
+                  <span>New Allocation Rule</span>
+                </button>
+              </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rules.length === 0 ? (
-                <div className="col-span-full p-20 bg-surface border border-border rounded-[24px] text-center border-dashed">
-                  <div className="text-[48px] mb-4 opacity-50">⚖️</div>
-                  <h3 className="font-display text-[16px] font-800 text-text mb-2">No rules defined</h3>
-                  <p className="text-text-3 text-[14px]">Create your first split rule to start automating your reconciliation.</p>
+                <div className="col-span-full p-20 bg-surface border border-border rounded-[24px] text-center border-dashed group">
+                  <div className="text-[48px] mb-4 group-hover:scale-110 transition-transform cursor-default">⚖️</div>
+                  <h3 className="font-display text-[18px] font-800 text-text mb-2">Create your first allocation rule</h3>
+                  <p className="text-text-3 text-[14px] max-w-[400px] mx-auto mb-8">
+                    Allocation rules determine how PaySplit distributes incoming revenue across your locations or clients.
+                  </p>
+                  <div className="flex flex-col items-center gap-4">
+                    <button
+                      onClick={() => { setEditingRule(null); setShowRuleModal(true); }}
+                      className="p-[12px_32px] bg-accent text-white rounded-xl text-[13px] font-800 hover:opacity-90 transition-all shadow-lg"
+                    >
+                      Create First Rule
+                    </button>
+                    <div className="flex flex-col items-center gap-2 mt-8 p-6 bg-surface-2 border border-border rounded-2xl max-w-[400px]">
+                      <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest mb-2">Example Allocation Rule</span>
+                      <div className="w-full flex justify-between items-center text-[12px] font-600 px-2 py-1 text-text-2">
+                        <span>Prairie Holdings</span>
+                        <span className="text-accent bg-accent/10 px-2 rounded-full text-[10px]">Proportional</span>
+                      </div>
+                      <div className="w-full flex flex-col gap-1 mt-2 text-[11px] text-text-3 font-medium">
+                        <div className="flex justify-between"><span>Location A</span><span>45%</span></div>
+                        <div className="flex justify-between"><span>Location B</span><span>35%</span></div>
+                        <div className="flex justify-between"><span>Location C</span><span>20%</span></div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 mt-6 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all group-hover:opacity-100 group-hover:grayscale-0">
+                      <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest whitespace-nowrap">Suggested Patterns:</span>
+                      <span className="p-[4px_10px] border border-border rounded-lg text-[10px] font-bold">Proportional</span>
+                      <span className="p-[4px_10px] border border-border rounded-lg text-[10px] font-bold">Waterfall</span>
+                      <span className="p-[4px_10px] border border-border rounded-lg text-[10px] font-bold">Priority</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 rules.map(rule => (
@@ -578,7 +654,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 max-[768px]:absolute max-[768px]:top-0 max-[768px]:right-0">
                         <button
                           onClick={() => { setEditingRule(rule); setShowRuleModal(true); }}
-                          className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-accent hover:border-accent/20 transition-all"
+                          className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-text hover:bg-surface-3 transition-all"
                           title="Edit rule"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
@@ -587,11 +663,11 @@ export default function DashboardPage() {
                           onClick={() => {
                             setPreviewingRule(previewingRule === rule.id ? null : rule.id);
                           }}
-                          className={`p-2 rounded-lg border transition-all font-800 text-[10px] flex items-center gap-1 ${previewingRule === rule.id ? 'bg-accent text-white border-accent' : 'bg-surface-2 border-border text-text-3 hover:text-accent hover:border-accent/20'}`}
-                          title="Preview Allocation"
+                          className={`p-2 rounded-lg border transition-all font-800 text-[10px] flex items-center gap-1 ${previewingRule === rule.id ? 'bg-accent text-white border-accent' : 'bg-surface-2 border-border text-text-3 hover:text-accent hover:bg-accent/5 hover:border-accent/20'}`}
+                          title="Test Allocation"
                         >
-                          <span>👁️</span>
-                          <span className="max-[768px]:hidden px-1">Preview</span>
+                          <span>⚡</span>
+                          <span className="max-[768px]:hidden px-1">Test Split</span>
                         </button>
                         <button
                           onClick={() => deleteRule(rule.id)}
@@ -615,12 +691,14 @@ export default function DashboardPage() {
                         <div className={`w-1.5 h-1.5 rounded-full ${rule.isActive ? 'bg-[#10b981]' : 'bg-text-3'}`} />
                         <span className="text-[11px] font-700 text-text-3 uppercase tracking-wider">{rule.isActive ? 'Active' : 'Paused'}</span>
                       </div>
-                      <button
-                        onClick={() => toggleRule(rule.id, rule.isActive)}
-                        className={`p-[6px_16px] rounded-xl text-[11px] font-800 transition-all ${rule.isActive ? 'bg-surface border border-border text-text-2 hover:bg-surface-2' : 'bg-accent text-white hover:opacity-90 shadow-sm'}`}
-                      >
-                        {rule.isActive ? 'Pause' : 'Activate'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleRule(rule.id, rule.isActive)}
+                          className={`p-[6px_16px] rounded-xl text-[11px] font-800 transition-all ${rule.isActive ? 'bg-surface border border-border text-text-2 hover:bg-surface-2' : 'bg-accent text-white hover:opacity-90 shadow-sm'}`}
+                        >
+                          {rule.isActive ? 'Pause' : 'Activate'}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Preview Breakdown */}
@@ -678,9 +756,12 @@ export default function DashboardPage() {
 
         {tab === 'audit' && (
           <div className="animate-fadeIn">
-            <header className="mb-8 max-[768px]:mb-6">
-              <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Audit Registry</h1>
-              <p className="text-text-3 text-[14px]">System-wide activity log for transparency and debugging.</p>
+            <header className="mb-8 max-[768px]:mb-6 flex flex-col gap-2">
+              <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text">Audit Registry</h1>
+              <div className="flex items-center gap-3 p-[10px_16px] bg-[#10b98108] border border-[#10b98115] rounded-xl max-w-fit">
+                <span className="text-[14px]">🔒</span>
+                <p className="text-text-3 text-[12px] font-600">Every automated action performed by PaySplit is logged here for full financial transparency.</p>
+              </div>
             </header>
 
             <div className="bg-surface border border-border rounded-[24px] overflow-hidden max-w-full">
@@ -716,7 +797,9 @@ export default function DashboardPage() {
                           <td className="p-5 last:pr-8">
                             <div className="flex items-center gap-1.5">
                               <div className={`w-1.5 h-1.5 rounded-full ${log.severity === 'ERROR' ? 'bg-[#ef4444]' : log.severity === 'WARNING' ? 'bg-[#f59e0b]' : 'bg-[#10b981]'}`} />
-                              <span className="text-[11px] font-700 text-text-3 uppercase tracking-wider">{log.severity}</span>
+                              <span className={`text-[10px] font-800 uppercase tracking-widest ${log.severity === 'ERROR' ? 'text-[#ef4444]' : log.severity === 'WARNING' ? 'text-[#f59e0b]' : 'text-[#10b981]'}`}>
+                                {log.severity}
+                              </span>
                             </div>
                           </td>
                         </tr>
