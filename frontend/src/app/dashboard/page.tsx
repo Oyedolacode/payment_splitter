@@ -1317,7 +1317,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
     }
 
     const currentWeights = ruleConfig.weights || {}
-    const total = Object.values(currentWeights).reduce((s: number, v: any) => s + Number(v), 0)
+    const total = Object.values(currentWeights).reduce((s: number, v: any) => s + Number(v), 0) as number
 
     if (ruleType === 'proportional' && Math.abs(total - 100) > 0.01) {
       addToast(`Total weights must sum to exactly 100% (currently ${total}%)`, 'error')
