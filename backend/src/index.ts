@@ -1,4 +1,7 @@
-import Fastify from 'fastify' // trigger refresh
+import Fastify from 'fastify' 
+import dns from 'node:dns'
+dns.setDefaultResultOrder('ipv4first')
+
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import cookie from '@fastify/cookie'

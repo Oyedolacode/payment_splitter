@@ -75,8 +75,9 @@ export async function exchangeCodeForTokens(
     }
   } catch (err: any) {
     console.error('[QBO Auth Critical Error] Fetch failed during token exchange:', err)
-    // Re-throw with more context to help the user identify network issues (e.g. DNS, firewall)
-    throw new Error(`Critical: Network fetch failed during QBO token exchange. Error: ${err.message}`)
+    // Re-throw with more context to help identify network issues (e.g. DNS, firewall, IPv6)
+    const detail = err.code ? `${err.code} ${err.message}` : err.message
+    throw new Error(`Critical: Network fetch failed during QBO token exchange. Error: ${detail}. Stack: ${err.stack?.split('\n')[1] || 'N/A'}`)
   }
 }
 
