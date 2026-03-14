@@ -156,6 +156,7 @@ export default function DashboardPage() {
   const [syncing, setSyncing] = useState(false)
   const [qboConnected, setQboConnected] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
+  const [previewingRule, setPreviewingRule] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [firmId, setFirmId] = useState<string>('')
 
