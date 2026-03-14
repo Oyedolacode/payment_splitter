@@ -107,7 +107,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       })
 
       reply.clearCookie('oauth_state')
-      return reply.redirect(302, `${config.FRONTEND_URL}/dashboard?connected=true`)
+      return reply.redirect(302, `${config.FRONTEND_URL}/dashboard?connected=true&id=${firmId}`)
     } catch (err) {
       console.error('QBO OAuth callback error:', err)
       const message = err instanceof Error ? err.stack || err.message : 'Token exchange failed'

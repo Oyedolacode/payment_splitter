@@ -51,8 +51,8 @@ interface ReconciliationJob {
 interface Firm {
   id: string
   name: string
-  plan: 'TRIAL' | 'PRACTICE' | 'SCALE' | 'ELITE'
-  qboConnected: boolean
+  plan: 'TRIAL' | 'STANDARD' | 'PROFESSIONAL' | 'PRACTICE'
+  connected: boolean
 }
 
 interface Toast {
@@ -67,9 +67,9 @@ const API = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : 
 
 const PLAN_RANK = {
   TRIAL: 0,
-  PRACTICE: 1,
-  SCALE: 2,
-  ELITE: 3,
+  STANDARD: 1,
+  PROFESSIONAL: 2,
+  PRACTICE: 3,
 }
 
 const isPlanAllowed = (minPlan: keyof typeof PLAN_RANK, currentPlan: keyof typeof PLAN_RANK) => {
@@ -373,7 +373,16 @@ export default function DashboardPage() {
 
     // Check for connection success query param
     const params = new URLSearchParams(window.location.search)
-    if (params.get('connected') === 'true') {
+    const connectedParam = params.get('connected') === 'true'
+    const idParam = params.get('id')
+    
+    if (connectedParam) {
+      if (idParam && idParam !== id) {
+        console.log('[DASHBOARD] Syncing new firm ID from URL:', idParam)
+        localStorage.setItem('ps_firm_id', idParam)
+        setFirmId(idParam)
+        fetchDashboardData(idParam)
+      }
       addToast('QuickBooks Online successfully connected!', 'success')
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname)
@@ -503,7 +512,9 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col">
             <span className="font-display font-800 text-[14px] leading-tight tracking-tight">PaySplit</span>
-            <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">{firm?.name || 'Loading...'}</span>
+            <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider line-clamp-1">
+              {firm?.name || (loading ? 'Loading...' : 'Disconnected')}
+            </span>
           </div>
         </div>
 
@@ -527,7 +538,7 @@ export default function DashboardPage() {
             className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group"
           >
             <SparklesIcon className="w-4 h-4" />
-            <span>{firm?.plan === 'TRIAL' ? 'Upgrade Plan' : `${firm?.plan} Plan`}</span>
+            <span>{firm?.plan ? `${firm.plan} Plan` : 'Loading Plan...'}</span>
           </button>
 
           <ThemeToggle />
@@ -1313,8 +1324,8 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
         <div className="grid grid-cols-1 gap-3">
           {[
             { id: 'proportional', label: 'Proportional Split', desc: 'Distribute by percentage weights', icon: <BarChartIcon className="w-5 h-5" />, minPlan: 'TRIAL' as const },
-            { id: 'oldest_first', label: 'Oldest First', desc: 'Fill invoices from oldest to newest', icon: <LayersIcon className="w-5 h-5" />, minPlan: 'PRACTICE' as const },
-            { id: 'location_priority', label: 'Priority Chain', desc: 'Waterfall through locations in order', icon: <ZapIcon className="w-5 h-5" />, minPlan: 'SCALE' as const },
+            { id: 'oldest_first', label: 'First In, First Out', desc: 'Fill invoices from oldest to newest', icon: <LayersIcon className="w-5 h-5" />, minPlan: 'PROFESSIONAL' as const },
+            { id: 'location_priority', label: 'Location Priority', desc: 'Waterfall through locations in order', icon: <ZapIcon className="w-5 h-5" />, minPlan: 'PRACTICE' as const },
           ].map((t) => {
             const isLocked = !isPlanAllowed(t.minPlan, (firmPlan || 'TRIAL') as any);
             return (
@@ -1388,9 +1399,10 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
 
 function PricingModal({ currentPlan, onClose, onUpgrade, addToast }: any) {
   const plans = [
-    { id: 'TRIAL', name: 'Trial', price: '$0', features: ['Manual Syncing', '1 Split Strategy', 'Basic Audits'] },
-    { id: 'PRACTICE', name: 'Practice', price: '$49', features: ['Real-time Sync', 'All Split Strategies', 'Priority Support'] },
-    { id: 'SCALE', name: 'Scale', price: '$129', features: ['Multi-Firm Access', 'API Access', 'Anomaly Detection'] },
+    { id: 'TRIAL', name: 'Trial', price: '$0', features: ['Up to 3 Rules', 'Proportional Strategy', 'Basic Audits'] },
+    { id: 'STANDARD', name: 'Standard', price: '$19', features: ['Up to 3 Rules', 'Proportional Strategy', 'Manual Syncing'] },
+    { id: 'PROFESSIONAL', name: 'Professional', price: '$49', features: ['Unlimited Rules', 'FIFO Allocation', 'Automated Sync'] },
+    { id: 'PRACTICE', name: 'Practice', price: '$129', features: ['Multi-Entity Priority', 'Full Automation', 'Priority Support'] },
   ]
 
   return (
