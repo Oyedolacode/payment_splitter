@@ -489,23 +489,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-          <p className="text-text-3 font-display font-700 text-[13px] tracking-wide uppercase">Initializing Dashboard...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent overflow-x-hidden max-w-full">
-      {/* Toast Overlay */}
-      <div className="fixed top-6 right-6 z-[10000] flex flex-col gap-3">
-        {toasts.map(t => (
-          <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
-        ))}
-      </div>
-
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 max-[1024px]:px-4 flex items-center justify-between">
+        <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 max-[1024px]:px-4 flex items-center justify-between">
         <div className="flex items-center gap-4 shrink-0">
           <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 text-accent">
             <LogoIcon />
@@ -518,14 +502,30 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6 max-[1024px]:gap-3 shrink-0">
-          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1024px]:hidden">
+        <div className="flex items-center gap-4 max-[1024px]:gap-2 shrink-0">
+          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1200px]:hidden">
             {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={`p-[6px_14px] rounded-lg text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
               >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setShowPricingModal(true)}
+            className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group shrink-0"
+          >
+            <SparklesIcon className="w-4 h-4" />
+            <span className="max-[480px]:hidden">{firm?.plan ? `${firm.plan} Plan` : 'Plan'}</span>
+          </button>
+
+          <ThemeToggle />
+        </div>
+      </nav>   >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
             ))}
@@ -544,19 +544,21 @@ export default function DashboardPage() {
       </nav>
 
       {/* Mobile Sub-Nav */}
-      <div className="fixed top-16 left-0 right-0 h-12 bg-surface/50 backdrop-blur-md border-b border-border z-[90] min-[1025px]:hidden overflow-x-auto no-scrollbar flex items-center px-4 gap-2">
-        {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`p-[4px_12px] rounded-lg text-[11px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white' : 'text-text-3 bg-surface-3/50'}`}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+      <div className="fixed top-16 left-0 right-0 h-12 bg-surface border-b border-border z-[90] min-[1201px]:hidden flex items-center px-4 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="flex items-center gap-2 pr-4 min-w-max">
+          {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`p-[6px_16px] rounded-xl text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-sm' : 'text-text-3 bg-surface-2 hover:bg-surface-3'}`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <main className="pt-20 pb-12 px-8 max-[1024px]:pt-32 max-[768px]:px-4 max-w-[1400px] mx-auto overflow-hidden">
+      <main className="pt-20 pb-12 px-8 max-[1200px]:pt-32 max-[768px]:px-4 max-w-[1400px] mx-auto">
         {/* Guided Onboarding Flow - only shows if not fully set up */}
         {(!qboConnected || rules.length === 0 || jobs.length === 0) && (
           <div className="mb-10 bg-[#2d31fa08] border border-[#2d31fa15] rounded-[24px] p-6 flex flex-col gap-6 animate-fadeIn transition-all">
@@ -1071,7 +1073,7 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
               {/* Settings Sidebar */}
-              <div className="bg-surface border border-border rounded-[24px] p-2 flex flex-col gap-1 sticky top-24 max-[1024px]:flex-row max-[1024px]:overflow-x-auto max-[1024px]:static max-[1024px]:mb-4 no-scrollbar">
+              <div className="bg-surface border border-border rounded-[24px] p-2 flex flex-col gap-1 sticky top-24 max-[1024px]:static max-[1024px]:flex-row max-[1024px]:overflow-x-auto max-[1024px]:mb-4 no-scrollbar max-[1024px]:p-1">
                 {[
                   { id: 'profile', label: 'Organization', icon: <ShieldIcon className="w-4 h-4" /> },
                   { id: 'billing', label: 'Billing & Plan', icon: <DollarIcon className="w-4 h-4" /> },
@@ -1080,13 +1082,14 @@ export default function DashboardPage() {
                 ].map(item => (
                   <button
                     key={item.id}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all ${item.id === 'profile' ? 'bg-accent text-white shadow-md' : 'text-text-3 hover:bg-surface-2 hover:text-text'}`}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all max-[1024px]:shrink-0 max-[1024px]:p-[10px_20px] ${item.id === 'profile' ? 'bg-accent text-white shadow-md' : 'text-text-3 hover:bg-surface-2 hover:text-text'}`}
                   >
                     <div className="flex items-center gap-3">
                       <span>{item.icon}</span>
-                      <span className="text-[13px] font-700 tracking-tight">{item.label}</span>
+                      <span className="text-[13px] font-700 tracking-tight whitespace-nowrap">{item.label}</span>
                     </div>
-                    {item.locked && <LockIcon className="w-3 h-3 opacity-50" />}
+                    {!item.locked && <div className="max-[1024px]:hidden" />}
+                    {item.locked && <LockIcon className="w-3 h-3 opacity-50 max-[1024px]:ml-2" />}
                   </button>
                 ))}
               </div>
@@ -1094,12 +1097,12 @@ export default function DashboardPage() {
               {/* Settings Content */}
               <div className="flex flex-col gap-6">
                 <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="font-display text-[16px] font-800 text-text uppercase tracking-tight">Organization Profile</h3>
-                    <p className="text-text-3 text-[13px] font-500">Global settings for your payment reconciliation firm.</p>
-                  </div>
+                  <header>
+                    <h2 className="font-display text-[20px] font-800 text-text tracking-tight mb-2">Organization Profile</h2>
+                    <p className="text-text-3 text-[14px]">Update your firm's administrative and security details.</p>
+                  </header>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-[768px]:gap-6">
                     <div className="flex flex-col gap-6">
                       <div className="flex flex-col gap-2">
                         <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm Name</label>
@@ -1141,54 +1144,54 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="pt-8 border-t border-border flex flex-col gap-6">
-                    <div className="flex items-center justify-between">
+                  <div className="pt-8 border-t border-border flex flex-col gap-6 max-[768px]:pt-6">
+                    <div className="flex items-center justify-between gap-4">
                       <div className="flex flex-col gap-1">
-                        <span className="font-display text-[15px] font-800 text-text">Data Retention Policy</span>
+                        <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Data Retention Policy</span>
                         <span className="text-[12px] text-text-3 font-500">Keep audit logs for 12 months after job completion.</span>
                       </div>
-                      <div className="w-12 h-6 bg-accent rounded-full border border-accent relative">
+                      <div className="w-12 h-6 bg-accent rounded-full border border-accent relative shrink-0">
                         <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-4">
                       <div className="flex flex-col gap-1">
-                        <span className="font-display text-[15px] font-800 text-text">Email Notifications</span>
+                        <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Email Notifications</span>
                         <span className="text-[12px] text-text-3 font-500">Receive summaries of payment batches and failures.</span>
                       </div>
-                      <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative">
+                      <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative shrink-0">
                         <div className="absolute left-1 top-1 w-4 h-4 bg-text-3 rounded-full" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-surface border border-border rounded-[24px] p-8 flex items-center justify-between bg-gradient-to-br from-surface to-accent/5">
-                  <div className="flex items-center gap-6">
-                    <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20">
+                <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex items-center justify-between gap-6 max-[768px]:flex-col max-[768px]:items-start bg-gradient-to-br from-surface to-accent/5">
+                  <div className="flex items-center gap-6 max-[768px]:gap-4">
+                    <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20 shrink-0">
                       <SparklesIcon className="w-6 h-6" />
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="font-display text-[16px] font-800 text-text">{firm?.plan || 'TRIAL'} Plan</span>
-                      <span className="text-[12px] text-text-3 font-600 uppercase tracking-widest">Next billing date: April 1, 2026</span>
+                      <span className="text-[12px] text-text-3 font-600 uppercase tracking-widest">Next billing: April 1, 2026</span>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowPricingModal(true)}
-                    className="p-[10px_24px] bg-white text-black border border-black rounded-xl text-[12px] font-800 hover:bg-black hover:text-white transition-all shadow-sm"
+                    className="p-[10px_24px] bg-white text-black border border-black rounded-xl text-[12px] font-800 hover:bg-black hover:text-white transition-all shadow-sm max-[768px]:w-full"
                   >
                     Manage Billing
                   </button>
                 </div>
 
-                <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 flex flex-col gap-6">
+                <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-6">
                   <div className="flex flex-col gap-1">
                     <h3 className="font-display text-[16px] font-800 text-[#ef4444] uppercase tracking-tight">Danger Zone</h3>
                     <p className="text-text-3 text-[13px] font-500">Irreversible actions for your organization data.</p>
                   </div>
-                  <div className="flex items-center justify-between p-6 bg-white border border-[#ef444415] rounded-2xl">
+                  <div className="flex items-center justify-between gap-6 p-6 max-[768px]:p-4 bg-white border border-[#ef444415] rounded-2xl max-[768px]:flex-col max-[768px]:items-start">
                     <div className="flex flex-col gap-1">
-                      <span className="font-display text-[15px] font-800 text-text">Purge Audit Logs</span>
+                      <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Purge Audit Logs</span>
                       <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
                     </div>
                     <button
@@ -1212,7 +1215,7 @@ export default function DashboardPage() {
                           }
                         })
                       }}
-                      className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider"
+                      className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider max-[768px]:w-full text-center"
                     >
                       Empty Registry
                     </button>
@@ -1482,9 +1485,9 @@ function PricingModal({ currentPlan, onClose, onUpgrade, addToast }: any) {
   ]
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 max-[1024px]:p-4">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 max-[768px]:p-0">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
-      <div className="bg-surface border border-border rounded-[40px] w-full max-w-[1200px] p-10 relative z-10 shadow-3xl animate-fadeIn max-[1024px]:p-6 max-[1024px]:rounded-[24px] max-[1024px]:max-h-[90vh] max-[1024px]:overflow-y-auto custom-scrollbar">
+      <div className="bg-surface border border-border rounded-[40px] w-full max-w-[1200px] p-10 relative z-10 shadow-3xl animate-fadeIn max-[1024px]:p-6 max-[1024px]:rounded-[24px] max-h-[95vh] overflow-y-auto custom-scrollbar max-[768px]:rounded-none max-[768px]:h-full max-[768px]:max-h-none">
         <div className="text-center mb-10 max-[768px]:mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-800 uppercase tracking-widest mb-4">
             <SparklesIcon className="w-3.5 h-3.5" />
@@ -1561,9 +1564,9 @@ function PricingModal({ currentPlan, onClose, onUpgrade, addToast }: any) {
 
 function ConfirmationModal({ title, message, confirmText, onConfirm, onClose, type }: any) {
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6 max-[480px]:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fadeIn" onClick={onClose} />
-      <div className="bg-surface border border-border rounded-[32px] w-full max-w-[400px] p-8 relative z-10 shadow-3xl animate-slideUp">
+      <div className="bg-surface border border-border rounded-[32px] w-full max-w-[420px] p-8 relative z-10 shadow-3xl animate-slideUp max-[480px]:p-6 max-[480px]:rounded-[24px]">
         <div className="flex flex-col items-center text-center gap-4">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-[24px] ${type === 'danger' ? 'bg-[#ef444410] text-[#ef4444] border border-[#ef444420]' : 'bg-accent/10 text-accent border border-accent/20'}`}>
             {type === 'danger' ? <AlertIcon className="w-8 h-8" /> : <InfoIcon className="w-8 h-8" />}

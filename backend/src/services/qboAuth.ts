@@ -35,39 +35,47 @@ export async function exchangeCodeForTokens(
   code: string,
   realmId: string
 ): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> {
-  const credentials = Buffer.from(`${config.QBO_CLIENT_ID}:${config.QBO_CLIENT_SECRET}`).toString('base64')
+  console.log(`[QBO Auth] Starting token exchange for realmId: ${realmId}`)
+  
+  try {
+    const response = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: config.QBO_REDIRECT_URI,
+      }),
+    })
 
-  const response = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: config.QBO_REDIRECT_URI,
-    }),
-  })
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`[QBO Auth Error] Token exchange HTTP ${response.status}:`, errorText)
+      throw new Error(`QBO token exchange failed: ${response.status} ${errorText}`)
+    }
 
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`QBO token exchange failed: ${response.status} ${error}`)
-  }
+    const data = (await response.json()) as {
+      access_token: string
+      refresh_token: string
+      expires_in: number
+    }
 
-  const data = (await response.json()) as {
-    access_token: string
-    refresh_token: string
-    expires_in: number
-  }
+    console.log('[QBO Auth Success] Tokens exchanged successfully')
+    const expiresAt = new Date(Date.now() + data.expires_in * 1000)
 
-  const expiresAt = new Date(Date.now() + data.expires_in * 1000)
-
-  return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt,
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt,
+    }
+  } catch (err: any) {
+    console.error('[QBO Auth Critical Error] Fetch failed during token exchange:', err)
+    // Re-throw with more context to help the user identify network issues (e.g. DNS, firewall)
+    throw new Error(`Critical: Network fetch failed during QBO token exchange. Error: ${err.message}`)
   }
 }
 
