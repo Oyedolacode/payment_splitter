@@ -1310,17 +1310,18 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   const [ruleConfig, setRuleConfig] = useState(editingRule?.ruleConfig || { weights: {}, locations: [] })
 
+  // Consolidated weights calculation for UI and Validation
+  const currentWeights = ruleConfig.weights || {}
+  const totalAllocated = Object.values(currentWeights).reduce((s: number, v: any) => s + Number(v || 0), 0) as number
+
   const handleSave = () => {
     if (!parentCustomerId) {
       addToast('Please select a parent customer', 'error')
       return
     }
 
-    const currentWeights = ruleConfig.weights || {}
-    const total = Object.values(currentWeights).reduce((s: number, v: any) => s + Number(v), 0) as number
-
-    if (ruleType === 'proportional' && Math.abs(total - 100) > 0.01) {
-      addToast(`Total weights must sum to exactly 100% (currently ${total}%)`, 'error')
+    if (ruleType === 'proportional' && Math.abs(totalAllocated - 100) > 0.01) {
+      addToast(`Total weights must sum to exactly 100% (currently ${totalAllocated}%)`, 'error')
       return
     }
 
@@ -1333,16 +1334,13 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       })
       finalConfig.weights = filteredWeights
     } else if (ruleType === 'oldest_first') {
-      finalConfig.locationIds = locations.map((l: any) => l.name) // Default to all for now
+      finalConfig.locationIds = locations.map((l: any) => l.name) 
     } else if (ruleType === 'location_priority') {
-      finalConfig.order = locations.map((l: any) => l.name) // Default to all for now
+      finalConfig.order = locations.map((l: any) => l.name)
     }
 
     onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true })
   }
-
-  const weights = ruleConfig.weights || {}
-  const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v), 0) as number
 
 
   return (
