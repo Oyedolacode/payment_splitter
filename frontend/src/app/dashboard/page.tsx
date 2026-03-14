@@ -165,6 +165,21 @@ export default function DashboardPage() {
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
   const [showPricingModal, setShowPricingModal] = useState(false)
+  const [confirmation, setConfirmation] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    onConfirm: () => void;
+    type: 'danger' | 'info';
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {},
+    type: 'info'
+  })
 
   const addToast = useCallback((message: string, type: Toast['type'] = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
@@ -240,15 +255,24 @@ export default function DashboardPage() {
   }
 
   const deleteRule = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this rule?')) return
-    try {
-      const res = await fetch(`${API}/api/rules/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Delete failed')
-      addToast('Split rule deleted', 'success')
-      fetchDashboardData(firmId)
-    } catch (e) {
-      addToast('Failed to delete rule', 'error')
-    }
+    setConfirmation({
+      show: true,
+      title: 'Delete Allocation Rule',
+      message: 'Are you sure you want to permanently delete this allocation rule? This action cannot be undone.',
+      confirmText: 'Delete Rule',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API}/api/rules/${id}`, { method: 'DELETE' })
+          if (!res.ok) throw new Error('Delete failed')
+          addToast('Allocation rule deleted', 'success')
+          fetchDashboardData(firmId)
+        } catch (e) {
+          addToast('Failed to delete rule', 'error')
+        }
+        setConfirmation(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const toggleRule = async (id: string, current: boolean) => {
@@ -268,17 +292,20 @@ export default function DashboardPage() {
 
   const handleUpgrade = async (plan: string) => {
     try {
-      const res = await fetch(`${API}/api/stripe/upgrade`, {
+      const res = await fetch(`${API}/api/stripe/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firmId, plan }),
+        body: JSON.stringify({ firmId, tier: plan }),
       })
       if (!res.ok) throw new Error('Upgrade failed')
-      addToast(`Successfully upgraded to ${plan}`, 'success')
-      fetchDashboardData(firmId)
-      setShowPricingModal(false)
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL returned')
+      }
     } catch (e) {
-      addToast('Failed to process upgrade', 'error')
+      addToast('Checkout failed. Please try again.', 'error')
     }
   }
 
@@ -892,7 +919,31 @@ export default function DashboardPage() {
                     <span className="font-display text-[15px] font-800 text-text">Purge Audit Logs</span>
                     <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
                   </div>
-                  <button className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider">Empty Registry</button>
+                  <button
+                    onClick={() => {
+                      setConfirmation({
+                        show: true,
+                        title: 'Purge Audit Logs',
+                        message: 'This will permanently delete all system activity records. This action is irreversible.',
+                        confirmText: 'Empty Registry',
+                        type: 'danger',
+                        onConfirm: async () => {
+                          try {
+                            const res = await fetch(`${API}/api/jobs/activity?firmId=${firmId}`, { method: 'DELETE' })
+                            if (!res.ok) throw new Error('Purge failed')
+                            addToast('Audit logs purged', 'success')
+                            fetchDashboardData(firmId)
+                          } catch (e) {
+                            addToast('Failed to purge logs', 'error')
+                          }
+                          setConfirmation(prev => ({ ...prev, show: false }))
+                        }
+                      })
+                    }}
+                    className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider"
+                  >
+                    Empty Registry
+                  </button>
                 </div>
               </div>
             </div>
@@ -917,7 +968,9 @@ export default function DashboardPage() {
                 editingRule={editingRule}
                 customers={customers}
                 locations={locations}
-                onSave={async (rule) => {
+                locations={locations}
+                onCancel={() => { setEditingRule(null); setShowRuleModal(false); }}
+                onSave={async (rule: any) => {
                   try {
                     const method = editingRule ? 'PATCH' : 'POST'
                     const url = editingRule ? `${API}/api/rules/${editingRule.id}` : `${API}/api/rules`
@@ -947,19 +1000,29 @@ export default function DashboardPage() {
           onUpgrade={handleUpgrade}
         />
       )}
+
+      {confirmation.show && (
+        <ConfirmationModal
+          {...confirmation}
+          onClose={() => setConfirmation(prev => ({ ...prev, show: false }))}
+        />
+      )}
     </div>
   )
 }
 
 // ── Secondary Components ───────────────────────────────────────────────────
 
-function RuleForm({ editingRule, customers, locations, onSave }: any) {
+function RuleForm({ editingRule, customers, locations, onSave, onCancel }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   const [ruleConfig, setRuleConfig] = useState(editingRule?.ruleConfig || { weights: {}, locations: [] })
 
   const handleSave = () => {
-    if (!parentCustomerId) return alert('Select a parent customer')
+    if (!parentCustomerId) {
+      addToast('Please select a parent customer', 'error')
+      return
+    }
     onSave({ ruleType, parentCustomerId, ruleConfig, isActive: true })
   }
 
@@ -1032,12 +1095,20 @@ function RuleForm({ editingRule, customers, locations, onSave }: any) {
         )}
       </div>
 
-      <button
-        onClick={handleSave}
-        className="w-full p-4 bg-accent text-white rounded-2xl text-[14px] font-800 hover:opacity-90 transition-all shadow-lg mt-4"
-      >
-        {editingRule ? 'Update Split Rule' : 'Save Split Rule'}
-      </button>
+      <div className="pt-4 flex gap-3">
+        <button
+          onClick={handleSave}
+          className="flex-1 p-4 bg-accent text-white rounded-2xl text-[14px] font-800 hover:opacity-90 transition-all shadow-lg"
+        >
+          {editingRule ? 'Update Allocation Rule' : 'Save Allocation Rule'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="p-4 bg-surface-2 border border-border text-text-3 rounded-2xl text-[14px] font-800 hover:bg-surface-3 transition-all"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }
@@ -1084,6 +1155,45 @@ function PricingModal({ currentPlan, onClose, onUpgrade }: any) {
               </button>
             </div>
           ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="absolute top-8 right-8 w-12 h-12 bg-surface border border-border rounded-full flex items-center justify-center text-text-3 hover:text-text hover:bg-surface-2 transition-all shadow-sm"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmationModal({ title, message, confirmText, onConfirm, onClose, type }: any) {
+  return (
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fadeIn" onClick={onClose} />
+      <div className="bg-surface border border-border rounded-[32px] w-full max-w-[400px] p-8 relative z-10 shadow-3xl animate-slideUp">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-[24px] ${type === 'danger' ? 'bg-[#ef444410] text-[#ef4444] border border-[#ef444420]' : 'bg-accent/10 text-accent border border-accent/20'}`}>
+            {type === 'danger' ? '⚠️' : '❓'}
+          </div>
+          <div className="flex flex-col gap-2">
+            <h3 className="font-display text-[20px] font-800 text-text tracking-tight">{title}</h3>
+            <p className="text-text-3 text-[14px] leading-relaxed font-500">{message}</p>
+          </div>
+          <div className="flex flex-col w-full gap-3 mt-4">
+            <button
+              onClick={onConfirm}
+              className={`w-full p-4 rounded-2xl text-[14px] font-800 transition-all shadow-lg ${type === 'danger' ? 'bg-[#ef4444] text-white hover:opacity-90' : 'bg-accent text-white hover:opacity-90'}`}
+            >
+              {confirmText}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full p-4 bg-surface-2 border border-border text-text-2 rounded-2xl text-[14px] font-800 hover:bg-surface-3 transition-all"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
