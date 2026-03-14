@@ -33,6 +33,7 @@ model Firm {
   activityLogs     ActivityLog[]
   remittanceMapping RemittanceMapping?
   remittanceUploads RemittanceUpload[]
+  ledgerEntries     LedgerEntry[]
 
   @@map("firms")
 }
@@ -135,4 +136,21 @@ model RemittanceUpload {
   firm           Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
 
   @@map("remittance_uploads")
+}
+
+model LedgerEntry {
+  id              String   @id @default(uuid())
+  firmId          String   @map("firm_id")
+  paymentEventId  String   @map("payment_event_id") 
+  jobId           String?  @map("job_id")
+  account         String   
+  debit           Decimal  @default(0) @db.Decimal(15, 2)
+  credit          Decimal  @default(0) @db.Decimal(15, 2)
+  currency        String   @default("USD")
+  metadata        Json?    @map("metadata")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  firm            Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+
+  @@map("ledger_entries")
 }

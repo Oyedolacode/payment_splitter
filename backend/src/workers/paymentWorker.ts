@@ -6,6 +6,7 @@ import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '..
 import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/email'
 import { JobStatus } from '@prisma/client'
 import { logActivity } from '../lib/activityLogger'
+import { checkIdempotency, createLedgerTransaction } from '../services/ledger'
 
 export const QUEUE_NAME = 'payment-processing'
 
@@ -60,6 +61,17 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       where: { id: jobId },
       data: { status: JobStatus.PROCESSING },
     })
+
+    // ── Idempotency Check ──────────────────────────────────────────────────
+    const alreadyProcessed = await checkIdempotency(paymentId)
+    if (alreadyProcessed && !paymentId.startsWith('MANUAL-')) {
+      await logActivity(firmId, 'SKIPPED', { reason: 'ALREADY_PROCESSED', paymentId }, jobId, 'SYSTEM', 'INFO')
+      await prisma.paymentJob.update({
+        where: { id: jobId },
+        data: { status: JobStatus.COMPLETE, completedAt: new Date(), errorMessage: 'Duplicate skipped via Internal Ledger' },
+      })
+      return
+    }
 
     // ── Determine payment amount and parent customer ─────────────────────────
     let paymentAmount: number
@@ -160,6 +172,20 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       where: { id: jobId },
       data: { splitResult: splitResult as any },
     })
+
+    // ── Phase 4.5: Commit to Internal Financial Ledger (Double-Entry) ────────
+    await createLedgerTransaction(
+      firmId,
+      paymentId,
+      jobId,
+      paymentAmount,
+      splitResult.allocations.map(a => ({
+        locationCustomerId: a.locationCustomerId,
+        amountApplied: a.amountApplied
+      })),
+      { ruleId: activeRule.id, ruleType: activeRule.ruleType }
+    )
+    await logActivity(firmId, 'LEDGER_COMMITTED', { paymentId, amount: paymentAmount }, jobId, 'SYSTEM', 'INFO')
 
     // ── Implementation Note: Journal Entry vs Payment ────────────────────────
     // Per TPS v1.0 Section 8, we should ideally use Journal Entries.
