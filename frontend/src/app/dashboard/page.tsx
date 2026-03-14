@@ -1309,23 +1309,19 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   
-  // Standalone weights state for maximum stability
+  // Standalone weights state - THE SINGLE SOURCE OF TRUTH
   const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
 
-  // Total calculation derived from the standalone weights state
-  const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0) as number
-
   const handleSave = () => {
-    // Diagnostic log for the user/support
-    console.log('[RuleForm] Attempting to save:', { parentCustomerId, ruleType, weights });
+    // Calculate total at the exact moment of click from the current state
+    const currentTotal = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
+    
+    console.log('[RuleSave] Diagnostic:', { ruleType, weights, currentTotal });
 
     if (!parentCustomerId) {
       addToast('Please select a parent customer', 'error')
       return
     }
-
-    // Calculate total at the exact moment of click from the current state
-    const currentTotal = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
 
     if (ruleType === 'proportional' && Math.abs(currentTotal - 100) > 0.01) {
       if (currentTotal === 0) {
@@ -1336,7 +1332,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       return
     }
 
-    // Strictly construct finalConfig for the backend
+    // Fixed: Always use the 'weights' state when constructing finalConfig
     let finalConfig: any = { type: ruleType }
     
     if (ruleType === 'proportional') {
@@ -1353,6 +1349,9 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
 
     onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true })
   }
+
+  // Derived for UI rendering
+  const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
 
 
   return (
