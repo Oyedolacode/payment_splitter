@@ -505,20 +505,20 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 flex items-center justify-between max-[768px]:px-4 max-[768px]:overflow-x-auto no-scrollbar">
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border z-[100] px-6 max-[1024px]:px-4 flex items-center justify-between">
         <div className="flex items-center gap-4 shrink-0">
           <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 text-accent">
             <LogoIcon />
           </div>
           <div className="flex flex-col">
             <span className="font-display font-800 text-[14px] leading-tight tracking-tight">PaySplit</span>
-            <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider line-clamp-1">
+            <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider line-clamp-1 max-w-[100px]">
               {firm?.name || (loading ? 'Loading...' : 'Disconnected')}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-6 max-[768px]:gap-3 shrink-0 ml-4">
+        <div className="flex items-center gap-6 max-[1024px]:gap-3 shrink-0">
           <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1024px]:hidden">
             {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
               <button
@@ -531,14 +531,12 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <div className="h-6 w-[1px] bg-border mx-1 shrink-0" />
-
           <button
             onClick={() => setShowPricingModal(true)}
-            className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group"
+            className="flex items-center gap-2 p-[6px_14px] bg-accent/10 border border-accent/20 rounded-xl text-accent text-[11.5px] font-800 hover:bg-accent/20 transition-all group max-[480px]:p-[6px_10px]"
           >
             <SparklesIcon className="w-4 h-4" />
-            <span>{firm?.plan ? `${firm.plan} Plan` : 'Loading Plan...'}</span>
+            <span className="max-[480px]:hidden">{firm?.plan ? `${firm.plan} Plan` : 'Plan'}</span>
           </button>
 
           <ThemeToggle />
@@ -558,7 +556,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <main className="pt-24 pb-12 px-8 max-[1025px]:pt-32 max-[768px]:px-4 max-w-[1400px] mx-auto overflow-hidden">
+      <main className="pt-20 pb-12 px-8 max-[1024px]:pt-32 max-[768px]:px-4 max-w-[1400px] mx-auto overflow-hidden">
         {/* Guided Onboarding Flow - only shows if not fully set up */}
         {(!qboConnected || rules.length === 0 || jobs.length === 0) && (
           <div className="mb-10 bg-[#2d31fa08] border border-[#2d31fa15] rounded-[24px] p-6 flex flex-col gap-6 animate-fadeIn transition-all">
@@ -1300,7 +1298,14 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       addToast('Please select a parent customer', 'error')
       return
     }
-    onSave({ ruleType, parentCustomerId, ruleConfig, isActive: true })
+
+    // Ensure ruleConfig has the 'type' field required by backend Zod schema
+    const finalConfig = {
+      ...ruleConfig,
+      type: ruleType
+    }
+
+    onSave({ ruleType, parentCustomerId, ruleConfig: finalConfig, isActive: true })
   }
 
   return (
@@ -1351,25 +1356,89 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
 
       <div className="pt-8 border-t border-border">
         {ruleType === 'proportional' && (
-          <div className="flex flex-col gap-4">
-            <span className="text-[11px] font-800 text-text-3 uppercase tracking-widest ml-1">Set Weights (%)</span>
-            {locations.map((loc: any) => (
-              <div key={loc.id} className="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-3">
-                <span className="text-[13px] font-700 text-text max-[768px]:pb-2 max-[768px]:border-b max-[768px]:border-border max-[768px]:w-full">{loc.name}</span>
-                <div className="flex items-center gap-3 max-[768px]:w-full max-[768px]:justify-end">
-                  <input
-                    type="number"
-                    value={ruleConfig.weights?.[loc.name] || 0}
-                    onChange={(e) => setRuleConfig({
-                      ...ruleConfig,
-                      weights: { ...ruleConfig.weights, [loc.name]: Number(e.target.value) }
-                    })}
-                    className="w-20 bg-surface border border-border rounded-lg p-2 text-right text-[13px] font-mono font-bold"
-                  />
-                  <span className="text-text-3 font-bold">%</span>
-                </div>
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-800 text-text-3 uppercase tracking-widest leading-none">Percentage Distribution</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[13px] font-900 ${
+                  Object.values(ruleConfig.weights || {}).reduce((s: number, v: any) => s + Number(v), 0) === 100 
+                  ? 'text-accent' 
+                  : 'text-text-3'
+                }`}>
+                  {Object.values(ruleConfig.weights || {}).reduce((s: number, v: any) => s + Number(v), 0)}%
+                </span>
+                <span className="text-[11px] text-text-3/50 font-bold uppercase">Allocated</span>
               </div>
-            ))}
+            </div>
+
+            {/* Distribution Visual Bar */}
+            <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden flex border border-border/50">
+              {locations.map((loc: any, idx: number) => {
+                const val = Number(ruleConfig.weights?.[loc.name] || 0);
+                if (val <= 0) return null;
+                const colors = ['bg-accent', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-blue-500'];
+                return (
+                  <div 
+                    key={loc.id} 
+                    className={`${colors[idx % colors.length]} h-full transition-all duration-500`} 
+                    style={{ width: `${val}%` }} 
+                  />
+                );
+              })}
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              {locations.map((loc: any) => {
+                const currentWeight = Number(ruleConfig.weights?.[loc.name] || 0);
+                return (
+                  <div key={loc.id} className="group flex flex-col gap-3 p-5 bg-surface rounded-[24px] border border-border hover:border-accent/30 transition-all shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[14px] font-800 text-text leading-tight">{loc.name}</span>
+                        <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">Sub-Location</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={ruleConfig.weights?.[loc.name] || ''}
+                          placeholder="0"
+                          onChange={(e) => setRuleConfig({
+                            ...ruleConfig,
+                            weights: { ...ruleConfig.weights, [loc.name]: Number(e.target.value) }
+                          })}
+                          className="w-16 bg-surface-2 border border-border rounded-lg p-1 text-center text-[13px] font-mono font-900 text-text outline-none focus:border-accent transition-all"
+                        />
+                        <span className="text-[12px] text-text-3 font-bold">%</span>
+                      </div>
+                    </div>
+                    
+                    <div className="relative h-6 flex items-center group/slider">
+                      <input 
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={currentWeight}
+                        onChange={(e) => setRuleConfig({
+                          ...ruleConfig,
+                          weights: { ...ruleConfig.weights, [loc.name]: Number(e.target.value) }
+                        })}
+                        className="w-full h-1.5 bg-surface-3 rounded-full appearance-none cursor-pointer accent-accent"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {Object.values(ruleConfig.weights || {}).reduce((s: number, v: any) => s + Number(v), 0) !== 100 && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-[11px] font-800 text-amber-600 uppercase tracking-tight">Total weights must sum to exactly 100%</span>
+              </div>
+            )}
           </div>
         )}
         {ruleType !== 'proportional' && (
