@@ -313,7 +313,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent">
+    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent overflow-x-hidden max-w-full">
       {/* Toast Overlay */}
       <div className="fixed top-6 right-6 z-[10000] flex flex-col gap-3">
         {toasts.map(t => (
@@ -327,13 +327,13 @@ export default function DashboardPage() {
             <LogoIcon />
           </div>
           <div className="flex flex-col">
-            <span className="font-display font-800 text-[14px] leading-tight tracking-tight">Antigravity Splitter</span>
+            <span className="font-display font-800 text-[14px] leading-tight tracking-tight">PaySplit</span>
             <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">{firm?.name || 'Loading...'}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-6 max-[768px]:gap-3 shrink-0 ml-4">
-          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border">
+          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1024px]:hidden">
             {(['reconciliation', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
               <button
                 key={t}
@@ -359,34 +359,90 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <main className="pt-24 pb-12 px-8 max-[768px]:px-4 max-[768px]:pt-20 max-w-[1400px] mx-auto">
+      {/* Mobile Sub-Nav */}
+      <div className="fixed top-16 left-0 right-0 h-12 bg-surface/50 backdrop-blur-md border-b border-border z-[90] min-[1025px]:hidden overflow-x-auto no-scrollbar flex items-center px-4 gap-2">
+        {(['reconciliation', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`p-[4px_12px] rounded-lg text-[11px] font-700 transition-all whitespace-nowrap ${tab === t ? 'bg-accent/10 text-accent border border-accent/20' : 'text-text-3'}`}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <main className="pt-24 pb-12 px-8 max-[1025px]:pt-32 max-[768px]:px-4 max-w-[1400px] mx-auto overflow-hidden">
         {tab === 'reconciliation' && (
           <div className="animate-fadeIn">
             <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
               <div>
-                <h1 className="font-display text-[28px] max-[768px]:text-[24px] font-800 tracking-tight text-text mb-2">Payment Reconciliation</h1>
+                <h1 className="font-display text-[28px] max-[1024px]:text-[24px] font-800 tracking-tight text-text mb-2">Payment Reconciliation</h1>
                 <p className="text-text-3 text-[14px]">Monitor and manage automated payment splits from QuickBooks.</p>
               </div>
               <div className="flex items-center gap-3 w-full max-[768px]:justify-between">
                 <div className="flex items-center gap-2 p-[8px_16px] bg-surface border border-border rounded-xl">
                   <div className={`w-2 h-2 rounded-full ${qboConnected ? 'bg-[#10b981] shadow-[0_0_8px_#10b981]' : 'bg-[#ef4444]'}`} />
-                  <span className="text-[12px] font-700 text-text-2">{qboConnected ? 'QBO Linked' : 'QBO Disconnected'}</span>
+                  <span className="text-[12px] font-700 text-text-2">
+                    {qboConnected ? 'QBO Linked' : 'QBO Disconnected'}
+                  </span>
                 </div>
-                <button
-                  onClick={handleManualSync}
-                  disabled={syncing}
-                  className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
-                >
-                  <span>{syncing ? 'Syncing...' : 'Force Sync'}</span>
-                </button>
+                {qboConnected ? (
+                  <button
+                    onClick={handleManualSync}
+                    disabled={syncing}
+                    className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
+                  >
+                    <span>{syncing ? 'Syncing...' : 'Sync Payments'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => window.location.href = `${API}/auth/qbo/connect?firmId=${firmId}`}
+                    className="flex items-center gap-2 p-[10px_20px] bg-[#22c55e] text-white rounded-xl text-[12px] font-700 hover:opacity-90 transition-all shadow-[0_4px_12px_rgba(34,197,94,0.2)]"
+                  >
+                    <span>Connect QuickBooks</span>
+                  </button>
+                )}
               </div>
             </header>
+
+            {/* Metrics Dashboard */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {[
+                { label: 'Payments', value: jobs.filter(j => j.status === 'COMPLETE').length, icon: '📈' },
+                { label: 'Total Split', value: `$${fmt(jobs.filter(j => j.status === 'COMPLETE').reduce((acc, j) => acc + Number(j.totalAmount), 0))}`, icon: '💰' },
+                { label: 'Active Rules', value: rules.filter(r => r.isActive).length, icon: '⚖️' },
+                { label: 'Alerts', value: jobs.filter(j => j.status === 'FAILED').length, icon: '⚠️', color: jobs.filter(j => j.status === 'FAILED').length > 0 ? 'text-[#ef4444]' : 'text-text-3' },
+              ].map((m, i) => (
+                <div key={i} className="bg-surface border border-border p-5 rounded-[24px]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">{m.label}</span>
+                    <span className="text-[14px]">{m.icon}</span>
+                  </div>
+                  <div className={`text-[20px] font-display font-800 ${m.color || 'text-text'}`}>{m.value}</div>
+                </div>
+              ))}
+            </div>
             <div className="grid grid-cols-1 gap-4">
-              {jobs.length === 0 ? (
+              {!qboConnected ? (
+                <div className="p-20 bg-surface border border-border rounded-[24px] text-center border-dashed">
+                  <div className="text-[48px] mb-4">🔌</div>
+                  <h3 className="font-display text-[18px] font-800 text-text mb-2">Connect QuickBooks to start splitting</h3>
+                  <p className="text-text-3 text-[14px] max-w-[400px] mx-auto mb-8 text-pretty">
+                    Once connected, PaySplit will automatically detect incoming payments and allocate them across your locations using your rules.
+                  </p>
+                  <button
+                    onClick={() => window.location.href = `${API}/auth/qbo/connect?firmId=${firmId}`}
+                     className="p-[12px_32px] bg-[#22c55e] text-white rounded-xl text-[13px] font-800 hover:opacity-90 transition-all shadow-lg"
+                  >
+                    Connect QuickBooks
+                  </button>
+                </div>
+              ) : jobs.length === 0 ? (
                 <div className="p-20 bg-surface border border-border rounded-[24px] text-center border-dashed">
                   <div className="text-[48px] mb-4 opacity-50">📑</div>
-                  <h3 className="font-display text-[16px] font-800 text-text mb-2">No jobs found</h3>
-                  <p className="text-text-3 text-[14px]">As payments arrive in QBO, they will appear here for splitting.</p>
+                  <h3 className="font-display text-[16px] font-800 text-text mb-2">No jobs found yet</h3>
+                  <p className="text-text-3 text-[14px]">Waiting for payments to arrive in QuickBooks Online. As they come in, they will appear here for splitting.</p>
                 </div>
               ) : (
                 jobs.map(job => (
@@ -527,6 +583,16 @@ export default function DashboardPage() {
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
                         </button>
                         <button
+                          onClick={() => {
+                            setPreviewingRule(previewingRule === rule.id ? null : rule.id);
+                          }}
+                          className={`p-2 rounded-lg border transition-all font-800 text-[10px] flex items-center gap-1 ${previewingRule === rule.id ? 'bg-accent text-white border-accent' : 'bg-surface-2 border-border text-text-3 hover:text-accent hover:border-accent/20'}`}
+                          title="Preview Allocation"
+                        >
+                          <span>👁️</span>
+                          <span className="max-[768px]:hidden px-1">Preview</span>
+                        </button>
+                        <button
                           onClick={() => deleteRule(rule.id)}
                           className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-[#ef4444] hover:border-[#ef4444]/20 transition-all"
                           title="Delete rule"
@@ -555,6 +621,36 @@ export default function DashboardPage() {
                         {rule.isActive ? 'Pause' : 'Activate'}
                       </button>
                     </div>
+
+                    {/* Preview Breakdown */}
+                    {previewingRule === rule.id && (
+                      <div className="p-5 bg-surface-3 rounded-2xl border border-accent/20 animate-slideDown relative z-10">
+                        <div className="flex justify-between items-center mb-4">
+                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">Sample Allocation ($1,000.00)</span>
+                          <div className="text-[10px] font-700 text-accent bg-accent/10 p-[2px_8px] rounded-full">Simulated</div>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          {rule.ruleType === 'proportional' && Object.entries((rule.ruleConfig as any).weights || {}).map(([loc, weight]: [string, any]) => (
+                            <div key={loc} className="flex justify-between items-center text-[13px] last:border-t last:border-border last:pt-2 last:mt-1">
+                              <span className="text-text-2 font-600">{loc}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-text-3 font-bold">{weight}%</span>
+                                <span className="font-800 text-[#10b981]">+${(1000 * weight / 100).toFixed(2)}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {rule.ruleType !== 'proportional' && (
+                            <div className="flex flex-col gap-2">
+                               <div className="flex justify-between items-center text-[13px]">
+                                 <span className="text-text-2 font-600">Primary Location</span>
+                                 <span className="font-800 text-[#10b981]">+$1,000.00</span>
+                               </div>
+                               <p className="text-[10px] text-text-3 italic mt-1 leading-tight">Waterfalls will prioritize draining invoices in the defined sequence.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Locked Background Decor */}
                     {rule.isLocked && (
@@ -586,8 +682,8 @@ export default function DashboardPage() {
               <p className="text-text-3 text-[14px]">System-wide activity log for transparency and debugging.</p>
             </header>
 
-            <div className="bg-surface border border-border rounded-[24px] overflow-hidden">
-              <div className="overflow-x-auto pb-4">
+            <div className="bg-surface border border-border rounded-[24px] overflow-hidden max-w-full">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse whitespace-nowrap min-w-[700px]">
                   <thead>
                     <tr className="bg-surface-2 border-b border-border">

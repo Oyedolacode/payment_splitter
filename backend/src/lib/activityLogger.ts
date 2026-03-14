@@ -7,6 +7,8 @@ export type ActivityType =
     | 'FAILED'
     | 'ROLLED_BACK'
     | 'ANOMALY_DETECTED'
+    | 'SKIPPED'
+    | 'LEDGER_COMMITTED'
 
 export type ActorType = 'SYSTEM' | 'USER' | 'WEBHOOK'
 export type Severity = 'INFO' | 'WARNING' | 'ERROR'
