@@ -94,4 +94,33 @@
   .shadow-premium {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   }
+
+  /* Custom Slider Styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    @apply bg-surface-3 rounded-full h-1.5;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    @apply bg-accent w-5 h-5 rounded-full border-[3px] border-surface shadow-lg -mt-1.5 transition-transform;
+  }
+
+  input[type="range"]:active::-webkit-slider-thumb {
+    @apply scale-125;
+  }
+
+  input[type="range"]::-moz-range-track {
+    @apply bg-surface-3 rounded-full h-1.5;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    @apply bg-accent w-5 h-5 rounded-full border-[3px] border-surface shadow-lg transition-transform;
+  }
 }

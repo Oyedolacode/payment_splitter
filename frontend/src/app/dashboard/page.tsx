@@ -1299,9 +1299,16 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       return
     }
 
+    // Filter out zero weights to keep ruleConfig clean
+    const filteredWeights: Record<string, number> = {}
+    Object.entries(weights).forEach(([loc, val]) => {
+      if (Number(val) > 0) filteredWeights[loc] = Number(val)
+    })
+
     // Ensure ruleConfig has the 'type' field required by backend Zod schema
     const finalConfig = {
       ...ruleConfig,
+      weights: filteredWeights,
       type: ruleType
     }
 

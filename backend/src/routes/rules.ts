@@ -5,7 +5,7 @@ import { z } from 'zod'
 const ruleConfigSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('proportional'),
-    weights: z.record(z.string(), z.number().positive()),
+    weights: z.record(z.string(), z.number().nonnegative()),
   }),
   z.object({
     type: z.literal('oldest_first'),

@@ -233,12 +233,20 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       const { firmId, limit = '200' } = request.query
       if (!firmId) return reply.status(400).send({ error: 'firmId required' })
 
-      const entries = await prisma.ledgerEntry.findMany({
-        where: { firmId },
-        orderBy: { createdAt: 'desc' },
-        take: parseInt(limit, 10),
-      })
-      return entries
+      try {
+        const entries = await prisma.ledgerEntry.findMany({
+          where: { firmId },
+          orderBy: { createdAt: 'desc' },
+          take: parseInt(limit, 10),
+        })
+        return entries
+      } catch (err: any) {
+        console.error('[Ledger Fetch Error]:', err)
+        return reply.status(500).send({
+          error: 'Failed to fetch ledger entries',
+          details: err.message || err
+        })
+      }
     }
   )
 }
