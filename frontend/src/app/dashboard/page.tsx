@@ -477,10 +477,20 @@ export default function DashboardPage() {
   const getRuleDetails = (rule: Rule) => {
     const { ruleType, ruleConfig } = rule
     if (ruleType === 'proportional' && ruleConfig.weights) {
-      return Object.entries(ruleConfig.weights).map(([loc, weight]) => `${loc}: ${weight}%`).join(', ')
+      return Object.entries(ruleConfig.weights).map(([locId, weight]) => {
+        const name = customers.find((c: any) => c.id === locId)?.displayName 
+                  || locations.find((l: any) => l.id === locId)?.name 
+                  || locId
+        return `${name}: ${weight}%`
+      }).join(', ')
     }
-    if (ruleType === 'oldest_first' && ruleConfig.locations) {
-      return ruleConfig.locations.join(' → ')
+    const ids = (ruleConfig as any).locationIds || (ruleConfig as any).order || []
+    if (ids.length > 0) {
+      return ids.map((id: string) => 
+        customers.find((c: any) => c.id === id)?.displayName 
+        || locations.find((l: any) => l.id === id)?.name 
+        || id
+      ).join(' → ')
     }
     return 'Custom strategy'
   }
@@ -901,7 +911,9 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between relative z-10 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Parent Customer</span>
-                        <span className="text-[15px] font-800 text-text tracking-tight line-clamp-1 break-all">{rule.parentCustomerId}</span>
+                        <span className="text-[15px] font-800 text-text tracking-tight line-clamp-1 break-all">
+                          {customers.find((c: any) => c.id === rule.parentCustomerId)?.displayName || rule.parentCustomerId}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 max-[768px]:absolute max-[768px]:top-0 max-[768px]:right-0">
                         <button
@@ -961,15 +973,20 @@ export default function DashboardPage() {
                           <div className="text-[10px] font-700 text-accent bg-accent/10 p-[2px_8px] rounded-full">Simulated</div>
                         </div>
                         <div className="flex flex-col gap-3">
-                          {rule.ruleType === 'proportional' && Object.entries((rule.ruleConfig as any).weights || {}).map(([loc, weight]: [string, any]) => (
-                            <div key={loc} className="flex justify-between items-center text-[13px] last:border-t last:border-border last:pt-2 last:mt-1">
-                              <span className="text-text-2 font-600">{loc}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-text-3 font-bold">{weight}%</span>
-                                <span className="font-800 text-[#10b981]">+${(1000 * weight / 100).toFixed(2)}</span>
+                          {rule.ruleType === 'proportional' && Object.entries((rule.ruleConfig as any).weights || {}).map(([locId, weight]: [string, any]) => {
+                            const name = customers.find((c: any) => c.id === locId)?.displayName 
+                                      || locations.find((l: any) => l.id === locId)?.name 
+                                      || locId
+                            return (
+                              <div key={locId} className="flex justify-between items-center text-[13px] last:border-t last:border-border last:pt-2 last:mt-1">
+                                <span className="text-text-2 font-600">{name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-text-3 font-bold">{weight}%</span>
+                                  <span className="font-800 text-[#10b981]">+${(1000 * weight / 100).toFixed(2)}</span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                           {rule.ruleType !== 'proportional' && (
                             <div className="flex flex-col gap-2">
                                <div className="flex justify-between items-center text-[13px]">
@@ -1310,8 +1327,21 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
   
-  // Standalone weights state - THE SINGLE SOURCE OF TRUTH
-  const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
+  // Standalone weights state - THE SINGLE SOURCE OF TRUTH (with ghost-weight sanitization)
+  const [weights, setWeights] = useState<Record<string, number>>(() => {
+    const initial = editingRule?.ruleConfig?.weights || {}
+    const validIds = new Set([
+      ...customers.map((c: any) => String(c.id)),
+      ...locations.map((l: any) => String(l.id))
+    ])
+    const clean: Record<string, number> = {}
+    Object.entries(initial).forEach(([id, val]) => {
+      if (validIds.has(String(id))) {
+        clean[id] = Number(val)
+      }
+    })
+    return clean
+  })
 
   // Get parent display name for UI
   const parentName = customers.find((c: any) => c.id === parentCustomerId)?.displayName || parentCustomerId
