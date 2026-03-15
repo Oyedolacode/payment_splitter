@@ -1349,10 +1349,10 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
     } else if (ruleType === 'oldest_first') {
       // For oldest_first, we use either sub-customers or global locations as fallback
       const targets = subCustomers.length > 0 ? subCustomers : locations
-      finalConfig.locationIds = targets.map((l: any) => l.name)
+      finalConfig.locationIds = targets.map((l: any) => l.id)
     } else if (ruleType === 'location_priority') {
       const targets = subCustomers.length > 0 ? subCustomers : locations
-      finalConfig.order = targets.map((l: any) => l.name)
+      finalConfig.order = targets.map((l: any) => l.id)
     }
 
     onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true })
@@ -1440,7 +1440,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                 {/* Distribution Visual Bar */}
                 <div className="h-2.5 bg-surface-3 rounded-full overflow-hidden flex border border-border/50">
                   {targetLocations.map((loc: any, idx: number) => {
-                    const val = Number(weights[loc.name] || 0);
+                    const val = Number(weights[loc.id] || 0);
                     if (val <= 0) return null;
                     const colors = ['bg-accent', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-blue-500'];
                     return (
@@ -1455,12 +1455,12 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                 
                 <div className="flex flex-col gap-4">
                   {targetLocations.map((loc: any) => {
-                    const currentWeight = Number(weights[loc.name] || 0);
+                    const currentWeight = Number(weights[loc.id] || 0);
                     return (
                       <div key={loc.id} className="group flex flex-col gap-3 p-5 bg-surface rounded-[24px] border border-border hover:border-accent/30 transition-all shadow-sm">
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-[14px] font-800 text-text leading-tight">{loc.name}</span>
+                            <span className="text-[14px] font-800 text-text leading-tight">{loc.displayName || loc.name}</span>
                             <span className="text-[10px] text-text-3 font-bold uppercase tracking-wider">Sub-Location</span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1468,11 +1468,12 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                               type="number"
                               min="0"
                               max="100"
-                              value={weights[loc.name] || ''}
+                              value={weights[loc.id] || ''}
                               placeholder="0"
+                              onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                               onChange={(e) => setWeights({
                                 ...weights,
-                                [loc.name]: Number(e.target.value)
+                                [loc.id]: Number(e.target.value)
                               })}
                               className="w-16 bg-surface-2 border border-border rounded-lg p-1 text-center text-[13px] font-mono font-900 text-text outline-none focus:border-accent transition-all"
                             />
@@ -1489,7 +1490,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                             value={currentWeight}
                             onChange={(e) => setWeights({
                               ...weights,
-                              [loc.name]: Number(e.target.value)
+                              [loc.id]: Number(e.target.value)
                             })}
                             className="w-full h-1.5 bg-surface-3 rounded-full appearance-none cursor-pointer accent-accent"
                           />
