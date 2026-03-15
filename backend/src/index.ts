@@ -49,8 +49,8 @@ async function bootstrap() {
   server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 
   // ── Start BullMQ worker ───────────────────────────────────────────────────
-  await startWorker()
-  server.log.info('Payment processing worker started')
+  (server as any).worker = await startWorker()
+  console.log('🚀 Payment processing worker initialized and listening')
 
   // ── Listen ────────────────────────────────────────────────────────────────
   await server.listen({ port: config.PORT, host: '0.0.0.0' })

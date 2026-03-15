@@ -42,6 +42,7 @@ function chunk<T>(arr: T[], maxSize: number): T[][] {
  */
 async function processPayment(job: Job<PaymentJobData>): Promise<void> {
   const { jobId, firmId, realmId, paymentId, paymentAmount: manualAmount } = job.data
+  console.log(`[WORKER] Picking up job ${jobId} (Payment: ${paymentId})`)
 
   // Track posted QBO payment IDs for rollback
   const postedPayments: Array<{ id: string; syncToken: string }> = []
@@ -410,6 +411,8 @@ function sleep(ms: number): Promise<void> {
  * Start the BullMQ worker. Call this once at server startup.
  */
 export async function startWorker(): Promise<Worker<PaymentJobData>> {
+  console.log(`[WORKER] Starting BullMQ worker on queue: ${QUEUE_NAME}...`)
+  
   const worker = new Worker<PaymentJobData>(QUEUE_NAME, processPayment, {
     connection: redis,
     concurrency: 5, // Process up to 5 jobs in parallel

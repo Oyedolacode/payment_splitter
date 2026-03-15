@@ -5,7 +5,6 @@ import { config } from './config'
 export const redis = new Redis(config.REDIS_URL, {
   maxRetriesPerRequest: null, // Required by BullMQ
   enableReadyCheck: false,
-  lazyConnect: true,
 })
 
 redis.on('connect', () => console.log('✅ Redis connected'))
