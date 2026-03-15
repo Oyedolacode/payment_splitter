@@ -34,6 +34,73 @@ export async function jobsRoutes(fastify: FastifyInstance) {
     }
   )
 
+  // POST /api/jobs — manual sync (trigger payment fetch)
+  fastify.post<{ Body: { firmId: string } }>(
+    '/',
+    async (request, reply) => {
+      const { firmId } = request.body
+      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+      try {
+        const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
+        const { fetchRecentPayments } = await import('../services/qboClient')
+        
+        const payments = await fetchRecentPayments(firmId, firm.qboRealmId!)
+        let triggeredCount = 0
+
+        for (const payment of payments) {
+          // Check if job already exists (idempotency)
+          const existing = await prisma.paymentJob.findUnique({
+            where: { firmId_paymentId: { firmId, paymentId: payment.Id } }
+          })
+
+          if (existing) continue
+
+          // Create job record
+          const dbJob = await prisma.paymentJob.create({
+            data: {
+              firmId,
+              paymentId: payment.Id,
+              status: JobStatus.QUEUED,
+              totalAmount: payment.TotalAmt,
+            }
+          })
+
+          // Enqueue BullMQ job
+          await paymentQueue.add(
+              'process-payment',
+              {
+                jobId: dbJob.id,
+                firmId,
+                realmId: firm.qboRealmId!,
+                paymentId: payment.Id,
+              },
+              {
+                jobId: dbJob.id,
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 5000 },
+              }
+          )
+
+          triggeredCount++
+        }
+
+        return { 
+          message: triggeredCount > 0 
+            ? `Successfully triggered sync for ${triggeredCount} new payments`
+            : 'No new payments found to sync',
+          triggeredCount 
+        }
+      } catch (err: any) {
+        console.error('[Manual Sync Error]:', err)
+        return reply.status(500).send({
+          error: 'Failed to trigger manual sync',
+          details: err.message || err
+        })
+      }
+    }
+  )
+
   // GET /api/jobs/:id — single job detail
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const job = await prisma.paymentJob.findUnique({

@@ -14,6 +14,7 @@ export interface QBOPayment {
   CustomerRef: { value: string; name: string }
   TxnDate: string
   SyncToken: string
+  MetaData?: { CreateTime: string; LastUpdatedTime: string }
   Line: Array<{
     Amount: number
     LinkedTxn: Array<{ TxnId: string; TxnType: string }>
@@ -151,6 +152,22 @@ export async function fetchAllCustomers(
   }>(firmId, realmId, `/query?query=${encodeURIComponent(query)}`)
 
   return data.QueryResponse.Customer ?? []
+}
+
+/**
+ * Fetch recent payments for a firm.
+ */
+export async function fetchRecentPayments(
+  firmId: string,
+  realmId: string
+): Promise<QBOPayment[]> {
+  const query = `SELECT * FROM Payment ORDERBY MetaData.CreateTime DESC MAXRESULTS 100`
+
+  const data = await qboRequest<{
+    QueryResponse: { Payment?: QBOPayment[] }
+  }>(firmId, realmId, `/query?query=${encodeURIComponent(query)}`)
+
+  return data.QueryResponse.Payment ?? []
 }
 
 /**
