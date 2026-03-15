@@ -1364,6 +1364,10 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   // Determine which location list to use for UI - use Jobs if they exist, otherwise fallback to Departments if parent is selected
   const targetLocations = subCustomers.length > 0 ? subCustomers : (parentCustomerId ? locations : [])
 
+  const isBalanced = Math.abs(totalAllocated - 100) < 0.01
+  const isOver = totalAllocated > 100
+  const canSave = ruleType !== 'proportional' || isBalanced
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
@@ -1502,10 +1506,31 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
               </>
             )}
 
-            {totalAllocated !== 100 && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[11px] font-800 text-amber-600 uppercase tracking-tight">Total weights must sum to exactly 100%</span>
+            {ruleType === 'proportional' && (
+              <div className={`p-4 rounded-2xl flex items-center gap-3 border transition-all ${
+                isBalanced 
+                  ? 'bg-emerald-500/10 border-emerald-500/20' 
+                  : isOver 
+                    ? 'bg-rose-500/10 border-rose-500/20' 
+                    : 'bg-amber-500/10 border-amber-500/20'
+              }`}>
+                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                  isBalanced ? 'bg-emerald-500' : isOver ? 'bg-rose-500' : 'bg-amber-500'
+                }`} />
+                <div className="flex flex-col">
+                  <span className={`text-[13px] font-900 uppercase tracking-tight ${
+                    isBalanced ? 'text-emerald-600' : isOver ? 'text-rose-600' : 'text-amber-600'
+                  }`}>
+                    {isBalanced ? 'Total: 100% (Balanced!)' : `Total: ${totalAllocated}%`}
+                  </span>
+                  {!isBalanced && (
+                    <span className="text-[10px] font-700 opacity-70 uppercase tracking-wider text-text-3">
+                      {isOver 
+                        ? `${(totalAllocated - 100).toFixed(0)}% OVER-ALLOCATED` 
+                        : `${(100 - totalAllocated).toFixed(0)}% REMAINING`}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1520,7 +1545,12 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
       <div className="pt-4 flex gap-3">
         <button
           onClick={handleSave}
-          className="flex-1 p-4 bg-accent text-white rounded-2xl text-[14px] font-800 hover:opacity-90 transition-all shadow-lg"
+          disabled={!canSave}
+          className={`flex-1 p-4 rounded-2xl text-[14px] font-800 transition-all shadow-lg ${
+            canSave 
+              ? 'bg-accent text-white hover:opacity-90 shadow-accent/20' 
+              : 'bg-surface-3 text-text-3 cursor-not-allowed grayscale border border-border'
+          }`}
         >
           {editingRule ? 'Update Allocation Rule' : 'Save Allocation Rule'}
         </button>
