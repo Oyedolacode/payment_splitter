@@ -29,31 +29,32 @@ const server = Fastify({
 
 async function bootstrap() {
   // ── Security & middleware ─────────────────────────────────────────────────
-  await server.register(helmet, { contentSecurityPolicy: false })
+  await server.register(helmet, { contentSecurityPolicy: false });
   await server.register(cors, {
     origin: config.FRONTEND_URL,
     credentials: true,
-  })
-  await server.register(cookie)
-  await server.register(jwt, { secret: config.JWT_SECRET })
+  });
+  await server.register(cookie);
+  await server.register(jwt, { secret: config.JWT_SECRET });
 
   // ── Routes ────────────────────────────────────────────────────────────────
-  await server.register(authRoutes, { prefix: '/auth' })
-  await server.register(webhookRoutes, { prefix: '/webhooks' })
-  await server.register(rulesRoutes, { prefix: '/api/rules' })
-  await server.register(jobsRoutes, { prefix: '/api/jobs' })
-  await server.register(qboRoutes, { prefix: '/api/qbo' })
-  await server.register(stripeRoutes, { prefix: '/api/stripe' })
+  await server.register(authRoutes, { prefix: '/auth' });
+  await server.register(webhookRoutes, { prefix: '/webhooks' });
+  await server.register(rulesRoutes, { prefix: '/api/rules' });
+  await server.register(jobsRoutes, { prefix: '/api/jobs' });
+  await server.register(qboRoutes, { prefix: '/api/qbo' });
+  await server.register(stripeRoutes, { prefix: '/api/stripe' });
 
   // ── Health check ──────────────────────────────────────────────────────────
-  server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
+  server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
   // ── Start BullMQ worker ───────────────────────────────────────────────────
-  (server as any).worker = await startWorker()
-  console.log('🚀 Payment processing worker initialized and listening')
+  const worker = await startWorker();
+  Object.assign(server, { worker });
+  console.log('🚀 Payment processing worker initialized and listening');
 
   // ── Listen ────────────────────────────────────────────────────────────────
-  await server.listen({ port: config.PORT, host: '0.0.0.0' })
+  await server.listen({ port: config.PORT, host: '0.0.0.0' });
 }
 
 bootstrap().catch((err) => {
