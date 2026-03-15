@@ -416,6 +416,8 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
   const worker = new Worker<PaymentJobData>(QUEUE_NAME, processPayment, {
     connection: redis,
     concurrency: 5, // Process up to 5 jobs in parallel
+    lockDuration: 60000, // 60 seconds (reduce renewal frequency)
+    stalledInterval: 300000, // 5 minutes (drastically reduce polling for stalled jobs)
   })
 
   worker.on('failed', (job, err) => {
