@@ -18,6 +18,7 @@ export async function qboRoutes(fastify: FastifyInstance) {
                 id: c.Id,
                 displayName: c.DisplayName,
                 companyName: c.CompanyName,
+                parentId: c.ParentRef?.value,
                 active: c.Active
             }))
         } catch (err: any) {
