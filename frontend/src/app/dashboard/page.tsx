@@ -1314,6 +1314,10 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   const [weights, setWeights] = useState<Record<string, number>>(editingRule?.ruleConfig?.weights || {})
   const [subCustomers, setSubCustomers] = useState<any[]>([])
   const [loadingSubs, setLoadingSubs] = useState(false)
+  const [subFetchError, setSubFetchError] = useState<string | null>(null)
+
+  // Get parent display name for UI
+  const parentName = customers.find((c: any) => c.id === parentCustomerId)?.displayName || parentCustomerId
 
   // Fetch sub-customers (Jobs) whenever the parent changes
   useEffect(() => {
@@ -1324,14 +1328,19 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
 
     const fetchSubs = async () => {
       setLoadingSubs(true)
+      setSubFetchError(null)
       try {
         const res = await fetch(`${API}/api/qbo/sub-customers?firmId=${firmId}&parentCustomerId=${parentCustomerId}`)
-        if (!res.ok) throw new Error('Failed to fetch sub-locations')
+        if (!res.ok) {
+           const errData = await res.json().catch(() => ({}))
+           throw new Error(errData.details || errData.error || `HTTP ${res.status}`)
+        }
         const data = await res.json()
         setSubCustomers(data)
-      } catch (e) {
+      } catch (e: any) {
         console.error('[FetchSubs Error]:', e)
-        addToast('Failed to load sub-locations from QBO', 'error')
+        setSubFetchError(e.message)
+        addToast(`Failed to load sub-locations: ${e.message}`, 'error')
       } finally {
         setLoadingSubs(false)
       }
@@ -1448,16 +1457,24 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                 <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
                 <span className="text-[13px] font-700 text-text-3">Loading sub-locations from QBO...</span>
               </div>
-            ) : !parentCustomerId ? (
-               <div className="p-8 bg-surface-2 rounded-3xl border border-dashed border-border text-center">
-                <span className="text-[13px] font-600 text-text-3 italic">Please select a parent customer first.</span>
+            ) : subFetchError ? (
+              <div className="p-8 bg-amber-500/5 border border-dashed border-amber-500/20 rounded-3xl text-center">
+                <span className="text-[24px] mb-2 block">📡</span>
+                <h4 className="text-[14px] font-800 text-text mb-1">QBO Sync Issue</h4>
+                <p className="text-[12px] text-text-3 mb-4">{subFetchError}</p>
+                <button 
+                  onClick={() => setParentCustomerId(parentCustomerId)}
+                  className="text-[11px] font-800 text-accent uppercase tracking-wider hover:underline"
+                >
+                  Retry Connection
+                </button>
               </div>
             ) : targetLocations.length === 0 ? (
               <div className="p-12 bg-[#ef444408] rounded-3xl border border-dashed border-[#ef444420] text-center">
                 <span className="text-[32px] mb-4 block">⚠️</span>
                 <h4 className="text-[15px] font-800 text-text mb-2">No Sub-Locations Found</h4>
                 <p className="text-[13px] text-text-3 max-w-[300px] mx-auto leading-relaxed">
-                  We couldn't find any Jobs or Sub-Customers under <b>{parentCustomerId}</b> in your QuickBooks account.
+                  We couldn't find any Jobs or Sub-Customers under <b>{parentName}</b> in your QuickBooks account.
                 </p>
               </div>
             ) : (
