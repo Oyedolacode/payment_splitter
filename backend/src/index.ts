@@ -31,7 +31,28 @@ async function bootstrap() {
   // ── Security & middleware ─────────────────────────────────────────────────
   await server.register(helmet, { contentSecurityPolicy: false });
   await server.register(cors, {
-    origin: config.FRONTEND_URL,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      
+      const allowedOrigins = [config.FRONTEND_URL];
+      // Also allow the specific production origin reported by the user just in case
+      const userOrigin = 'https://frontend-production-fa86.up.railway.app';
+      if (!allowedOrigins.includes(userOrigin)) {
+        allowedOrigins.push(userOrigin);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        cb(null, true);
+        return;
+      }
+      cb(new Error('Not allowed by CORS'), false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
   });
   await server.register(cookie);
@@ -49,12 +70,23 @@ async function bootstrap() {
   server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
   // ── Start BullMQ worker ───────────────────────────────────────────────────
-  const worker = await startWorker();
-  Object.assign(server, { worker });
-  console.log('🚀 Payment processing worker initialized and listening');
+  try {
+    const worker = await startWorker();
+    Object.assign(server, { worker });
+    console.log('🚀 Payment processing worker initialized and listening');
+  } catch (err) {
+    console.error('❌ Failed to start worker:', err);
+    // Continue starting the server so we can at least provide health checks
+  }
 
   // ── Listen ────────────────────────────────────────────────────────────────
-  await server.listen({ port: config.PORT, host: '0.0.0.0' });
+  try {
+    await server.listen({ port: config.PORT, host: '0.0.0.0' });
+    console.log(`✅ Server listening on port ${config.PORT}`);
+  } catch (err) {
+    server.log.error(err);
+    process.exit(1);
+  }
 }
 
 bootstrap().catch((err) => {
