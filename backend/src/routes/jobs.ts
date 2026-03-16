@@ -23,13 +23,49 @@ export async function jobsRoutes(fastify: FastifyInstance) {
           orderBy: { createdAt: 'desc' },
           take: parseInt(limit, 10),
         })
-        return jobs
+        
+        // Hardened serialization: explicitly map Decimals to Numbers
+        return jobs.map(j => ({
+          ...j,
+          totalAmount: Number(j.totalAmount),
+          auditEntries: j.auditEntries.map(a => ({
+            ...a,
+            amountApplied: Number(a.amountApplied)
+          }))
+        }))
       } catch (err: any) {
         console.error('[Jobs List Error]:', err)
         return reply.status(500).send({
-          error: err.message || 'Failed to fetch jobs',
-          details: err.message || err
+          error: 'Failed to fetch jobs',
+          details: err.message || 'Unknown database error'
         })
+      }
+    }
+  )
+
+  // GET /api/jobs/debug?firmId=xxx — fetch queue diagnostic info
+  fastify.get<{ Querystring: { firmId: string } }>(
+    '/debug',
+    async (request, reply) => {
+      const { firmId } = request.query
+      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+      try {
+        const stats = await paymentQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused')
+        const waitingJobs = await paymentQueue.getJobs(['waiting'], 0, 10)
+        
+        return {
+          queueName: QUEUE_NAME,
+          stats,
+          recentWaiting: waitingJobs.map(j => ({
+            id: j.id,
+            data: j.data,
+            timestamp: j.timestamp
+          }))
+        }
+      } catch (err: any) {
+        console.error('[Queue Debug Error]:', err)
+        return reply.status(500).send({ error: 'Failed to fetch queue stats', details: err.message })
       }
     }
   )
@@ -307,8 +343,12 @@ export async function jobsRoutes(fastify: FastifyInstance) {
           take: parseInt(limit, 10),
         })
         
-        // Ensure Decimals are serialized nicely if needed, though Fastify usually handles them or converts to string
-        return entries
+        // Hardened serialization: explicitly map Decimals to Numbers
+        return entries.map(e => ({
+          ...e,
+          debit: Number(e.debit),
+          credit: Number(e.credit)
+        }))
       } catch (err: any) {
         console.error('[Ledger Fetch Error]:', err)
         return reply.status(500).send({

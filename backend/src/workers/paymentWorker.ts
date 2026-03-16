@@ -423,8 +423,15 @@ function sleep(ms: number): Promise<void> {
  * Start the BullMQ worker. Call this once at server startup.
  */
 export async function startWorker(): Promise<Worker<PaymentJobData>> {
-  console.log(`[WORKER] Starting BullMQ worker on queue: ${QUEUE_NAME}...`)
+  console.log(`[WORKER] [${new Date().toISOString()}] Starting BullMQ worker on queue: ${QUEUE_NAME}...`)
   
+  try {
+    const isRedisConnected = redis.status === 'ready' || redis.status === 'connect'
+    console.log(`[WORKER] [${new Date().toISOString()}] Redis status: ${redis.status} (Connected: ${isRedisConnected})`)
+  } catch (err) {
+    console.error(`[WORKER] [${new Date().toISOString()}] Redis status check failed:`, err)
+  }
+
   const worker = new Worker<PaymentJobData>(QUEUE_NAME, processPayment, {
     connection: redis,
     concurrency: 5, // Process up to 5 jobs in parallel
@@ -443,6 +450,16 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
   worker.on('error', (err) => {
     console.error(`[WORKER] [${new Date().toISOString()}] FATAL Error in worker:`, err)
   })
+
+  // ── Heartbeat ─────────────────────────────────────────────────────────────
+  setInterval(async () => {
+    try {
+      const counts = await worker.getJobCounts('waiting', 'active', 'completed', 'failed')
+      console.log(`[WORKER] [${new Date().toISOString()}] Heartbeat - Queue: ${QUEUE_NAME} | Waiting: ${counts.waiting} | Active: ${counts.active}`)
+    } catch (err) {
+      console.error(`[WORKER] [${new Date().toISOString()}] Heartbeat FAILED:`, err)
+    }
+  }, 60000) // Every 1 minute
 
   return worker
 }
