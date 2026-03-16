@@ -454,8 +454,11 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
   // ── Heartbeat ─────────────────────────────────────────────────────────────
   setInterval(async () => {
     try {
-      const counts = await worker.getJobCounts('waiting', 'active', 'completed', 'failed')
+      // Note: getJobCounts is a Queue method, not Worker. Create transient Queue for stats.
+      const statsQueue = new (await import('bullmq')).Queue(QUEUE_NAME, { connection: redis })
+      const counts = await statsQueue.getJobCounts('waiting', 'active', 'completed', 'failed')
       console.log(`[WORKER] [${new Date().toISOString()}] Heartbeat - Queue: ${QUEUE_NAME} | Waiting: ${counts.waiting} | Active: ${counts.active}`)
+      await statsQueue.close()
     } catch (err) {
       console.error(`[WORKER] [${new Date().toISOString()}] Heartbeat FAILED:`, err)
     }
