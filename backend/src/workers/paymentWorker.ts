@@ -42,7 +42,7 @@ function chunk<T>(arr: T[], maxSize: number): T[][] {
  */
 async function processPayment(job: Job<PaymentJobData>): Promise<void> {
   const { jobId, firmId, realmId, paymentId, paymentAmount: manualAmount } = job.data
-  console.log(`[WORKER] Picking up job ${jobId} (Payment: ${paymentId})`)
+  console.log(`[WORKER] [${new Date().toISOString()}] Picking up job ${jobId} (Payment: ${paymentId})`)
 
   // Track posted QBO payment IDs for rollback
   const postedPayments: Array<{ id: string; syncToken: string }> = []
@@ -219,16 +219,25 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       PrivateNote: `PaySplit Allocation for Job ${jobId} (Original Payment ${paymentId})`
     }
 
+    const hasPlaceholders = journalEntryModel.Line.some(l => 
+      l.JournalEntryLineDetail.AccountRef.value === 'SERVICE_AR_PARENT' || 
+      l.JournalEntryLineDetail.AccountRef.value === 'SERVICE_INCOME_BRANCH'
+    )
+
     // ── Phase 5/6: Process Allocations ───────────────────────────────────────
-    const auditEntries = []
+    const auditEntries: any[] = []
     let journalEntryId: string | null = null
 
     try {
       // 1. Create the Journal Entry first (Additive/Transparent)
-      // Note: In MVP, we might skip JEs if not configured, but here we'll simulate/implement
-      const je = await createJournalEntry(firmId, realmId, journalEntryModel)
-      journalEntryId = je.Id
-      await logActivity(firmId, 'JOURNAL_CREATED', { journalEntryId, jobId }, jobId, 'SYSTEM', 'INFO')
+      // Note: skip if placeholder accounts are present to avoid QBO 400 errors
+      if (!hasPlaceholders) {
+        const je = await createJournalEntry(firmId, realmId, journalEntryModel)
+        journalEntryId = je.Id
+        await logActivity(firmId, 'JOURNAL_CREATED', { journalEntryId, jobId }, jobId, 'SYSTEM', 'INFO')
+      } else {
+        console.warn(`[WORKER] Skipping Journal Entry for job ${jobId} due to placeholder account IDs.`)
+      }
 
       // 2. Post the Payment Applications (AR linkage)
       const items: QBOBatchItemRequest[] = splitResult.allocations.map((alloc, idx) => ({
@@ -248,10 +257,13 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       }))
 
       const batchResponse = await postBatch(firmId, realmId, items)
-      // Collect IDs for audit
+      // Collect IDs for audit and rollback
       batchResponse.BatchItemResponse.forEach((res, idx) => {
         if (res.Fault) {
           throw new Error(`Batch item ${idx} failed: ${res.Fault.Error[0].Message}`)
+        }
+        if (res.Payment) {
+          postedPayments.push({ id: res.Payment.Id, syncToken: res.Payment.SyncToken })
         }
         auditEntries.push({
           subLocationId: splitResult.allocations[idx].locationCustomerId,
@@ -285,12 +297,12 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     }
     // ── Write audit entries ───────────────────────────────────────────────────
     await prisma.auditEntry.createMany({
-      data: splitResult.allocations.map((alloc, idx) => ({
+      data: auditEntries.map(entry => ({
         jobId,
-        subLocationId: alloc.locationCustomerId,
-        invoiceId: alloc.invoiceId,
-        amountApplied: alloc.amountApplied,
-        qboPaymentId: postedPayments[idx]?.id ?? null,
+        subLocationId: entry.subLocationId,
+        invoiceId: entry.invoiceId,
+        amountApplied: entry.amountApplied,
+        qboPaymentId: entry.qboPaymentId ?? null,
       })),
     })
 
@@ -421,11 +433,15 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
   })
 
   worker.on('failed', (job, err) => {
-    console.error(`Worker job ${job?.id} failed:`, err.message)
+    console.error(`[WORKER] [${new Date().toISOString()}] Job ${job?.id} FAILED:`, err.message)
   })
 
   worker.on('completed', (job) => {
-    console.log(`Worker job ${job.id} completed`)
+    console.log(`[WORKER] [${new Date().toISOString()}] Job ${job.id} COMPLETED`)
+  })
+
+  worker.on('error', (err) => {
+    console.error(`[WORKER] [${new Date().toISOString()}] FATAL Error in worker:`, err)
   })
 
   return worker

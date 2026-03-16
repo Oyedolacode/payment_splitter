@@ -306,12 +306,14 @@ export async function jobsRoutes(fastify: FastifyInstance) {
           orderBy: { createdAt: 'desc' },
           take: parseInt(limit, 10),
         })
+        
+        // Ensure Decimals are serialized nicely if needed, though Fastify usually handles them or converts to string
         return entries
       } catch (err: any) {
         console.error('[Ledger Fetch Error]:', err)
         return reply.status(500).send({
           error: 'Failed to fetch ledger entries',
-          details: err.message || err
+          details: err.message || 'Unknown database error'
         })
       }
     }
