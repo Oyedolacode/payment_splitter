@@ -257,6 +257,45 @@ export async function jobsRoutes(fastify: FastifyInstance) {
     }
   )
 
+  // POST /api/jobs/sync-queue — re-enqueue all jobs stuck in QUEUED in DB
+  fastify.post(
+    '/sync-queue',
+    async (request, reply) => {
+      try {
+        const stuckJobs = await prisma.paymentJob.findMany({
+          where: { status: JobStatus.QUEUED },
+          include: { firm: true }
+        })
+
+        let enqueuedCount = 0
+        for (const job of stuckJobs) {
+          if (!job.firm.qboRealmId) continue
+
+          await paymentQueue.add(
+            'process-payment',
+            {
+              jobId: job.id,
+              firmId: job.firmId,
+              realmId: job.firm.qboRealmId,
+              paymentId: job.paymentId,
+            },
+            {
+              jobId: job.id,
+              attempts: 3,
+              backoff: { type: 'exponential', delay: 5000 },
+            }
+          )
+          enqueuedCount++
+        }
+
+        return { message: `Successfully re-enqueued ${enqueuedCount} jobs`, enqueuedCount }
+      } catch (err: any) {
+        console.error('[Sync Queue Error]:', err)
+        return reply.status(500).send({ error: 'Failed to sync queue', details: err.message })
+      }
+    }
+  )
+
   // POST /api/jobs/:id/approve — approve a job that is in REVIEW_REQUIRED
   fastify.post<{ Params: { id: string } }>('/:id/approve', async (request, reply) => {
     const job = await prisma.paymentJob.findUnique({
