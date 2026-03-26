@@ -44,6 +44,7 @@ interface ReconciliationJob {
   status: JobStatus
   errorMessage?: string
   createdAt: string
+  updatedAt: string
   rule?: Rule
   auditEntries: AuditEntry[]
 }
@@ -1556,13 +1557,14 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   const handleSave = () => {
     // Calculate total at the exact moment of click from the current state
     const currentTotal = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
+    const currentTotalNum = Number(currentTotal || 0)
     
     if (!parentCustomerId) {
       addToast('Please select a parent customer', 'error')
       return
     }
 
-    if (ruleType === 'proportional' && Math.abs(currentTotal - 100) > 0.01) {
+    if (ruleType === 'proportional' && Math.abs(currentTotalNum - 100) > 0.01) {
       if (currentTotal === 0) {
         addToast('Please allocate at least one percentage weight to a location', 'error')
       } else {
@@ -1594,12 +1596,13 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
 
   // Derived for UI rendering
   const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
+  const totalAllocatedNum = Number(totalAllocated || 0)
 
   // Determine which location list to use for UI - use Jobs if they exist, otherwise fallback to Departments if parent is selected
   const targetLocations: any[] = subCustomers.length > 0 ? (subCustomers as any[]) : (parentCustomerId ? (locations as any[]) : [])
 
-  const isBalanced = Math.abs(totalAllocated - 100) < 0.01
-  const isOver = totalAllocated > 100
+  const isBalanced = Math.abs(totalAllocatedNum - 100) < 0.01
+  const isOver = totalAllocatedNum > 100
   const canSave = ruleType !== 'proportional' || isBalanced
 
   return (
@@ -1760,8 +1763,8 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
                   {!isBalanced && (
                     <span className="text-[10px] font-700 opacity-70 uppercase tracking-wider text-text-3">
                       {isOver 
-                        ? `${(totalAllocated - 100).toFixed(0)}% OVER-ALLOCATED` 
-                        : `${(100 - totalAllocated).toFixed(0)}% REMAINING`}
+                        ? `${(totalAllocatedNum - 100).toFixed(0)}% OVER-ALLOCATED` 
+                        : `${(100 - totalAllocatedNum).toFixed(0)}% REMAINING`}
                     </span>
                   )}
                 </div>
