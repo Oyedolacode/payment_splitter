@@ -95,9 +95,42 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       paymentAmount = payment.TotalAmt
       parentCustomerId = payment.CustomerRef.value
 
-      const rule = await prisma.splitRule.findFirst({
+      let rule = await prisma.splitRule.findFirst({
         where: { firmId, parentCustomerId, isActive: true }
       })
+
+      // [NEW] Phase 7b: Parent-Aware Rule Discovery
+      if (!rule) {
+        console.log(`[PROCESSOR] No direct rule for ${parentCustomerId}. Checking for parent rule...`)
+        const { qboRequest } = await import('../services/qboClient')
+        
+        try {
+          const customerData = await qboRequest<{ Customer: any }>(
+            firmId, 
+            firm.qboRealmId!, 
+            `/customer/${parentCustomerId}`
+          )
+          
+          if (customerData?.Customer?.ParentRef?.value) {
+            const actualParentId = customerData.Customer.ParentRef.value
+            console.log(`[PROCESSOR] Found parent ${actualParentId} for child ${parentCustomerId}. Fetching parent rule...`)
+            rule = await prisma.splitRule.findFirst({
+              where: {
+                firmId,
+                parentCustomerId: actualParentId,
+                isActive: true,
+              },
+            })
+            
+            if (rule) {
+              console.log(`[PROCESSOR] Successfully matched parent rule ${rule.id} to child ${parentCustomerId}`)
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[PROCESSOR] Failed to fetch customer parent details for ${parentCustomerId}:`, err.message)
+          // Fall through to error below
+        }
+      }
 
       if (!rule) {
         throw new Error(`No active split rule found for parent customer ${parentCustomerId} (Firm: ${firmId})`)

@@ -57,7 +57,7 @@ export interface QBOBatchResponse {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
-async function qboRequest<T>(
+export async function qboRequest<T>(
   firmId: string,
   realmId: string,
   path: string,
