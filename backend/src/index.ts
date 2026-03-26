@@ -31,30 +31,7 @@ async function bootstrap() {
   // ── Security & middleware ─────────────────────────────────────────────────
   await server.register(helmet, { contentSecurityPolicy: false });
   await server.register(cors, {
-    origin: (origin, cb) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) {
-        cb(null, true)
-        return
-      }
-
-      const allowedOrigins = [
-        config.FRONTEND_URL,
-        'https://frontend-production-fa86.up.railway.app'
-      ]
-
-      // Normalize origins by removing trailing slashes for comparison
-      const normalizedOrigin = origin.replace(/\/$/, '')
-      const isAllowed = allowedOrigins.some(ao => ao.replace(/\/$/, '') === normalizedOrigin)
-
-      if (isAllowed || config.NODE_ENV === 'development') {
-        cb(null, true)
-        return
-      }
-      
-      console.warn(`[CORS] Rejected origin: ${origin}`)
-      cb(new Error('Not allowed by CORS'), false)
-    },
+    origin: true, // Temporarily allow all origins to isolate the underlying crash
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
