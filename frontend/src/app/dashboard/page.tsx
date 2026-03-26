@@ -26,7 +26,7 @@ interface Rule {
 
 type Tab = 'reconciliation' | 'ledger' | 'rules' | 'settings' | 'audit' | 'remittance' | 'ap' | 'trust'
 
-type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED' | 'ANOMALY_PAUSED'
+type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED' | 'ANOMALY_PAUSED' | 'STALLED'
 
 interface AuditEntry {
   id: string
