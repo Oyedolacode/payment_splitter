@@ -973,7 +973,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setTab('jobs')}
+                  onClick={() => setTab('reconciliation')}
                   className="p-[14px_32px] bg-accent text-white rounded-xl text-[13px] font-800 hover:opacity-90 transition-all shadow-lg shadow-accent/20"
                 >
                   Go to Reconciliation
@@ -1001,7 +1001,7 @@ export default function DashboardPage() {
                           <span className="text-[15px] font-900 text-text tracking-tight">${fmt(group.totalAmount)}</span>
                         </div>
                         <button
-                           onClick={() => { setSelected(selected === group.jobId ? null : group.jobId); setTab('jobs'); }}
+                           onClick={() => { setSelected(selected === group.jobId ? null : group.jobId); setTab('reconciliation'); }}
                            className="p-2.5 bg-surface border border-border rounded-xl text-text-3 hover:text-accent hover:border-accent/20 transition-all"
                            title="View Split Details"
                         >
