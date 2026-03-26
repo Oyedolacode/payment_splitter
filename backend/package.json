@@ -6,7 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "prisma generate && tsc",
     "postinstall": "prisma generate",
-    "start": "npx prisma migrate deploy && npx prisma db push --accept-data-loss && node dist/index.js",
+    "start": "npm run db:fix && npx prisma migrate deploy && node dist/index.js",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:fix": "tsx scripts/fix-db.ts",

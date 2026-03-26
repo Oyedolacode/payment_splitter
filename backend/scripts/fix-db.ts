@@ -60,7 +60,10 @@ async function runFix() {
     // 6. Add Foreign Keys (wrapped in DO blocks to avoid errors if they exist)
     `DO $$ BEGIN ALTER TABLE "remittance_mappings" ADD CONSTRAINT "remittance_mappings_firm_id_fkey" FOREIGN KEY ("firm_id") REFERENCES "firms"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
     `DO $$ BEGIN ALTER TABLE "remittance_uploads" ADD CONSTRAINT "remittance_uploads_firm_id_fkey" FOREIGN KEY ("firm_id") REFERENCES "firms"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
-    `DO $$ BEGIN ALTER TABLE "ledger_entries" ADD CONSTRAINT "ledger_entries_firm_id_fkey" FOREIGN KEY ("firm_id") REFERENCES "firms"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`
+    `DO $$ BEGIN ALTER TABLE "ledger_entries" ADD CONSTRAINT "ledger_entries_firm_id_fkey" FOREIGN KEY ("firm_id") REFERENCES "firms"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    
+    // 7. Add columns to payment_jobs
+    `ALTER TABLE "payment_jobs" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`
   ];
 
   for (const sql of sqlCommands) {
