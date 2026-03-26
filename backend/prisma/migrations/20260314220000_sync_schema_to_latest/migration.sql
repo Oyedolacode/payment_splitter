@@ -1,9 +1,9 @@
 -- AlterEnum
-DO $ BEGIN
+DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'ANOMALY_PAUSED' AND enumtypid = 'JobStatus'::regtype) THEN
     ALTER TYPE "JobStatus" ADD VALUE 'ANOMALY_PAUSED';
   END IF;
-END $;
+END $$;
 
 -- AlterTable
 ALTER TABLE "firms" ADD COLUMN "plan_locked_at" TIMESTAMP(3),
