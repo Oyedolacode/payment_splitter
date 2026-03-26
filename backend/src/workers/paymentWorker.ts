@@ -443,7 +443,11 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
     console.error(`[WORKER] [${new Date().toISOString()}] Job ${job?.id} FAILED:`, err.message)
   })
 
-  worker.on('completed', (job) => {
+    worker.on('active', (job) => {
+      console.log(`[Worker] Started processing job ${job.id}`)
+    })
+
+    worker.on('completed', (job) => {
     console.log(`[WORKER] [${new Date().toISOString()}] Job ${job.id} COMPLETED`)
   })
 

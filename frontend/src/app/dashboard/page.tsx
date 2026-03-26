@@ -90,8 +90,14 @@ const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
 
 // ── Components ──────────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: JobStatus }) {
-  const meta = STATUS_META[status] || STATUS_META.QUEUED
+function StatusBadge({ status, errorMessage }: { status: JobStatus; errorMessage?: string }) {
+  let meta = STATUS_META[status] || STATUS_META.QUEUED
+  
+  // Custom override for rule-related failures
+  if (status === 'FAILED' && errorMessage?.includes('No active split rule')) {
+    meta = { label: 'Requires Action', color: '#f59e0b' }
+  }
+
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 border border-border">
       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: meta.color }} />
@@ -309,8 +315,10 @@ export default function DashboardPage() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [firmId, setFirmId] = useState<string>('')
   const [showRuleModal, setShowRuleModal] = useState(false)
-  const [editingRule, setEditingRule] = useState<Rule | null>(null)
+  const [editingRule, setEditingRule] = useState<any>(null)
+  const [rulePrefillId, setRulePrefillId] = useState<string>('')
   const [showPricingModal, setShowPricingModal] = useState(false)
+  const [workerHealth, setWorkerHealth] = useState<{ status: string; counts: any } | null>(null)
   const [confirmation, setConfirmation] = useState<{
     show: boolean;
     title: string;
@@ -345,7 +353,7 @@ export default function DashboardPage() {
         if (v) ledgerParams.append(k, String(v))
       })
 
-      const [fRes, jRes, rRes, aRes, cRes, lRes, ledRes] = await Promise.all([
+      const [fRes, jRes, rRes, aRes, cRes, lRes, ledRes, hRes] = await Promise.all([
         fetch(`${API}/auth/firms/${fid}/status`),
         fetch(`${API}/api/jobs?firmId=${fid}`),
         fetch(`${API}/api/rules?firmId=${fid}`),
@@ -353,6 +361,7 @@ export default function DashboardPage() {
         fetch(`${API}/api/qbo/customers?firmId=${fid}`),
         fetch(`${API}/api/qbo/locations?firmId=${fid}`),
         fetch(`${API}/api/jobs/ledger?${ledgerParams.toString()}`),
+        fetch(`${API}/api/jobs/health`),
       ])
 
       let firmData = null
@@ -373,6 +382,9 @@ export default function DashboardPage() {
         const data = await ledRes.json()
         setLedgerEntries(data.entries || [])
         setLedgerMetadata(data.metadata || null)
+      }
+      if (hRes.ok) {
+        setWorkerHealth(await hRes.json())
       }
     } catch (e) {
       addToast('Failed to refresh dashboard data', 'error')
@@ -490,10 +502,35 @@ export default function DashboardPage() {
         throw new Error(errorData.error || 'Retry all failed')
       }
       const data = await res.json()
-      addToast(`Re-enqueued ${data.count} jobs`, 'success')
+      
+      const counts = []
+      if (data.failedCount > 0) counts.push(`${data.failedCount} failed`)
+      if (data.stalledCount > 0) counts.push(`${data.stalledCount} stalled`)
+      
+      const message = counts.length > 0 
+        ? `Re-enqueued ${counts.join(' and ')} jobs`
+        : `Re-enqueued ${data.count} jobs`
+        
+      addToast(message, 'success')
       fetchDashboardData(firmId)
     } catch (e: any) {
       addToast(`Failed to retry all jobs: ${e.message}`, 'error')
+    }
+  }
+
+  const handleRetryStalled = async () => {
+    try {
+      const res = await fetch(`${API}/api/jobs/retry-stalled`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firmId }),
+      })
+      if (!res.ok) throw new Error('Retry failed')
+      const data = await res.json()
+      addToast(`Re-enqueued ${data.count} stalled jobs`, 'success')
+      fetchDashboardData(firmId)
+    } catch (e) {
+      addToast('Failed to retry stalled jobs', 'error')
     }
   }
 
@@ -720,13 +757,21 @@ export default function DashboardPage() {
                         Retry All Failed
                       </button>
                     )}
-                    <button
-                      onClick={handleManualSync}
-                      disabled={syncing}
-                      className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
-                    >
-                      <span>{syncing ? 'Syncing...' : 'Fetch New Payments'}</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {workerHealth && (
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-800 uppercase tracking-wider ${workerHealth.status === 'UP' ? 'bg-[#10b98110] border-[#10b98130] text-[#10b981]' : 'bg-[#ef444410] border-[#ef444430] text-[#ef4444]'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${workerHealth.status === 'UP' ? 'bg-[#10b981] animate-pulse' : 'bg-[#ef4444]'}`} />
+                          <span>Worker: {workerHealth.status}</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={handleManualSync}
+                        disabled={syncing}
+                        className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
+                      >
+                        <span>{syncing ? 'Syncing...' : 'Fetch New Payments'}</span>
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -740,21 +785,55 @@ export default function DashboardPage() {
             </header>
 
             {/* Metrics Dashboard */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              {[
-                { label: 'Payments', value: jobs.filter(j => j.status === 'COMPLETE').length, icon: <ActivityIcon className="w-4 h-4" /> },
-                { label: 'Total Split', value: `$${fmt(jobs.filter(j => j.status === 'COMPLETE').reduce((acc, j) => acc + Number(j.totalAmount), 0))}`, icon: <DollarIcon className="w-4 h-4" /> },
-                { label: 'Active Rules', value: rules.filter(r => r.isActive).length, icon: <ScaleIcon className="w-4 h-4" /> },
-                { label: 'Alerts', value: jobs.filter(j => j.status === 'FAILED').length, icon: <AlertIcon className="w-4 h-4" />, color: jobs.filter(j => j.status === 'FAILED').length > 0 ? 'text-[#ef4444]' : 'text-text-3' },
-              ].map((m, i) => (
-                <div key={i} className="bg-surface border border-border p-5 rounded-[24px]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">{m.label}</span>
-                    <span className="text-text-3 opacity-60">{m.icon}</span>
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Payments', value: jobs.filter(j => j.status === 'COMPLETE').length, icon: <ActivityIcon className="w-4 h-4" /> },
+                  { label: 'Total Split', value: `$${fmt(jobs.filter(j => j.status === 'COMPLETE').reduce((acc, j) => acc + Number(j.totalAmount), 0))}`, icon: <DollarIcon className="w-4 h-4" /> },
+                  { label: 'Active Rules', value: rules.filter(r => r.isActive).length, icon: <ScaleIcon className="w-4 h-4" /> },
+                  { label: 'Pending', value: jobs.filter(j => ['FAILED', 'STALLED', 'ROLLED_BACK'].includes(j.status)).length, icon: <AlertIcon className="w-4 h-4" />, color: jobs.filter(j => ['FAILED', 'STALLED', 'ROLLED_BACK'].includes(j.status)).length > 0 ? 'text-[#ef4444]' : 'text-text-3' },
+                ].map((m, i) => (
+                  <div key={i} className="bg-surface border border-border p-5 rounded-[24px]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">{m.label}</span>
+                      <span className="text-text-3 opacity-60">{m.icon}</span>
+                    </div>
+                    <div className={`text-[20px] font-display font-800 ${m.color || 'text-text'}`}>{m.value}</div>
                   </div>
-                  <div className={`text-[20px] font-display font-800 ${m.color || 'text-text'}`}>{m.value}</div>
+                ))}
+              </div>
+
+              {(jobs.some(j => ['FAILED', 'ROLLED_BACK'].includes(j.status)) || jobs.some(j => j.status === 'STALLED')) && (
+                <div className="p-4 bg-surface-2 border border-border rounded-[24px] flex items-center justify-between gap-4 max-[768px]:flex-col">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#ef444410] border border-[#ef444420] flex items-center justify-center text-[#ef4444]">
+                      <AlertIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-[13px] font-800 text-text">System Recovery Needed</h4>
+                      <p className="text-[11px] text-text-3 font-600 uppercase tracking-wider">
+                        {jobs.filter(j => ['FAILED', 'ROLLED_BACK'].includes(j.status)).length} failed and {jobs.filter(j => j.status === 'STALLED').length} stalled jobs
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 max-[768px]:w-full">
+                    {jobs.some(j => j.status === 'STALLED') && (
+                      <button
+                        onClick={handleRetryStalled}
+                        className="p-[10px_20px] bg-indigo-500 text-white rounded-xl text-[11px] font-800 uppercase tracking-widest hover:opacity-90 shadow-lg shadow-indigo-500/20 max-[768px]:flex-1"
+                      >
+                        Retry Stalled
+                      </button>
+                    )}
+                    <button
+                      onClick={handleRetryAll}
+                      className="p-[10px_20px] bg-accent text-white rounded-xl text-[11px] font-800 uppercase tracking-widest hover:opacity-90 shadow-lg shadow-accent/20 max-[768px]:flex-1"
+                    >
+                      Retry All Failed
+                    </button>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4">
               {!qboConnected ? (
@@ -808,7 +887,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 max-[768px]:absolute max-[768px]:top-6 max-[768px]:right-4">
-                        <StatusBadge status={job.status} />
+                        <StatusBadge status={job.status} errorMessage={job.errorMessage} />
                         <div className={`p-2 rounded-lg bg-surface-2 border border-border text-text-3 transition-all group-hover:border-text-3/30 ${selected === job.id ? 'rotate-90 bg-accent/5 border-accent/20 text-accent' : ''}`}>
                           <Chevron open={selected === job.id} />
                         </div>
@@ -873,12 +952,15 @@ export default function DashboardPage() {
                                   </span>
                                   {job.errorMessage?.includes('No active split rule') && (
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingRule(null);
-                                        setShowRuleModal(true);
-                                        addToast('Opening rule configuration...', 'info');
-                                      }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const match = job.errorMessage.match(/customer\s+([^\s(]+)/);
+                                          const cid = match ? match[1] : '';
+                                          setEditingRule(null);
+                                          setRulePrefillId(cid);
+                                          setShowRuleModal(true);
+                                          addToast(`Setting up rule for customer ${cid}...`, 'info');
+                                        }}
                                       className="mt-2 w-fit p-[6px_12px] bg-[#ef4444] text-white rounded-lg text-[10px] font-800 uppercase hover:opacity-90 transition-all flex items-center gap-1.5"
                                     >
                                       <span>+</span>
@@ -1084,7 +1166,7 @@ export default function DashboardPage() {
                   Use Template
                 </button>
                 <button
-                  onClick={() => { setEditingRule(null); setShowRuleModal(true); }}
+                  onClick={() => { setEditingRule(null); setRulePrefillId(''); setShowRuleModal(true); }}
                   className="flex items-center gap-2 p-[10px_24px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
                 >
                   <span>+</span>
@@ -1103,7 +1185,7 @@ export default function DashboardPage() {
                   </p>
                   <div className="flex flex-col items-center gap-4">
                     <button
-                      onClick={() => { setEditingRule(null); setShowRuleModal(true); }}
+                      onClick={() => { setEditingRule(null); setRulePrefillId(''); setShowRuleModal(true); }}
                       className="p-[12px_32px] bg-accent text-white rounded-xl text-[13px] font-800 hover:opacity-90 transition-all shadow-lg"
                     >
                       Create First Rule
@@ -1140,7 +1222,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center gap-2 max-[768px]:absolute max-[768px]:top-0 max-[768px]:right-0">
                         <button
-                          onClick={() => { setEditingRule(rule); setShowRuleModal(true); }}
+                          onClick={() => { setEditingRule(rule); setRulePrefillId(''); setShowRuleModal(true); }}
                           className="p-2 rounded-lg bg-surface-2 border border-border text-text-3 hover:text-text hover:bg-surface-3 transition-all"
                           title="Edit rule"
                         >
@@ -1482,9 +1564,10 @@ export default function DashboardPage() {
             <div className="p-8 max-[768px]:p-5 overflow-y-auto flex-1 custom-scrollbar">
               <RuleForm
                 editingRule={editingRule}
+                prefillId={rulePrefillId}
                 customers={customers}
                 locations={locations}
-                onCancel={() => { setEditingRule(null); setShowRuleModal(false); }}
+                onCancel={() => { setEditingRule(null); setRulePrefillId(''); setShowRuleModal(false); }}
                 addToast={addToast}
                 firmPlan={firm?.plan || 'TRIAL'}
                 firmId={firmId}
@@ -1546,9 +1629,9 @@ export default function DashboardPage() {
 
 // ── Secondary Components ───────────────────────────────────────────────────
 
-function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToast, firmPlan, firmId }: any) {
+function RuleForm({ editingRule, prefillId, customers, locations, onSave, onCancel, addToast, firmPlan, firmId }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
-  const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || '')
+  const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || prefillId || '')
   
   // Standalone weights state - THE SINGLE SOURCE OF TRUTH (with ghost-weight sanitization)
   const [weights, setWeights] = useState<Record<string, number>>(() => {

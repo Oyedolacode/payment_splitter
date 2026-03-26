@@ -55,6 +55,23 @@ export async function jobsRoutes(fastify: FastifyInstance) {
     }
   )
 
+  // GET /api/jobs/health — verify queue health
+  fastify.get('/health', async (request, reply) => {
+    try {
+      const redisStatus = await redis.ping()
+      const counts = await paymentQueue.getJobCounts()
+      return {
+        status: 'UP',
+        redis: redisStatus === 'PONG' ? 'Healthy' : 'Error',
+        queue: QUEUE_NAME,
+        counts
+      }
+    } catch (err: any) {
+      console.error('[Queue Health Error]:', err)
+      return reply.status(503).send({ status: 'DOWN', error: err.message })
+    }
+  })
+
   // GET /api/jobs/debug?firmId=xxx — fetch queue diagnostic info
   fastify.get<{ Querystring: { firmId: string } }>(
     '/debug',
@@ -229,6 +246,51 @@ export async function jobsRoutes(fastify: FastifyInstance) {
         include: { firm: true }
       })
 
+      let failedRequeued = 0
+      let stalledRequeued = 0
+
+      for (const job of jobsToRetry) {
+        if (job.status === JobStatus.STALLED) stalledRequeued++
+        else failedRequeued++
+
+        await prisma.paymentJob.update({
+          where: { id: job.id },
+          data: { status: JobStatus.QUEUED, errorMessage: null }
+        })
+
+        await paymentQueue.add(
+          'process-payment',
+          {
+            jobId: job.id,
+            firmId: job.firmId,
+            realmId: job.firm.qboRealmId!,
+            paymentId: job.paymentId,
+          },
+          { attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
+        )
+      }
+
+      return { 
+        message: `Re-enqueued ${jobsToRetry.length} jobs`, 
+        count: jobsToRetry.length,
+        failedCount: failedRequeued,
+        stalledCount: stalledRequeued
+      }
+    }
+  )
+
+  // POST /api/jobs/retry-stalled — retry only stalled jobs
+  fastify.post(
+    '/retry-stalled',
+    async (request, reply) => {
+      const { firmId } = request.body as any
+      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+      const jobsToRetry = await prisma.paymentJob.findMany({
+        where: { firmId, status: JobStatus.STALLED },
+        include: { firm: true }
+      })
+
       for (const job of jobsToRetry) {
         await prisma.paymentJob.update({
           where: { id: job.id },
@@ -247,7 +309,7 @@ export async function jobsRoutes(fastify: FastifyInstance) {
         )
       }
 
-      return { message: `Re-enqueued ${jobsToRetry.length} jobs`, count: jobsToRetry.length }
+      return { message: `Re-enqueued ${jobsToRetry.length} stalled jobs`, count: jobsToRetry.length }
     }
   )
 
