@@ -200,11 +200,25 @@ export async function jobsRoutes(fastify: FastifyInstance) {
   })
 
   // POST /api/jobs/retry-all — retry all failed or stalled jobs
-  fastify.post<{ Body: { firmId: string } }>(
+  fastify.post(
     '/retry-all',
     async (request, reply) => {
-      const { firmId } = request.body
-      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+      console.log('[RETRY_ALL] Request body:', request.body)
+      
+      const bodySchema = z.object({
+        firmId: z.string().uuid({ message: 'firmId must be a valid UUID' })
+      })
+
+      const result = bodySchema.safeParse(request.body)
+      if (!result.success) {
+        console.warn('[RETRY_ALL] Validation failed:', result.error.format())
+        return reply.status(400).send({ 
+          error: 'Invalid request body', 
+          details: result.error.format() 
+        })
+      }
+
+      const { firmId } = result.data
 
       const jobsToRetry = await prisma.paymentJob.findMany({
         where: {

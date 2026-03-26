@@ -98,7 +98,7 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       })
 
       if (!rule) {
-        throw new Error(`No active split rule found for parent customer ${parentCustomerId}`)
+        throw new Error(`No active split rule found for parent customer ${parentCustomerId} (Firm: ${firmId})`)
       }
 
       await prisma.paymentJob.update({

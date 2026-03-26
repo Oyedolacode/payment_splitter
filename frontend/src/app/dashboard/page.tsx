@@ -484,12 +484,16 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firmId }),
       })
-      if (!res.ok) throw new Error('Retry all failed')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('[RETRY_ALL] Failure:', res.status, errorData)
+        throw new Error(errorData.error || 'Retry all failed')
+      }
       const data = await res.json()
       addToast(`Re-enqueued ${data.count} jobs`, 'success')
       fetchDashboardData(firmId)
-    } catch (e) {
-      addToast('Failed to retry all jobs', 'error')
+    } catch (e: any) {
+      addToast(`Failed to retry all jobs: ${e.message}`, 'error')
     }
   }
 
@@ -858,7 +862,7 @@ export default function DashboardPage() {
                                 <span className="text-[#ef4444] mt-0.5">
                                   <AlertIcon className="w-4 h-4" />
                                 </span>
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col gap-1 flex-1">
                                   <span className="text-[11px] font-800 text-[#ef4444] uppercase tracking-wider">
                                     {job.status === 'STALLED' ? 'Stalled Connection' : 'Error Details'}
                                   </span>
@@ -867,6 +871,20 @@ export default function DashboardPage() {
                                       ? 'This job has been stuck for over 30 minutes and may have stalled. Please check your QBO connection and retry.'
                                       : (job.errorMessage || 'Unknown processing error.')}
                                   </span>
+                                  {job.errorMessage?.includes('No active split rule') && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingRule(null);
+                                        setShowRuleModal(true);
+                                        addToast('Opening rule configuration...', 'info');
+                                      }}
+                                      className="mt-2 w-fit p-[6px_12px] bg-[#ef4444] text-white rounded-lg text-[10px] font-800 uppercase hover:opacity-90 transition-all flex items-center gap-1.5"
+                                    >
+                                      <span>+</span>
+                                      <span>Create Allocation Rule</span>
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                               <button
