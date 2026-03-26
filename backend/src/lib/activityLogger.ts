@@ -9,6 +9,7 @@ export type ActivityType =
     | 'ANOMALY_DETECTED'
     | 'SKIPPED'
     | 'LEDGER_COMMITTED'
+    | 'STALLED'
 
 export type ActorType = 'SYSTEM' | 'USER' | 'WEBHOOK'
 export type Severity = 'INFO' | 'WARNING' | 'ERROR'

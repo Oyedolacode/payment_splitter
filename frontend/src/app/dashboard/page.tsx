@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { useRouter } from 'next/navigation'
 
@@ -84,6 +84,7 @@ const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
   ROLLED_BACK: { label: 'Rolled Back', color: '#f59e0b' },
   REVIEW_REQUIRED: { label: 'Action Needed', color: '#8b5cf6' },
   ANOMALY_PAUSED: { label: 'Paused', color: '#ec4899' },
+  STALLED: { label: 'Stalled', color: '#6366f1' },
 }
 
 // ── Components ──────────────────────────────────────────────────────────────
@@ -289,6 +290,16 @@ export default function DashboardPage() {
   const [rules, setRules] = useState<Rule[]>([])
   const [activity, setActivity] = useState<any[]>([])
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([])
+  const [ledgerMetadata, setLedgerMetadata] = useState<any>(null)
+  const [ledgerFilters, setLedgerFilters] = useState({
+    startDate: '',
+    endDate: '',
+    account: '',
+    jobId: '',
+    search: ''
+  })
+  const [customers, setCustomers] = useState<any[]>([])
+  const [locations, setLocations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [qboConnected, setQboConnected] = useState(false)
@@ -296,9 +307,6 @@ export default function DashboardPage() {
   const [previewingRule, setPreviewingRule] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [firmId, setFirmId] = useState<string>('')
-
-  const [customers, setCustomers] = useState<any[]>([])
-  const [locations, setLocations] = useState<any[]>([])
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
   const [showPricingModal, setShowPricingModal] = useState(false)
@@ -330,6 +338,12 @@ export default function DashboardPage() {
   const fetchDashboardData = useCallback(async (fid: string) => {
     if (!fid) return
     try {
+      // Build ledger query string from filters
+      const ledgerParams = new URLSearchParams({ firmId: fid })
+      Object.entries(ledgerFilters).forEach(([k, v]) => {
+        if (v) ledgerParams.append(k, String(v))
+      })
+
       const [fRes, jRes, rRes, aRes, cRes, lRes, ledRes] = await Promise.all([
         fetch(`${API}/auth/firms/${fid}/status`),
         fetch(`${API}/api/jobs?firmId=${fid}`),
@@ -337,7 +351,7 @@ export default function DashboardPage() {
         fetch(`${API}/api/jobs/activity?firmId=${fid}`),
         fetch(`${API}/api/qbo/customers?firmId=${fid}`),
         fetch(`${API}/api/qbo/locations?firmId=${fid}`),
-        fetch(`${API}/api/jobs/ledger?firmId=${fid}`),
+        fetch(`${API}/api/jobs/ledger?${ledgerParams.toString()}`),
       ])
 
       let firmData = null
@@ -354,13 +368,17 @@ export default function DashboardPage() {
       if (aRes.ok) setActivity(await aRes.json())
       if (cRes.ok) setCustomers(await cRes.json())
       if (lRes.ok) setLocations(await lRes.json())
-      if (ledRes.ok) setLedgerEntries(await ledRes.json())
+      if (ledRes.ok) {
+        const data = await ledRes.json()
+        setLedgerEntries(data.entries || [])
+        setLedgerMetadata(data.metadata || null)
+      }
     } catch (e) {
       addToast('Failed to refresh dashboard data', 'error')
     } finally {
       setLoading(false)
     }
-  }, [addToast])
+  }, [addToast, ledgerFilters])
 
   useEffect(() => {
     const id = localStorage.getItem('ps_firm_id')
@@ -392,6 +410,35 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [router, fetchDashboardData, addToast])
 
+  const groupedLedger = useMemo(() => {
+    const groups: Record<string, any[]> = {}
+    ledgerEntries.forEach(entry => {
+      const key = entry.jobId || 'UNCATEGORIZED'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(entry)
+    })
+    
+    // Convert to array and sort jobs by most recent entry date
+    return Object.entries(groups).map(([jobId, entries]) => {
+      // Sort entries within group (Debits usually come first in accounting)
+      const sortedEntries = [...entries].sort((a, b) => (b.debit || 0) - (a.debit || 0))
+      
+      // Calculate running balance
+      let currentBalance = 0
+      const entriesWithBalance = sortedEntries.map(e => {
+        currentBalance += (e.debit || 0) - (e.credit || 0)
+        return { ...e, runningBalance: currentBalance }
+      })
+
+      return {
+        jobId,
+        date: entries[0].createdAt,
+        entries: entriesWithBalance,
+        totalAmount: entries.reduce((sum, e) => sum + (e.debit || 0), 0)
+      }
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [ledgerEntries])
+
   const handleManualSync = async () => {
     setSyncing(true)
     try {
@@ -401,12 +448,47 @@ export default function DashboardPage() {
         body: JSON.stringify({ firmId }),
       })
       if (!res.ok) throw new Error('Sync failed')
-      addToast('Synchronization triggered successfully', 'success')
+      const data = await res.json()
+      
+      const summary = [
+        data.triggeredCount > 0 ? `${data.triggeredCount} new payments queued` : null,
+        data.skippedCount > 0 ? `${data.skippedCount} skipped (already in system)` : null,
+        data.failedCount > 0 ? `${data.failedCount} failed jobs require attention` : null
+      ].filter(Boolean).join('. ')
+
+      addToast(summary || 'No changes detected', data.triggeredCount > 0 ? 'success' : 'info')
       fetchDashboardData(firmId)
     } catch (e) {
       addToast('Failed to trigger manual sync', 'error')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handleRetryJob = async (id: string) => {
+    try {
+      const res = await fetch(`${API}/api/jobs/${id}/retry`, { method: 'POST' })
+      if (!res.ok) throw new Error('Retry failed')
+      addToast('Job re-queued successfully', 'success')
+      fetchDashboardData(firmId)
+    } catch (e) {
+      addToast('Failed to retry job', 'error')
+    }
+  }
+
+  const handleRetryAll = async () => {
+    try {
+      const res = await fetch(`${API}/api/jobs/retry-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firmId }),
+      })
+      if (!res.ok) throw new Error('Retry all failed')
+      const data = await res.json()
+      addToast(`Re-enqueued ${data.count} jobs`, 'success')
+      fetchDashboardData(firmId)
+    } catch (e) {
+      addToast('Failed to retry all jobs', 'error')
     }
   }
 
@@ -624,13 +706,23 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 {qboConnected ? (
-                  <button
-                    onClick={handleManualSync}
-                    disabled={syncing}
-                    className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
-                  >
-                    <span>{syncing ? 'Syncing...' : 'Fetch New Payments'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {jobs.some(j => ['FAILED', 'STALLED', 'ROLLED_BACK'].includes(j.status)) && (
+                      <button
+                        onClick={handleRetryAll}
+                        className="flex items-center gap-2 p-[10px_20px] bg-white border border-[#ef444430] text-[#ef4444] rounded-xl text-[12px] font-700 hover:bg-[#ef444405] transition-all"
+                      >
+                        Retry All Failed
+                      </button>
+                    )}
+                    <button
+                      onClick={handleManualSync}
+                      disabled={syncing}
+                      className="flex items-center gap-2 p-[10px_20px] bg-accent text-white rounded-xl text-[12px] font-700 hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_4px_12px_rgba(45,49,250,0.2)]"
+                    >
+                      <span>{syncing ? 'Syncing...' : 'Fetch New Payments'}</span>
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={() => window.location.href = `${API}/auth/qbo/connect?firmId=${firmId}`}
@@ -702,8 +794,12 @@ export default function DashboardPage() {
                         </div>
                         <div className="h-8 w-[1px] bg-border/60 max-[768px]:hidden" />
                         <div className="flex flex-col gap-1">
-                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Created</span>
-                          <span className="text-[13px] font-600 text-text-2">{timeAgo(job.createdAt)}</span>
+                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">
+                            {job.status === 'PROCESSING' ? 'Started' : job.status === 'QUEUED' ? 'Queued' : 'Created'}
+                          </span>
+                          <span className="text-[13px] font-600 text-text-2">
+                            {job.status === 'PROCESSING' || job.status === 'QUEUED' ? timeAgo(job.updatedAt) : timeAgo(job.createdAt)}
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 max-[768px]:absolute max-[768px]:top-6 max-[768px]:right-4">
@@ -755,17 +851,32 @@ export default function DashboardPage() {
                             </div>
                           )}
 
-                          {job.errorMessage && (
-                            <div className="p-4 bg-[#ef444410] border border-[#ef444420] rounded-xl flex items-start gap-3">
-                              <span className="text-[#ef4444] mt-0.5">
-                                <AlertIcon className="w-4 h-4" />
-                              </span>
-                              <div className="flex flex-col gap-1">
-                                <span className="text-[11px] font-800 text-[#ef4444] uppercase tracking-wider">Error Details</span>
-                                <span className="text-[13px] font-600 text-[#ef4444] leading-relaxed">{job.errorMessage}</span>
+                          {job.status === 'FAILED' || job.status === 'STALLED' || job.status === 'ROLLED_BACK' ? (
+                            <div className="flex flex-col gap-4">
+                              <div className="p-4 bg-[#ef444410] border border-[#ef444420] rounded-xl flex items-start gap-3">
+                                <span className="text-[#ef4444] mt-0.5">
+                                  <AlertIcon className="w-4 h-4" />
+                                </span>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[11px] font-800 text-[#ef4444] uppercase tracking-wider">
+                                    {job.status === 'STALLED' ? 'Stalled Connection' : 'Error Details'}
+                                  </span>
+                                  <span className="text-[13px] font-600 text-[#ef4444] leading-relaxed">
+                                    {job.status === 'STALLED' 
+                                      ? 'This job has been stuck for over 30 minutes and may have stalled. Please check your QBO connection and retry.'
+                                      : (job.errorMessage || 'Unknown processing error.')}
+                                  </span>
+                                </div>
                               </div>
+                              <button
+                                onClick={() => handleRetryJob(job.id)}
+                                className="w-full p-4 bg-white border border-border rounded-xl text-[12px] font-800 text-text hover:bg-surface-2 transition-all flex items-center justify-center gap-2"
+                              >
+                                <span>↻</span>
+                                <span>Retry This Job</span>
+                              </button>
                             </div>
-                          ) || (
+                          ) : (
                               job.status === 'COMPLETE' && (
                                 <div className="p-4 bg-[#10b98110] border border-[#10b98120] rounded-xl flex items-center gap-3">
                                   <span className="text-[#10b981]">
@@ -792,56 +903,149 @@ export default function DashboardPage() {
                 <h1 className="font-display text-[28px] max-[1024px]:text-[24px] font-800 tracking-tight text-text mb-2">Financial Ledger</h1>
                 <p className="text-text-3 text-[14px]">The internal source of truth. Every debit and credit recorded before QBO sync.</p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="p-[8px_16px] bg-accent/5 border border-accent/20 rounded-xl text-accent text-[12px] font-800 uppercase tracking-wider flex items-center gap-2">
+              <div className="flex flex-col items-end gap-2">
+                <div className={`p-[8px_16px] border rounded-xl text-[12px] font-800 uppercase tracking-wider flex items-center gap-2 transition-all ${ledgerMetadata?.integrity?.balanced ? 'bg-[#10b98108] border-[#10b98120] text-[#10b981]' : 'bg-[#ef444408] border-[#ef444420] text-[#ef4444]'}`}>
                   <ShieldIcon className="w-3.5 h-3.5" />
-                  <span>Trace Integrity: Verified</span>
+                  <span>Ledger Integrity: {ledgerMetadata?.integrity?.balanced ? 'Verified' : 'Imbalanced'}</span>
                 </div>
+                {ledgerMetadata?.integrity?.lastCheck && (
+                  <span className="text-[10px] text-text-3 font-700 uppercase tracking-widest">
+                    Last Check: {timeAgo(ledgerMetadata.integrity.lastCheck)}
+                  </span>
+                )}
               </div>
             </header>
 
-            <div className="bg-surface border border-border rounded-[24px] overflow-hidden shadow-sm">
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[600px]">
-                  <thead>
-                    <tr className="bg-surface-2 border-b border-border">
-                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] first:pl-8">Date</th>
-                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Account</th>
-                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px]">Reference (Job)</th>
-                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right">Debit</th>
-                      <th className="p-5 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right last:pr-8">Credit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledgerEntries.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="p-20 text-center">
-                          <p className="text-text-3 text-[13px] font-600">No ledger entries found.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      ledgerEntries.map(entry => (
-                        <tr key={entry.id} className="border-b border-border/60 hover:bg-surface-2/40 transition-colors">
-                          <td className="p-5 first:pl-8 text-[12px] font-600 text-text-3 tabular-nums">{new Date(entry.createdAt).toLocaleDateString()}</td>
-                          <td className="p-5">
-                            <span className="font-mono text-[12px] font-semibold text-text uppercase tracking-tight">{entry.account}</span>
-                          </td>
-                          <td className="p-5">
-                            <span className="text-[12px] font-700 text-text-2">{entry.jobId ? entry.jobId.slice(0, 8) : 'N/A'}</span>
-                          </td>
-                          <td className="p-5 text-right font-mono text-[13px] font-700 text-red-500">
-                            {Number(entry.debit) > 0 ? `-$${fmt(entry.debit)}` : '—'}
-                          </td>
-                          <td className="p-5 text-right font-mono text-[13px] font-700 text-[#10b981] last:pr-8">
-                            {Number(entry.credit) > 0 ? `+$${fmt(entry.credit)}` : '—'}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+            {/* Filter Bar */}
+            <div className="bg-surface border border-border rounded-[20px] p-4 mb-8 flex flex-wrap items-center gap-4 shadow-sm">
+              <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <label className="text-[10px] font-800 text-text-3 uppercase tracking-wider ml-1">Search</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Ref # or Account..."
+                    className="w-full bg-surface-2 border border-border rounded-xl p-[10px_14px_10px_36px] text-[13px] font-600 outline-none focus:border-accent"
+                    value={ledgerFilters.search}
+                    onChange={(e) => setLedgerFilters(prev => ({ ...prev, search: e.target.value }))}
+                  />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-3 opacity-50">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </div>
+                </div>
               </div>
+
+              <div className="flex flex-col gap-1.5 min-w-[200px]">
+                <label className="text-[10px] font-800 text-text-3 uppercase tracking-wider ml-1">Date Range</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    className="bg-surface-2 border border-border rounded-xl p-[8px_12px] text-[12px] font-600 outline-none focus:border-accent"
+                    value={ledgerFilters.startDate}
+                    onChange={(e) => setLedgerFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  />
+                  <span className="text-text-3 text-[10px] font-bold">─</span>
+                  <input
+                    type="date"
+                    className="bg-surface-2 border border-border rounded-xl p-[8px_12px] text-[12px] font-600 outline-none focus:border-accent"
+                    value={ledgerFilters.endDate}
+                    onChange={(e) => setLedgerFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => setLedgerFilters({ startDate: '', endDate: '', account: '', jobId: '', search: '' })}
+                className="mt-auto mb-1 p-[10px_16px] border border-border rounded-xl text-[12px] font-700 text-text-3 hover:text-text hover:bg-surface-2 transition-all"
+              >
+                Reset
+              </button>
             </div>
+
+            {groupedLedger.length === 0 ? (
+               <div className="bg-surface border border-border rounded-[32px] p-20 text-center flex flex-col items-center gap-6 shadow-sm border-dashed">
+                <div className="w-20 h-20 bg-accent/5 rounded-[24px] flex items-center justify-center text-[32px] animate-pulse">📖</div>
+                <div className="max-w-[400px]">
+                  <h3 className="font-display text-[20px] font-800 text-text mb-3 tracking-tight">Financial ledger is empty</h3>
+                  <p className="text-text-3 text-[14px] leading-relaxed">
+                    Ledger entries are created automatically when payments are processed and split. 
+                    Once you connect QuickBooks and process your first payment, you'll see a complete record of debits and credits here.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setTab('jobs')}
+                  className="p-[14px_32px] bg-accent text-white rounded-xl text-[13px] font-800 hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+                >
+                  Go to Reconciliation
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {groupedLedger.map(group => (
+                  <div key={group.jobId} className="bg-surface border border-border rounded-[24px] overflow-hidden shadow-sm transition-all hover:border-accent/30 group">
+                    <header className="bg-surface-2/60 p-5 px-8 flex items-center justify-between border-b border-border/60">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-[1px]">Transaction ID</span>
+                          <span className="font-mono text-[13px] font-bold text-text underline decoration-accent/20 underline-offset-4">{group.jobId.slice(0, 8)}...</span>
+                        </div>
+                        <div className="h-8 w-[1px] bg-border/60" />
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-[1px]">Entry Date</span>
+                          <span className="text-[13px] font-700 text-text-2">{new Date(group.date).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                         <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-[1px]">Total Transaction</span>
+                          <span className="text-[15px] font-900 text-text tracking-tight">${fmt(group.totalAmount)}</span>
+                        </div>
+                        <button
+                           onClick={() => { setSelected(selected === group.jobId ? null : group.jobId); setTab('jobs'); }}
+                           className="p-2.5 bg-surface border border-border rounded-xl text-text-3 hover:text-accent hover:border-accent/20 transition-all"
+                           title="View Split Details"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </button>
+                      </div>
+                    </header>
+                    <div className="overflow-x-auto no-scrollbar">
+                      <table className="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                          <tr className="border-b border-border/40">
+                            <th className="p-4 pl-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] w-[300px]">Account / Allocation Target</th>
+                            <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Debit</th>
+                            <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Credit</th>
+                            <th className="p-4 pr-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Balance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.entries.map((entry, idx) => (
+                            <tr key={entry.id} className="border-b border-border/40 last:border-0 hover:bg-surface-2/30 transition-colors">
+                              <td className="p-4 pl-8">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${entry.debit > 0 ? 'bg-accent' : 'bg-[#10b981]'}`} />
+                                  <span className="font-mono text-[12px] font-700 text-text uppercase tracking-tight">{entry.account}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 text-right font-mono text-[13px] font-800 text-red-500/80">
+                                {entry.debit > 0 ? `-$${fmt(entry.debit)}` : '—'}
+                              </td>
+                              <td className="p-4 text-right font-mono text-[13px] font-800 text-[#10b981]">
+                                {entry.credit > 0 ? `+$${fmt(entry.credit)}` : '—'}
+                              </td>
+                              <td className="p-4 pr-8 text-right font-mono text-[13px] font-800 text-text/80 tabular-nums">
+                                ${fmt(Math.abs(entry.runningBalance))}
+                                <span className="text-[10px] ml-1 opacity-40">{entry.runningBalance >= 0 ? 'DR' : 'CR'}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1392,7 +1596,7 @@ function RuleForm({ editingRule, customers, locations, onSave, onCancel, addToas
   const totalAllocated = Object.values(weights).reduce((s: number, v: any) => s + Number(v || 0), 0)
 
   // Determine which location list to use for UI - use Jobs if they exist, otherwise fallback to Departments if parent is selected
-  const targetLocations = subCustomers.length > 0 ? subCustomers : (parentCustomerId ? locations : [])
+  const targetLocations: any[] = subCustomers.length > 0 ? (subCustomers as any[]) : (parentCustomerId ? (locations as any[]) : [])
 
   const isBalanced = Math.abs(totalAllocated - 100) < 0.01
   const isOver = totalAllocated > 100

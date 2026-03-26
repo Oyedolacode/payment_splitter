@@ -17,6 +17,17 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       if (!firmId) return reply.status(400).send({ error: 'firmId required' })
 
       try {
+        // Auto-detect stalled jobs (Queued or Processing for > 30 minutes)
+        const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000)
+        await prisma.paymentJob.updateMany({
+          where: {
+            firmId,
+            status: { in: [JobStatus.QUEUED, JobStatus.PROCESSING] },
+            updatedAt: { lt: thirtyMinsAgo }
+          },
+          data: { status: JobStatus.STALLED }
+        })
+
         const jobs = await prisma.paymentJob.findMany({
           where: { firmId },
           include: { auditEntries: true, rule: true },
@@ -83,6 +94,7 @@ export async function jobsRoutes(fastify: FastifyInstance) {
         
         const payments = await fetchRecentPayments(firmId, firm.qboRealmId!)
         let triggeredCount = 0
+        let skippedCount = 0
 
         for (const payment of payments) {
           // Check if job already exists (idempotency)
@@ -90,7 +102,10 @@ export async function jobsRoutes(fastify: FastifyInstance) {
             where: { firmId_paymentId: { firmId, paymentId: payment.Id } }
           })
 
-          if (existing) continue
+          if (existing) {
+            skippedCount++
+            continue
+          }
 
           // Create job record
           const dbJob = await prisma.paymentJob.create({
@@ -121,11 +136,17 @@ export async function jobsRoutes(fastify: FastifyInstance) {
           triggeredCount++
         }
 
+        const failedCount = await prisma.paymentJob.count({
+          where: { firmId, status: JobStatus.FAILED }
+        })
+
         return { 
           message: triggeredCount > 0 
             ? `Successfully triggered sync for ${triggeredCount} new payments`
             : 'No new payments found to sync',
-          triggeredCount 
+          triggeredCount,
+          skippedCount,
+          failedCount
         }
       } catch (err: any) {
         console.error('[Manual Sync Error]:', err)
@@ -177,6 +198,43 @@ export async function jobsRoutes(fastify: FastifyInstance) {
 
     return { message: 'Job re-queued', jobId: job.id }
   })
+
+  // POST /api/jobs/retry-all — retry all failed or stalled jobs
+  fastify.post<{ Body: { firmId: string } }>(
+    '/retry-all',
+    async (request, reply) => {
+      const { firmId } = request.body
+      if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+      const jobsToRetry = await prisma.paymentJob.findMany({
+        where: {
+          firmId,
+          status: { in: [JobStatus.FAILED, JobStatus.STALLED, JobStatus.ROLLED_BACK] }
+        },
+        include: { firm: true }
+      })
+
+      for (const job of jobsToRetry) {
+        await prisma.paymentJob.update({
+          where: { id: job.id },
+          data: { status: JobStatus.QUEUED, errorMessage: null }
+        })
+
+        await paymentQueue.add(
+          'process-payment',
+          {
+            jobId: job.id,
+            firmId: job.firmId,
+            realmId: job.firm.qboRealmId!,
+            paymentId: job.paymentId,
+          },
+          { attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
+        )
+      }
+
+      return { message: `Re-enqueued ${jobsToRetry.length} jobs`, count: jobsToRetry.length }
+    }
+  )
 
   // Test endpoint — runs split calculator against real QBO invoices without writing to ledger
   fastify.post<{ Body: { firmId: string; ruleId: string; paymentAmount: number } }>(
@@ -369,25 +427,64 @@ export async function jobsRoutes(fastify: FastifyInstance) {
   )
 
   // GET /api/jobs/ledger?firmId=xxx — fetch ledger entries
-  fastify.get<{ Querystring: { firmId: string; limit?: string } }>(
+  fastify.get<{ Querystring: { firmId: string; limit?: string; startDate?: string; endDate?: string; account?: string; jobId?: string; search?: string } }>(
     '/ledger',
     async (request, reply) => {
-      const { firmId, limit = '200' } = request.query
+      const { firmId, limit = '200', startDate, endDate, account, jobId, search } = request.query
       if (!firmId) return reply.status(400).send({ error: 'firmId required' })
 
       try {
+        const where: any = { firmId }
+        
+        if (startDate || endDate) {
+          where.createdAt = {}
+          if (startDate) where.createdAt.gte = new Date(startDate)
+          if (endDate) where.createdAt.lte = new Date(endDate)
+        }
+        
+        if (account) where.account = account
+        if (jobId) where.jobId = jobId
+        if (search) {
+          where.OR = [
+            { account: { contains: search, mode: 'insensitive' } },
+            { jobId: { contains: search, mode: 'insensitive' } }
+          ]
+        }
+
         const entries = await prisma.ledgerEntry.findMany({
-          where: { firmId },
+          where,
           orderBy: { createdAt: 'desc' },
           take: parseInt(limit, 10),
         })
         
+        // Integrity check: Debits must equal Credits over the full history (or current view)
+        const aggregates = await prisma.ledgerEntry.aggregate({
+          where: { firmId },
+          _sum: { debit: true, credit: true }
+        })
+
+        const totalDebit = Number(aggregates._sum.debit || 0)
+        const totalCredit = Number(aggregates._sum.credit || 0)
+        const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01
+
         // Hardened serialization: explicitly map Decimals to Numbers
-        return entries.map(e => ({
+        const formattedEntries = entries.map(e => ({
           ...e,
           debit: Number(e.debit),
           credit: Number(e.credit)
         }))
+
+        return {
+          entries: formattedEntries,
+          metadata: {
+            integrity: {
+              balanced: isBalanced,
+              diff: totalDebit - totalCredit,
+              lastCheck: new Date().toISOString()
+            },
+            totalCount: entries.length
+          }
+        }
       } catch (err: any) {
         console.error('[Ledger Fetch Error]:', err)
         return reply.status(500).send({
@@ -397,4 +494,4 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       }
     }
   )
-}
+ }
