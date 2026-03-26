@@ -34,22 +34,26 @@ async function bootstrap() {
     origin: (origin, cb) => {
       // Allow requests with no origin (like mobile apps or curl)
       if (!origin) {
-        cb(null, true);
-        return;
-      }
-      
-      const allowedOrigins = [config.FRONTEND_URL];
-      // Also allow the specific production origin reported by the user just in case
-      const userOrigin = 'https://frontend-production-fa86.up.railway.app';
-      if (!allowedOrigins.includes(userOrigin)) {
-        allowedOrigins.push(userOrigin);
+        cb(null, true)
+        return
       }
 
-      if (allowedOrigins.includes(origin)) {
-        cb(null, true);
-        return;
+      const allowedOrigins = [
+        config.FRONTEND_URL,
+        'https://frontend-production-fa86.up.railway.app'
+      ]
+
+      // Normalize origins by removing trailing slashes for comparison
+      const normalizedOrigin = origin.replace(/\/$/, '')
+      const isAllowed = allowedOrigins.some(ao => ao.replace(/\/$/, '') === normalizedOrigin)
+
+      if (isAllowed || config.NODE_ENV === 'development') {
+        cb(null, true)
+        return
       }
-      cb(new Error('Not allowed by CORS'), false);
+      
+      console.warn(`[CORS] Rejected origin: ${origin}`)
+      cb(new Error('Not allowed by CORS'), false)
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -69,23 +73,24 @@ async function bootstrap() {
   // ── Health check ──────────────────────────────────────────────────────────
   server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
-  // ── Start BullMQ worker ───────────────────────────────────────────────────
+  // ── Listen ────────────────────────────────────────────────────────────────
+  try {
+    const address = await server.listen({ port: config.PORT, host: '0.0.0.0' });
+    console.log(`✅ Server listening on ${address}`);
+  } catch (err) {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
+
+  // ── Start BullMQ worker (Background) ───────────────────────────────────────
+  // We start this AFTER listening so Railway health checks pass immediately.
   try {
     const worker = await startWorker();
     Object.assign(server, { worker });
     console.log('🚀 Payment processing worker initialized and listening');
   } catch (err) {
     console.error('❌ Failed to start worker:', err);
-    // Continue starting the server so we can at least provide health checks
-  }
-
-  // ── Listen ────────────────────────────────────────────────────────────────
-  try {
-    await server.listen({ port: config.PORT, host: '0.0.0.0' });
-    console.log(`✅ Server listening on port ${config.PORT}`);
-  } catch (err) {
-    server.log.error(err);
-    process.exit(1);
+    // Non-fatal for the web server, but worker logic won't run.
   }
 }
 
