@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq'
+import { Worker, Queue, Job } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations } from '../services/qboClient'
@@ -58,6 +58,7 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     }
 
     // ── Mark job as processing ──────────────────────────────────────────────
+    console.log(`[PROCESSOR] [Job ${jobId}] Phase 1: Marking as processing...`)
     await prisma.paymentJob.update({
       where: { id: jobId },
       data: { status: JobStatus.PROCESSING },
@@ -89,6 +90,7 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       parentCustomerId = dbJob.rule.parentCustomerId
       activeRule = dbJob.rule
     } else {
+      console.log(`[PROCESSOR] [Job ${jobId}] Phase 2: Fetching QBO Payment ${paymentId}...`)
       const payment = await fetchPayment(firmId, realmId, paymentId)
       paymentAmount = payment.TotalAmt
       parentCustomerId = payment.CustomerRef.value
@@ -137,9 +139,11 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     }
 
     // ── Fetch all open invoices across sub-locations ─────────────────────────
+    console.log(`[PROCESSOR] [Job ${jobId}] Phase 3: Fetching open invoices for ${locationIds.length} sub-locations...`)
     const openInvoices = await fetchOpenInvoices(firmId, realmId, locationIds)
 
     // ── Phase 4: Validate Location existence in QBO ──────────────────────────
+    console.log(`[PROCESSOR] [Job ${jobId}] Phase 4: Validating locations...`)
     const qboLocations = await fetchAllLocations(firmId, realmId)
     const activeLocationIds = qboLocations.map(l => l.Id)
 
@@ -150,7 +154,8 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       }
     }
 
-    // ── Calculate split ──────────────────────────────────────────────────────
+    // ── Phase 5: Calculate Split ─────────────────────────────────────────────
+    console.log(`[PROCESSOR] [Job ${jobId}] Phase 5: Calculating allocation split...`)
     const splitResult = calculateSplit(paymentAmount, openInvoices, ruleConfig)
 
     // ── Assert invariant BEFORE writing anything to QBO ──────────────────────
@@ -174,7 +179,7 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       data: { splitResult: splitResult as any },
     })
 
-    // ── Phase 4.5: Commit to Internal Financial Ledger (Double-Entry) ────────
+    // ── Phase 5.5: Commit to Internal Financial Ledger (Double-Entry) ────────
     await createLedgerTransaction(
       firmId,
       paymentId,
@@ -192,7 +197,7 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     // Per TPS v1.0 Section 8, we should ideally use Journal Entries.
     // For now, we perform BOTH: Payments for AR sub-ledger sync, and a JE for consolidated revenue reporting.
 
-    // ── Phase 4: Construct Journal Entry (Revenue Allocation) ────────────────
+    // ── Phase 5.6: Construct Journal Entry (Revenue Allocation) ──────────────
     // We'll also keep the Payment-Invoice link for AR, but JE is the "Accounting Safe" record.
     const journalEntryModel = {
       Line: [
@@ -224,8 +229,10 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       l.JournalEntryLineDetail.AccountRef.value === 'SERVICE_INCOME_BRANCH'
     )
 
-    // ── Phase 5/6: Process Allocations ───────────────────────────────────────
+    // ── Phase 6: Execute Split (Post to QBO) ──────────────────────────────────
+    console.log(`[PROCESSOR] [Job ${jobId}] Phase 6: Syncing allocations to QBO...`)
     const auditEntries: any[] = []
+    const postedPayments: any[] = []
     let journalEntryId: string | null = null
 
     try {
@@ -439,19 +446,19 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
     stalledInterval: 300000, // 5 minutes (drastically reduce polling for stalled jobs)
   })
 
-  worker.on('failed', (job, err) => {
+  worker.on('failed', (job: Job | undefined, err: Error) => {
     console.error(`[WORKER] [${new Date().toISOString()}] Job ${job?.id} FAILED:`, err.message)
   })
 
-    worker.on('active', (job) => {
-      console.log(`[Worker] Started processing job ${job.id}`)
-    })
+  worker.on('active', (job: Job) => {
+    console.log(`[Worker] Started processing job ${job.id}`)
+  })
 
-    worker.on('completed', (job) => {
+  worker.on('completed', (job: Job) => {
     console.log(`[WORKER] [${new Date().toISOString()}] Job ${job.id} COMPLETED`)
   })
 
-  worker.on('error', (err) => {
+  worker.on('error', (err: Error) => {
     console.error(`[WORKER] [${new Date().toISOString()}] FATAL Error in worker:`, err)
   })
 

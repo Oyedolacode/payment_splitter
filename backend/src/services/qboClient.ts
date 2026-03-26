@@ -63,25 +63,36 @@ async function qboRequest<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const accessToken = await getValidAccessToken(firmId)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000)
 
-  const url = `${QBO_BASE}/v3/company/${realmId}${path}`
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
+  try {
+    const accessToken = await getValidAccessToken(firmId)
+    const url = `${QBO_BASE}/v3/company/${realmId}${path}`
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
 
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`QBO API error ${response.status} on ${path}: ${body}`)
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(`QBO API error ${response.status} on ${path}: ${body}`)
+    }
+
+    return await response.json() as T
+  } catch (err: any) {
+    clearTimeout(timeoutId)
+    if (err.name === 'AbortError') throw new Error(`QBO API timeout after 30s on ${path}`)
+    throw err
   }
-
-  return response.json() as Promise<T>
 }
 
 // ── Public API methods ────────────────────────────────────────────────────────
