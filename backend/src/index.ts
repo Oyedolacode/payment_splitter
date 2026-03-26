@@ -30,34 +30,39 @@ const server = Fastify({
 async function bootstrap() {
   // ── Security & middleware ─────────────────────────────────────────────────
   await server.register(helmet, { contentSecurityPolicy: false });
+  // Build the explicit allow-list: always include the hardcoded production
+  // frontend URL, and add FRONTEND_URL from env if it differs.
+  const allowedOrigins = Array.from(
+    new Set([
+      'https://frontend-production-fa86.up.railway.app',
+      ...(config.FRONTEND_URL ? [config.FRONTEND_URL.replace(/\/$/, '')] : []),
+    ])
+  )
+
   await server.register(cors, {
     origin: (origin, cb) => {
-      // Allow requests with no origin (like mobile apps or curl)
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
       if (!origin) {
         cb(null, true)
         return
       }
 
-      const allowedOrigins = [
-        config.FRONTEND_URL,
-        'https://frontend-production-fa86.up.railway.app'
-      ]
-
-      // Normalize origins by removing trailing slashes for comparison
       const normalizedOrigin = origin.replace(/\/$/, '')
-      const isAllowed = allowedOrigins.some(ao => ao.replace(/\/$/, '') === normalizedOrigin)
 
-      if (isAllowed || config.NODE_ENV === 'development') {
+      if (config.NODE_ENV === 'development' || allowedOrigins.includes(normalizedOrigin)) {
         cb(null, true)
         return
       }
-      
+
       console.warn(`[CORS] Rejected origin: ${origin}`)
       cb(new Error('Not allowed by CORS'), false)
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
   await server.register(cookie);
   await server.register(jwt, { secret: config.JWT_SECRET });
