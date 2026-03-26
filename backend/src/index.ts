@@ -50,6 +50,16 @@ async function bootstrap() {
   // ── Health check ──────────────────────────────────────────────────────────
   server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
+  console.log('🏁 Starting bootstrap process...')
+  
+  // ── Config verification ──
+  try {
+    console.log(`📡 Environment: ${config.NODE_ENV}, Port: ${config.PORT}`)
+  } catch (e) {
+    console.error('❌ Config validation failed at runtime!')
+    throw e
+  }
+
   // ── Listen ────────────────────────────────────────────────────────────────
   try {
     const address = await server.listen({ port: config.PORT, host: '0.0.0.0' });
