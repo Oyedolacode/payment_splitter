@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 import { Queue } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
