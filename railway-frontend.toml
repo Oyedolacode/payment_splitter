@@ -1,8 +1,8 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd frontend && npm install && npm run build"
+buildCommand = "if [ -d frontend ]; then cd frontend; fi && npm install && npm run build"
 
 [deploy]
-startCommand = "cd frontend && npm run start"
+startCommand = "if [ -d frontend ]; then cd frontend; fi && npm run start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

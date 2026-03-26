@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd backend && npm install && npm run build && npx prisma generate"
+buildCommand = "if [ -d backend ]; then cd backend; fi && npm install && npm run build && npx prisma generate"
 
 [deploy]
 startCommand = "if [ -d backend ]; then cd backend; fi && npm start"
