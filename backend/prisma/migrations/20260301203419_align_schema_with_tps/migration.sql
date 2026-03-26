@@ -1,5 +1,5 @@
 -- AlterEnum
-ALTER TYPE "JobStatus" ADD VALUE 'REVIEW_REQUIRED';
+DO $$ BEGIN ALTER TYPE "JobStatus" ADD VALUE 'REVIEW_REQUIRED'; EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- AlterTable
 ALTER TABLE "firms" ADD COLUMN     "allocation_mode" TEXT NOT NULL DEFAULT 'AUTO';

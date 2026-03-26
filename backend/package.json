@@ -9,6 +9,7 @@
     "start": "npx prisma migrate deploy && npx prisma db push --accept-data-loss && node dist/index.js",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:fix": "tsx scripts/fix-db.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

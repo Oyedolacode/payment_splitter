@@ -1,0 +1,5 @@
+-- AlterEnum
+DO $$ BEGIN ALTER TYPE "JobStatus" ADD VALUE 'STALLED'; EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- AlterTable
+ALTER TABLE "payment_jobs" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

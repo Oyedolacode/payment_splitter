@@ -9,6 +9,7 @@ async function runFix() {
   const sqlCommands = [
     // 1. Alter Enum (Ignore if exists)
     `DO $$ BEGIN ALTER TYPE "JobStatus" ADD VALUE 'ANOMALY_PAUSED'; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    `DO $$ BEGIN ALTER TYPE "JobStatus" ADD VALUE 'STALLED'; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
 
     // 2. Add columns to firms
     `ALTER TABLE "firms" ADD COLUMN IF NOT EXISTS "plan_locked_at" TIMESTAMP(3);`,
