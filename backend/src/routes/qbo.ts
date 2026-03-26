@@ -9,7 +9,8 @@ export async function qboRoutes(fastify: FastifyInstance) {
         if (!firmId) return reply.status(400).send({ error: 'firmId required' })
 
         try {
-            const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
+            const firm = await prisma.firm.findUnique({ where: { id: firmId } })
+            if (!firm) return reply.status(404).send({ error: 'Firm not found or has been merged/deleted' })
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
             const customers = await fetchAllCustomers(firmId, firm.qboRealmId)
@@ -34,7 +35,8 @@ export async function qboRoutes(fastify: FastifyInstance) {
         if (!firmId) return reply.status(400).send({ error: 'firmId required' })
 
         try {
-            const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
+            const firm = await prisma.firm.findUnique({ where: { id: firmId } })
+            if (!firm) return reply.status(404).send({ error: 'Firm not found' })
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
             const locations = await fetchAllLocations(firmId, firm.qboRealmId)
@@ -57,7 +59,8 @@ export async function qboRoutes(fastify: FastifyInstance) {
         if (!firmId || !parentCustomerId) return reply.status(400).send({ error: 'firmId and parentCustomerId required' })
 
         try {
-            const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
+            const firm = await prisma.firm.findUnique({ where: { id: firmId } })
+            if (!firm) return reply.status(404).send({ error: 'Firm not found' })
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
             const { fetchSubCustomers } = await import('../services/qboClient')

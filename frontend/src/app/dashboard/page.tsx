@@ -419,7 +419,12 @@ export default function DashboardPage() {
       window.history.replaceState({}, '', window.location.pathname)
     }
 
-    const interval = setInterval(() => fetchDashboardData(id), 10000)
+    const interval = setInterval(() => {
+      setFirmId(currentId => {
+        fetchDashboardData(currentId)
+        return currentId
+      })
+    }, 10000)
     return () => clearInterval(interval)
   }, [router, fetchDashboardData, addToast])
 

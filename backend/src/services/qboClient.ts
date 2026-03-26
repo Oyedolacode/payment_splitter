@@ -63,13 +63,13 @@ async function qboRequest<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const controller = new AbortController()
+  const controller = new globalThis.AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000)
 
   try {
     const accessToken = await getValidAccessToken(firmId)
     const url = `${QBO_BASE}/v3/company/${realmId}${path}`
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
