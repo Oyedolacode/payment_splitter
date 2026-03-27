@@ -143,15 +143,28 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
             })
             console.log(`[RULE-LOOKUP] Parent rule lookup result: ${rule ? `FOUND rule.id=${rule.id}` : 'NOT FOUND'}`)
           } else {
-            console.warn(`[RULE-LOOKUP] Customer ${parentCustomerId} has NO parent in QBO — it is a top-level customer. A rule must be created specifically for this customer.`)
+            console.warn(`[RULE-LOOKUP] Customer ${parentCustomerId} has NO parent in QBO — checking for default rule...`)
           }
         } catch (err: any) {
           console.error(`[RULE-LOOKUP] Error during parent lookup for customer ${parentCustomerId}:`, err.message)
         }
+
+        // [Phase 7c] Default Rule Fallback — catches all remaining unmapped customers
+        if (!rule) {
+          console.log(`[RULE-LOOKUP] Attempting default rule fallback...`)
+          rule = await prisma.splitRule.findFirst({
+            where: { firmId, isActive: true, isDefault: true }
+          })
+          if (rule) {
+            console.log(`[RULE-LOOKUP] ✅ DEFAULT RULE APPLIED: rule.id=${rule.id} for customer ${parentCustomerId}`)
+          } else {
+            console.warn(`[RULE-LOOKUP] ❌ No default rule found. Job cannot be processed.`)
+          }
+        }
       }
 
       if (!rule) {
-        throw new Error(`No active split rule found for parent customer ${parentCustomerId} (Firm: ${firmId})`)
+        throw new Error(`No active split rule found for parent customer ${parentCustomerId} (Firm: ${firmId}). Create a rule for this customer or mark an existing rule as "Default".`)
       }
 
       await prisma.paymentJob.update({

@@ -154,4 +154,26 @@ export async function rulesRoutes(fastify: FastifyInstance) {
     await prisma.splitRule.delete({ where: { id: request.params.id } })
     return reply.status(204).send()
   })
+
+  // POST /api/rules/:id/set-default — mark rule as the catch-all default
+  fastify.post<{ Params: { id: string }; Body: { firmId: string } }>('/:id/set-default', async (request, reply) => {
+    const { id } = request.params
+    const { firmId } = request.body
+    if (!firmId) return reply.status(400).send({ error: 'firmId required' })
+
+    // Clear default from all other rules for this firm first
+    await prisma.splitRule.updateMany({
+      where: { firmId, isDefault: true },
+      data: { isDefault: false }
+    })
+
+    // Mark this rule as default
+    const updated = await prisma.splitRule.update({
+      where: { id },
+      data: { isDefault: true }
+    })
+
+    console.log(`[RULES] Rule ${id} set as DEFAULT FALLBACK for firm ${firmId}`)
+    return updated
+  })
 }

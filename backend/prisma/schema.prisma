@@ -45,6 +45,7 @@ model SplitRule {
   ruleType         String       @map("rule_type")
   ruleConfig       Json         @map("rule_config")
   isActive         Boolean      @default(true) @map("is_active")
+  isDefault        Boolean      @default(false) @map("is_default") // Catch-all for customers without a specific rule
   isLocked         Boolean      @default(false) @map("is_locked")
   lockedReason     String?      @map("locked_reason") // e.g. "PLAN_DOWNGRADE"
   createdAt        DateTime     @default(now()) @map("created_at")
