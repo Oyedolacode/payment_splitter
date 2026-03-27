@@ -1,7 +1,7 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
-import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations } from '../services/qboClient'
+import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations, fetchAllCustomers } from '../services/qboClient'
 import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/splitCalculator'
 import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/email'
 import { JobStatus } from '@prisma/client'
@@ -208,8 +208,17 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
 
     // ── Phase 4: Validate Location existence in QBO ──────────────────────────
     console.log(`[PROCESSOR] [Job ${jobId}] Phase 4: Validating locations...`)
-    const qboLocations = await fetchAllLocations(firmId, realmId)
-    const activeLocationIds = qboLocations.map(l => l.Id)
+    
+    // Fetch both Departments AND Active Customers (some users use Departments, others use Sub-customers)
+    const [qboDepartments, qboCustomers] = await Promise.all([
+      fetchAllLocations(firmId, realmId),
+      fetchAllCustomers(firmId, realmId)
+    ])
+    
+    const activeLocationIds = [
+      ...qboDepartments.map(l => l.Id),
+      ...qboCustomers.map(c => c.Id)
+    ]
 
     const inactiveDetected = locationIds.filter(id => !activeLocationIds.includes(id))
     let effectiveRuleConfig = ruleConfig
