@@ -163,6 +163,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           isSubscribed: true,
           plan: true,
           trialEndsAt: true,
+          subscriptionStatus: true,
+          currentPeriodEnd: true,
         },
       })
 
@@ -176,6 +178,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         isSubscribed: (firm as any).isSubscribed,
         plan: (firm as any).plan,
         trialEndsAt: (firm as any).trialEndsAt,
+        subscriptionStatus: (firm as any).subscriptionStatus,
+        currentPeriodEnd: (firm as any).currentPeriodEnd,
       }
     } catch (err) {
       console.error('Error fetching firm status:', err)

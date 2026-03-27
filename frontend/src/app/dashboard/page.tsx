@@ -12,7 +12,8 @@ import {
 import { fmt, deriveStatus } from '../../lib/formatters'
 import { timeAgo } from '../../lib/utils'
 import { STATUS_META } from '../../constants/status'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
 declare var process: {
   env: {
@@ -66,6 +67,9 @@ interface Firm {
   name: string
   plan: 'TRIAL' | 'STANDARD' | 'PROFESSIONAL' | 'PRACTICE'
   connected: boolean
+  isSubscribed?: boolean
+  subscriptionStatus?: string
+  currentPeriodEnd?: string
 }
 
 interface Toast {
@@ -91,15 +95,17 @@ const isPlanAllowed = (minPlan: keyof typeof PLAN_RANK, currentPlan: keyof typeo
 
 // ── Main Dashboard ──────────────────────────────────────────────────────────
 
-
-
-
-
 // ── Main Dashboard ──────────────────────────────────────────────────────────
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('reconciliation')
+  const searchParams = useSearchParams()
+  
+  // Initialize from URL parameters if available
+  const initialTab = (searchParams.get('tab') as Tab) || 'reconciliation'
+  const initialSubTab = (searchParams.get('subTab') as any) || 'profile'
+
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [firm, setFirm] = useState<Firm | null>(null)
   const [jobs, setJobs] = useState<ReconciliationJob[]>([])
   const [rules, setRules] = useState<Rule[]>([])
@@ -126,7 +132,7 @@ export default function DashboardPage() {
   const [editingRule, setEditingRule] = useState<any>(null)
   const [rulePrefillId, setRulePrefillId] = useState<string>('')
   const [showPricingModal, setShowPricingModal] = useState(false)
-  const [workerHealth, setWorkerHealth] = useState<{ status: string; counts: any } | null>(null)
+  const [settingsSubTab, setSettingsSubTab] = useState<'profile' | 'billing' | 'security' | 'notifications'>(initialSubTab)
   const [confirmation, setConfirmation] = useState<{
     show: boolean;
     title: string;
@@ -142,6 +148,7 @@ export default function DashboardPage() {
     onConfirm: () => {},
     type: 'info'
   })
+  const [workerHealth, setWorkerHealth] = useState<any>(null)
 
   const addToast = useCallback((message: string, type: Toast['type'] = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
@@ -151,6 +158,27 @@ export default function DashboardPage() {
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
+
+  // Sync state changes to URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab !== 'reconciliation') {
+      params.set('tab', tab)
+    } else {
+      params.delete('tab')
+    }
+    
+    if (tab === 'settings' && settingsSubTab !== 'profile') {
+      params.set('subTab', settingsSubTab)
+    } else {
+      params.delete('subTab')
+    }
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`
+    
+    // Using replace state to prevent polluting history stack during rapid tab switching
+    window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl)
+  }, [tab, settingsSubTab, searchParams])
 
   const fetchDashboardData = useCallback(async (fid: string) => {
     if (!fid) return
@@ -424,6 +452,28 @@ export default function DashboardPage() {
   }
 
 
+
+  const handleManageBilling = async () => {
+    try {
+      setSyncing(true)
+      const res = await fetch(`${API}/api/stripe/portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firmId }),
+      })
+      if (!res.ok) throw new Error('Failed to create portal session')
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('No portal URL returned')
+      }
+    } catch (e) {
+      addToast('Failed to open billing portal', 'error')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const getRuleDetails = (rule: Rule) => {
     const { ruleType, ruleConfig } = rule
@@ -1365,7 +1415,9 @@ export default function DashboardPage() {
                 ].map(item => (
                   <button
                     key={item.id}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-all max-[1024px]:shrink-0 max-[1024px]:p-[10px_20px] ${item.id === 'profile' ? 'bg-accent text-white shadow-md' : 'text-text-3 hover:bg-surface-2 hover:text-text'}`}
+                    onClick={() => !item.locked && setSettingsSubTab(item.id as any)}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-all max-[1024px]:shrink-0 max-[1024px]:p-[10px_20px] ${settingsSubTab === item.id ? 'bg-accent text-white shadow-md' : 'text-text-3 hover:bg-surface-2 hover:text-text'}`}
+                    disabled={item.locked}
                   >
                     <div className="flex items-center gap-3">
                       <span>{item.icon}</span>
@@ -1379,131 +1431,182 @@ export default function DashboardPage() {
 
               {/* Settings Content */}
               <div className="flex flex-col gap-6">
-                <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8">
-                  <header>
-                    <h2 className="font-display text-[20px] font-800 text-text tracking-tight mb-2">Organization Profile</h2>
-                    <p className="text-text-3 text-[14px]">Update your firm's administrative and security details.</p>
-                  </header>
+                {settingsSubTab === 'profile' && (
+                  <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8 animate-fadeIn">
+                    <header>
+                      <h2 className="font-display text-[20px] font-800 text-text tracking-tight mb-2">Organization Profile</h2>
+                      <p className="text-text-3 text-[14px]">Update your firm's administrative and security details.</p>
+                    </header>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-[768px]:gap-6">
-                    <div className="flex flex-col gap-6">
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm Name</label>
-                        <input
-                          className="bg-surface-2 border border-border text-text rounded-xl p-[12px_16px] text-[14px] font-600 outline-none focus:border-accent transition-all"
-                          value={firm?.name || ''}
-                          disabled
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-[768px]:gap-6">
+                      <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm Name</label>
+                          <input
+                            className="bg-surface-2 border border-border text-text rounded-xl p-[12px_16px] text-[14px] font-600 outline-none focus:border-accent transition-all"
+                            value={firm?.name || ''}
+                            disabled
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm ID (Read-only)</label>
+                          <input
+                            className="bg-surface-2 border border-border text-text-3 rounded-xl p-[12px_16px] text-[13px] font-mono outline-none"
+                            value={firmId}
+                            readOnly
+                          />
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[11px] font-800 text-text-3 uppercase tracking-wider ml-1">Firm ID (Read-only)</label>
-                        <input
-                          className="bg-surface-2 border border-border text-text-3 rounded-xl p-[12px_16px] text-[13px] font-mono outline-none"
-                          value={firmId}
-                          readOnly
-                        />
+
+                      {/* Operational Health Card */}
+                      <div className="bg-accent/5 border border-accent/10 rounded-2xl p-6 flex flex-col gap-4">
+                        <div className="flex items-center gap-3 text-accent">
+                          <ActivityIcon className="w-5 h-5" />
+                          <span className="font-display font-800 text-[14px] uppercase tracking-tight">Operational Health</span>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          <div className="flex justify-between items-center text-[12px]">
+                            <span className="text-text-3 font-600">QBO Sync Status</span>
+                            <span className="text-[#10b981] font-800">Operational</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[12px]">
+                            <span className="text-text-3 font-600">Rule Engine</span>
+                            <span className="text-[#10b981] font-800">Healthy (0ms lag)</span>
+                          </div>
+                          <div className="h-1 bg-border rounded-full overflow-hidden mt-2">
+                            <div className="w-[85%] h-full bg-accent rounded-full" />
+                          </div>
+                          <span className="text-[10px] text-text-3 font-700 uppercase">Usage: 85% of Trial rules used</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-8 border-t border-border flex flex-col gap-6 max-[768px]:pt-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Data Retention Policy</span>
+                          <span className="text-[12px] text-text-3 font-500">Keep audit logs for 12 months after job completion.</span>
+                        </div>
+                        <div className="w-12 h-6 bg-accent rounded-full border border-accent relative shrink-0">
+                          <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Email Notifications</span>
+                          <span className="text-[12px] text-text-3 font-500">Receive summaries of payment batches and failures.</span>
+                        </div>
+                        <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative shrink-0">
+                          <div className="absolute left-1 top-1 w-4 h-4 bg-text-3 rounded-full" />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Operational Health Card */}
-                    <div className="bg-accent/5 border border-accent/10 rounded-2xl p-6 flex flex-col gap-4">
-                      <div className="flex items-center gap-3 text-accent">
-                        <ActivityIcon className="w-5 h-5" />
-                        <span className="font-display font-800 text-[14px] uppercase tracking-tight">Operational Health</span>
-                      </div>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex justify-between items-center text-[12px]">
-                          <span className="text-text-3 font-600">QBO Sync Status</span>
-                          <span className="text-[#10b981] font-800">Operational</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[12px]">
-                          <span className="text-text-3 font-600">Rule Engine</span>
-                          <span className="text-[#10b981] font-800">Healthy (0ms lag)</span>
-                        </div>
-                        <div className="h-1 bg-border rounded-full overflow-hidden mt-2">
-                          <div className="w-[85%] h-full bg-accent rounded-full" />
-                        </div>
-                        <span className="text-[10px] text-text-3 font-700 uppercase">Usage: 85% of Trial rules used</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pt-8 border-t border-border flex flex-col gap-6 max-[768px]:pt-6">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-6 mt-4">
                       <div className="flex flex-col gap-1">
-                        <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Data Retention Policy</span>
-                        <span className="text-[12px] text-text-3 font-500">Keep audit logs for 12 months after job completion.</span>
+                        <h3 className="font-display text-[16px] font-800 text-[#ef4444] uppercase tracking-tight">Danger Zone</h3>
+                        <p className="text-text-3 text-[13px] font-500">Irreversible actions for your organization data.</p>
                       </div>
-                      <div className="w-12 h-6 bg-accent rounded-full border border-accent relative shrink-0">
-                        <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Email Notifications</span>
-                        <span className="text-[12px] text-text-3 font-500">Receive summaries of payment batches and failures.</span>
-                      </div>
-                      <div className="w-12 h-6 bg-surface-3 rounded-full border border-border relative shrink-0">
-                        <div className="absolute left-1 top-1 w-4 h-4 bg-text-3 rounded-full" />
+                      <div className="flex items-center justify-between gap-6 p-6 max-[768px]:p-4 bg-white border border-[#ef444415] rounded-2xl max-[768px]:flex-col max-[768px]:items-start">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Purge Audit Logs</span>
+                          <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setConfirmation({
+                              show: true,
+                              title: 'Purge Audit Logs',
+                              message: 'This will permanently delete all system activity records. This action is irreversible.',
+                              confirmText: 'Empty Registry',
+                              type: 'danger',
+                              onConfirm: async () => {
+                                try {
+                                  const res = await fetch(`${API}/api/jobs/activity?firmId=${firmId}`, { method: 'DELETE' })
+                                  if (!res.ok) throw new Error('Purge failed')
+                                  addToast('Audit logs purged', 'success')
+                                  fetchDashboardData(firmId)
+                                } catch (e) {
+                                  addToast('Failed to purge logs', 'error')
+                                }
+                                setConfirmation(prev => ({ ...prev, show: false }))
+                              }
+                            })
+                          }}
+                          className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider max-[768px]:w-full text-center"
+                        >
+                          Empty Registry
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex items-center justify-between gap-6 max-[768px]:flex-col max-[768px]:items-start bg-gradient-to-br from-surface to-accent/5">
-                  <div className="flex items-center gap-6 max-[768px]:gap-4">
-                    <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20 shrink-0">
-                      <SparklesIcon className="w-6 h-6" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display text-[16px] font-800 text-text">{firm?.plan || 'TRIAL'} Plan</span>
-                      <span className="text-[12px] text-text-3 font-600 uppercase tracking-widest">Next billing: April 1, 2026</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowPricingModal(true)}
-                    className="p-[10px_24px] bg-white text-black border border-black rounded-xl text-[12px] font-800 hover:bg-black hover:text-white transition-all shadow-sm max-[768px]:w-full"
-                  >
-                    Manage Billing
-                  </button>
-                </div>
+                {settingsSubTab === 'billing' && (
+                  <div className="flex flex-col gap-6 animate-fadeIn">
+                    <div className="bg-surface border border-border rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-8">
+                      <header>
+                        <h2 className="font-display text-[20px] font-800 text-text tracking-tight mb-2">Billing & Plan</h2>
+                        <p className="text-text-3 text-[14px]">Manage your subscription and payment methods.</p>
+                      </header>
 
-                <div className="bg-[#ef444405] border border-[#ef444415] rounded-[24px] p-8 max-[768px]:p-5 flex flex-col gap-6">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="font-display text-[16px] font-800 text-[#ef4444] uppercase tracking-tight">Danger Zone</h3>
-                    <p className="text-text-3 text-[13px] font-500">Irreversible actions for your organization data.</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-6 p-6 max-[768px]:p-4 bg-white border border-[#ef444415] rounded-2xl max-[768px]:flex-col max-[768px]:items-start">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display text-[15px] max-[768px]:text-[14px] font-800 text-text">Purge Audit Logs</span>
-                      <span className="text-[12px] text-text-3 font-500">Permanently delete all historical activity data.</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20 rounded-[24px] p-6 flex flex-col gap-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-accent/20 rounded-2xl flex items-center justify-center text-accent">
+                              <SparklesIcon className="w-6 h-6" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-800 text-accent uppercase tracking-widest">Active Plan</span>
+                              <span className="font-display text-[20px] font-800 text-text">{firm?.plan || 'TRIAL'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col gap-3">
+                            <div className="flex justify-between items-center text-[13px]">
+                              <span className="text-text-3 font-600">Status</span>
+                              <span className={`font-800 uppercase tracking-tighter ${firm?.subscriptionStatus === 'active' ? 'text-[#10b981]' : 'text-accent'}`}>
+                                {firm?.subscriptionStatus || 'Trialing'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                              <span className="text-text-3 font-600">Next Billing Date</span>
+                              <span className="text-text font-800">
+                                {firm?.currentPeriodEnd ? new Date(firm.currentPeriodEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-3 mt-2">
+                             <button
+                              onClick={handleManageBilling}
+                              disabled={syncing}
+                              className="w-full p-[12px] bg-text text-bg rounded-xl text-[13px] font-800 hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg"
+                            >
+                              <span>{syncing ? 'Connecting...' : 'Manage via Stripe Portal'}</span>
+                              {!syncing && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>}
+                            </button>
+                            <button
+                              onClick={() => setShowPricingModal(true)}
+                              className="w-full p-[12px] bg-surface border border-border text-text rounded-xl text-[13px] font-700 hover:bg-surface-2 transition-all"
+                            >
+                              Change Plan
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="bg-surface-2 border border-border rounded-[24px] p-6 flex flex-col gap-4">
+                          <h4 className="text-[11px] font-800 text-text-3 uppercase tracking-widest">Payment Methods</h4>
+                          <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 py-8">
+                             <div className="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center text-text-3 grayscale opacity-30">
+                               <DollarIcon className="w-6 h-6" />
+                             </div>
+                             <p className="text-[12px] text-text-3 font-600 max-w-[150px]">Manage your cards securely in the Stripe Portal.</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        setConfirmation({
-                          show: true,
-                          title: 'Purge Audit Logs',
-                          message: 'This will permanently delete all system activity records. This action is irreversible.',
-                          confirmText: 'Empty Registry',
-                          type: 'danger',
-                          onConfirm: async () => {
-                            try {
-                              const res = await fetch(`${API}/api/jobs/activity?firmId=${firmId}`, { method: 'DELETE' })
-                              if (!res.ok) throw new Error('Purge failed')
-                              addToast('Audit logs purged', 'success')
-                              fetchDashboardData(firmId)
-                            } catch (e) {
-                              addToast('Failed to purge logs', 'error')
-                            }
-                            setConfirmation(prev => ({ ...prev, show: false }))
-                          }
-                        })
-                      }}
-                      className="p-[8px_16px] border border-[#ef4444] text-[#ef4444] rounded-lg text-[11px] font-800 hover:bg-[#ef4444] hover:text-white transition-all uppercase tracking-wider max-[768px]:w-full text-center"
-                    >
-                      Empty Registry
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -1992,5 +2095,17 @@ function ConfirmationModal({ title, message, confirmText, onConfirm, onClose, ty
         </div>
       </div>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }

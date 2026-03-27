@@ -86,6 +86,35 @@ export async function stripeRoutes(fastify: FastifyInstance) {
     })
 
     /**
+     * POST /api/stripe/portal
+     * Creates a Stripe Customer Portal session for the firm.
+     */
+    fastify.post('/portal', async (request, reply) => {
+        const { firmId } = request.body as { firmId: string }
+
+        if (!firmId) {
+            return reply.status(400).send({ error: 'firmId is required' })
+        }
+
+        const firm = await prisma.firm.findUnique({ where: { id: firmId } })
+        if (!firm) {
+            return reply.status(404).send({ error: 'Firm not found' })
+        }
+
+        const customerId = (firm as any).stripeCustomerId
+        if (!customerId) {
+            return reply.status(400).send({ error: 'No billing account found for this organization. Please subscribe first.' })
+        }
+
+        const session = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: `${config.FRONTEND_URL}/dashboard`,
+        })
+
+        return { url: session.url }
+    })
+
+    /**
      * POST /api/stripe/webhook
      * Processes Stripe webhook events.
      */
