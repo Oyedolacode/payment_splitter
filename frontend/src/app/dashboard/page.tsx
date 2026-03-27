@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState, useCallback, useMemo, useRef, Fragment } from 'react'
 import { ThemeToggle } from '../../components/common/ThemeToggle'
 import { StatusBadge } from '../../components/common/StatusBadge'
