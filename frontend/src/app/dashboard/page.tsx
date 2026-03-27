@@ -1317,12 +1317,25 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-surface-2 rounded-2xl border border-border flex flex-col gap-3 relative z-10">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">Strategy</span>
-                        <span className="p-[3px_10px] bg-accent/10 text-accent text-[10px] font-bold rounded-full border border-accent/20 uppercase tracking-wider">{rule.ruleType.replace('_', ' ')}</span>
                       </div>
                       <div className="text-[12px] font-600 text-text-2 leading-relaxed italic">&quot;{getRuleDetails(rule)}&quot;</div>
+                      {(() => {
+                        const locIds = rule.ruleType === 'proportional' 
+                          ? Object.keys(rule.ruleConfig.weights || {}) 
+                          : (rule.ruleType === 'oldest_first' ? (rule.ruleConfig.locationIds || []) : (rule.ruleConfig.order || []))
+                        const missing = locIds.filter((id: string) => !customers.find((c: any) => c.id === id) && !locations.find((l: any) => l.id === id))
+                        if (missing.length > 0) {
+                          return (
+                            <div className="mt-2 flex items-center gap-2 p-2 bg-[#ef444408] border border-[#ef444415] rounded-lg">
+                              <span className="text-[14px]">⚠️</span>
+                              <p className="text-[10px] font-700 text-[#ef4444] uppercase tracking-tight">
+                                Inactive Location detected ({missing.join(', ')})
+                              </p>
+                            </div>
+                          )
+                        }
+                        return null
+                      })()}
                     </div>
                     <div className="flex items-center justify-between mt-2 relative z-10">
                       <div className="flex items-center gap-2">

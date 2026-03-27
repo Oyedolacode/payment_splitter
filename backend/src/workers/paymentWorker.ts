@@ -211,16 +211,41 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
     const qboLocations = await fetchAllLocations(firmId, realmId)
     const activeLocationIds = qboLocations.map(l => l.Id)
 
-    for (const locId of locationIds) {
-      if (!activeLocationIds.includes(locId)) {
-        await logActivity(firmId, 'ANOMALY_DETECTED', { reason: 'INACTIVE_LOCATION', locationId: locId }, jobId, 'SYSTEM', 'WARNING')
-        throw new Error(`Location ${locId} is no longer active in QuickBooks. Please update your split rules.`)
+    const inactiveDetected = locationIds.filter(id => !activeLocationIds.includes(id))
+    let effectiveRuleConfig = ruleConfig
+
+    if (inactiveDetected.length > 0) {
+      console.warn(`[PROCESSOR] [Job ${jobId}] Detected ${inactiveDetected.length} inactive locations: ${inactiveDetected.join(', ')}`)
+      
+      // Attempt Redistribution
+      if (ruleConfig.type === 'proportional') {
+        const newWeights = redistributeWeights(ruleConfig.weights, activeLocationIds)
+        if (Object.keys(newWeights).length === 0) {
+          await logActivity(firmId, 'ANOMALY_DETECTED', { reason: 'ALL_LOCATIONS_INACTIVE', inactiveIds: inactiveDetected }, jobId, 'SYSTEM', 'ERROR')
+          throw new Error(`All locations in this rule (${inactiveDetected.join(', ')}) are inactive in QuickBooks. Please update your rule.`)
+        }
+        effectiveRuleConfig = { ...ruleConfig, weights: newWeights }
+        await logActivity(firmId, 'RULE_ADJUSTED', { reason: 'INACTIVE_LOCATIONS_SKIPPED', skipped: inactiveDetected, newWeights }, jobId, 'SYSTEM', 'WARNING')
+      } else {
+        // Waterfall / Priority: Just skip inactive ones
+        const remaining = locationIds.filter(id => !inactiveDetected.includes(id))
+        if (remaining.length === 0) {
+          await logActivity(firmId, 'ANOMALY_DETECTED', { reason: 'ALL_LOCATIONS_INACTIVE', inactiveIds: inactiveDetected }, jobId, 'SYSTEM', 'ERROR')
+          throw new Error(`All locations in this sequence are inactive in QuickBooks.`)
+        }
+        
+        if (ruleConfig.type === 'oldest_first') {
+          effectiveRuleConfig = { ...ruleConfig, locationIds: remaining }
+        } else {
+          effectiveRuleConfig = { ...ruleConfig, order: remaining }
+        }
+        await logActivity(firmId, 'RULE_ADJUSTED', { reason: 'INACTIVE_LOCATIONS_SKIPPED', skipped: inactiveDetected }, jobId, 'SYSTEM', 'WARNING')
       }
     }
 
     // ── Phase 5: Calculate Split ─────────────────────────────────────────────
     console.log(`[PROCESSOR] [Job ${jobId}] Phase 5: Calculating allocation split...`)
-    const splitResult = calculateSplit(paymentAmount, openInvoices, ruleConfig)
+    const splitResult = calculateSplit(paymentAmount, openInvoices, effectiveRuleConfig)
 
     // ── Assert invariant BEFORE writing anything to QBO ──────────────────────
     assertSplitInvariant(splitResult, paymentAmount)
@@ -539,4 +564,37 @@ export async function startWorker(): Promise<Worker<PaymentJobData>> {
   }, 300000) // Every 5 minutes instead of 1 to save requests
 
   return worker
+}
+
+/**
+ * Redistributes weights from inactive locations to active ones, scaling to 100%.
+ */
+function redistributeWeights(originalWeights: Record<string, number>, activeLocationIds: string[]): Record<string, number> {
+  const filteredWeights: Record<string, number> = {}
+  let totalActiveWeight = 0
+  
+  for (const [locId, weight] of Object.entries(originalWeights)) {
+    if (activeLocationIds.includes(locId)) {
+      filteredWeights[locId] = weight
+      totalActiveWeight += weight
+    }
+  }
+
+  if (totalActiveWeight === 0) return {}
+
+  const rescaled: Record<string, number> = {}
+  Object.entries(filteredWeights).forEach(([locId, weight]) => {
+    rescaled[locId] = Math.round((weight / totalActiveWeight) * 100 * 100) / 100
+  })
+
+  // Final rounding correction to ensure exactly 100%
+  const sum = Object.values(rescaled).reduce((s, w) => s + w, 0)
+  if (Math.abs(sum - 100) > 0.001) {
+    const keys = Object.keys(rescaled)
+    if (keys.length > 0) {
+      rescaled[keys[0]] = Math.round((rescaled[keys[0]] + (100 - sum)) * 100) / 100
+    }
+  }
+
+  return rescaled
 }
