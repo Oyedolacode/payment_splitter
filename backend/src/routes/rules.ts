@@ -21,6 +21,7 @@ const createRuleSchema = z.object({
   firmId: z.string().uuid(),
   parentCustomerId: z.string().min(1),
   ruleConfig: ruleConfigSchema,
+  isDefault: z.boolean().optional(),
 })
 
 const allowedStrategiesByPlan: Record<string, string[]> = {
@@ -81,12 +82,21 @@ export async function rulesRoutes(fastify: FastifyInstance) {
       }
     }
 
+    // 3. Handle Default Status (Atomically clear others if this one is default)
+    if (body.isDefault) {
+      await prisma.splitRule.updateMany({
+        where: { firmId: body.firmId, isDefault: true },
+        data: { isDefault: false }
+      })
+    }
+
     const rule = await prisma.splitRule.create({
       data: {
         firmId: body.firmId,
         parentCustomerId: body.parentCustomerId,
         ruleType: body.ruleConfig.type,
         ruleConfig: body.ruleConfig,
+        isDefault: !!body.isDefault,
       },
     })
     return reply.status(201).send(rule)
@@ -126,6 +136,17 @@ export async function rulesRoutes(fastify: FastifyInstance) {
 
       const data: any = {}
       if (request.body.isActive !== undefined) data.isActive = request.body.isActive
+
+      if (request.body.isDefault !== undefined) {
+        data.isDefault = request.body.isDefault
+        // If setting to true, clear all others for this firm
+        if (data.isDefault) {
+          await prisma.splitRule.updateMany({
+            where: { firmId: rule.firmId, isDefault: true },
+            data: { isDefault: false }
+          })
+        }
+      }
 
       if (request.body.ruleConfig) {
         const newType = request.body.ruleConfig.type || rule.ruleType

@@ -9,7 +9,8 @@ async function main() {
   const rules = await prisma.splitRule.findMany({ where: { firmId: FIRM_ID } })
   console.log(`\n=== CURRENT SPLIT RULES (${rules.length} total) ===`)
   rules.forEach(r => {
-    console.log(`  parentCustomerId="${r.parentCustomerId}" | isActive=${r.isActive} | ruleType=${r.ruleType} | id=${r.id}`)
+    console.log(`  parentCustomerId="${r.parentCustomerId}" | isActive=${r.isActive} | isDefault=${r.isDefault} | ruleType=${r.ruleType} | id=${r.id}`)
+    console.log(`    ruleConfig: ${JSON.stringify(r.ruleConfig, null, 2)}`)
   })
 
   const failedJobs = await prisma.paymentJob.findMany({

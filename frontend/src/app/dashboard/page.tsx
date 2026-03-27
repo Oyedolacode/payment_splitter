@@ -19,6 +19,7 @@ interface Rule {
   ruleType: RuleType
   ruleConfig: any
   isActive: boolean
+  isDefault: boolean
   isLocked: boolean
   lockedReason?: string
   createdAt: string
@@ -1278,7 +1279,12 @@ export default function DashboardPage() {
                   <div key={rule.id} className="group bg-surface border border-border rounded-[24px] p-6 flex flex-col gap-6 transition-all hover:border-accent/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.04)] relative overflow-hidden">
                     <div className="flex items-center justify-between relative z-10 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Parent Customer</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Parent Customer</span>
+                          {rule.isDefault && (
+                            <span className="text-[9px] font-900 bg-accent text-white px-1.5 py-0.5 rounded shadow-sm animate-pulse">DEFAULT</span>
+                          )}
+                        </div>
                         <span className="text-[15px] font-800 text-text tracking-tight line-clamp-1 break-all">
                           {customers.find((c: any) => c.id === rule.parentCustomerId)?.displayName || rule.parentCustomerId}
                         </span>
@@ -1645,7 +1651,8 @@ export default function DashboardPage() {
                       : { 
                           firmId, 
                           parentCustomerId: ruleData.parentCustomerId, 
-                          ruleConfig: ruleData.ruleConfig 
+                          ruleConfig: ruleData.ruleConfig,
+                          isDefault: ruleData.isDefault
                         }
 
                     const res = await fetch(url, {
@@ -1695,6 +1702,7 @@ export default function DashboardPage() {
 function RuleForm({ editingRule, prefillId, customers, locations, onSave, onCancel, addToast, firmPlan, firmId }: any) {
   const [ruleType, setRuleType] = useState<RuleType>(editingRule?.ruleType || 'proportional')
   const [parentCustomerId, setParentCustomerId] = useState(editingRule?.parentCustomerId || prefillId || '')
+  const [isDefault, setIsDefault] = useState(editingRule?.isDefault || false)
   
   // Standalone weights state - THE SINGLE SOURCE OF TRUTH (with ghost-weight sanitization)
   const [weights, setWeights] = useState<Record<string, number>>(() => {
@@ -1755,7 +1763,7 @@ function RuleForm({ editingRule, prefillId, customers, locations, onSave, onCanc
       finalConfig.order = targets.map((l: any) => l.id)
     }
 
-    onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true })
+    onSave({ parentCustomerId, ruleConfig: finalConfig, isActive: true, isDefault })
   }
 
   // Derived for UI rendering
@@ -1783,6 +1791,16 @@ function RuleForm({ editingRule, prefillId, customers, locations, onSave, onCanc
             <option key={c.id} value={c.id}>{c.displayName}</option>
           ))}
         </select>
+      </div>
+
+      <div className="flex items-center gap-3 p-4 bg-surface-2 border border-border rounded-xl cursor-pointer hover:bg-surface-3 transition-all" onClick={() => setIsDefault(!isDefault)}>
+        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isDefault ? 'bg-accent border-accent text-white' : 'border-border-strong bg-surface'}`}>
+          {isDefault && <CheckIcon className="w-3.5 h-3.5" />}
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[13px] font-700 text-text">Set as default fallback rule</span>
+          <span className="text-[11px] text-text-3 font-500 line-clamp-1">Applies to all customers without a specific allocation rule</span>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
