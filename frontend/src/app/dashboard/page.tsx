@@ -1391,7 +1391,6 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </div>
-                    </div>
                     <div className="flex flex-col gap-2">
                       <div className="text-[12px] font-600 text-text-2 leading-relaxed italic">&quot;{getRuleDetails(rule)}&quot;</div>
                       {(() => {
