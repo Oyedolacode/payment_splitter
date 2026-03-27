@@ -95,14 +95,27 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       paymentAmount = payment.TotalAmt
       parentCustomerId = payment.CustomerRef.value
 
-      // 🔍 DIAGNOSTIC: Log exact IDs being used
-      console.log(`[RULE-LOOKUP] jobId=${jobId} paymentId=${paymentId} firmId=${firmId}`)
-      console.log(`[RULE-LOOKUP] payment.CustomerRef.value="${parentCustomerId}" (type: ${typeof parentCustomerId})`)
+      // 🔍 FULL DIAGNOSTIC DUMP
+      console.log(`\n====== [RULE-LOOKUP] JOB ${jobId} ======`)
+      console.log(`  paymentId       : ${paymentId}`)
+      console.log(`  firmId          : ${firmId}`)
+      console.log(`  realmId         : ${realmId}`)
+      console.log(`  CustomerRef.value : "${parentCustomerId}" (type: ${typeof parentCustomerId})`)
+      console.log(`  CustomerRef.name  : "${payment.CustomerRef?.name}"`)
+      console.log(`  payment.TotalAmt  : ${payment.TotalAmt}`)
+
+      // List ALL rules for this firm
+      const allFirmRules = await prisma.splitRule.findMany({ where: { firmId } })
+      console.log(`  ALL rules in DB (${allFirmRules.length} total):`)
+      allFirmRules.forEach(r => {
+        const match = r.parentCustomerId === parentCustomerId
+        console.log(`    - ruleId=${r.id} parentCustId="${r.parentCustomerId}" isActive=${r.isActive} isLocked=${r.isLocked} <-- ${match ? '✅ WOULD MATCH' : '❌ no match'} (expected="${parentCustomerId}")`)
+      })
 
       let rule = await prisma.splitRule.findFirst({
         where: { firmId, parentCustomerId, isActive: true }
       })
-      console.log(`[RULE-LOOKUP] Direct rule lookup result: ${rule ? `FOUND rule.id=${rule.id}` : 'NOT FOUND'}`)
+      console.log(`  Direct rule lookup: ${rule ? `✅ FOUND rule.id=${rule.id}` : '❌ NOT FOUND'}`)
 
       // [Phase 7b] Parent-Aware Rule Discovery
       if (!rule) {
