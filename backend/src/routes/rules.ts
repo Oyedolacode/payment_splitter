@@ -103,7 +103,7 @@ export async function rulesRoutes(fastify: FastifyInstance) {
   })
 
   // PATCH /api/rules/:id — update status or config
-  fastify.patch<{ Params: { id: string }; Body: { isActive?: boolean; ruleConfig?: any } }>(
+  fastify.patch<{ Params: { id: string }; Body: { isActive?: boolean; ruleConfig?: any; isDefault?: boolean } }>(
     '/:id',
     async (request, reply) => {
       const rule = await prisma.splitRule.findUnique({ where: { id: request.params.id }, include: { firm: true } })
