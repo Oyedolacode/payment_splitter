@@ -441,7 +441,7 @@ export default function DashboardPage() {
     return Object.entries(groups).map(([jobId, entries]) => {
       const job = jobs.find(j => j.id === jobId)
       const rule = job?.rule
-      const customer = customers.find(c => c.id === job?.parentCustomerId)
+      const customer = customers.find(c => c.id === job?.parentCustomerId || entries[0].metadata?.parentCustomerId)
       
       const totalDebits = entries.reduce((sum, e) => sum + (e.debit || 0), 0)
       const totalCredits = entries.reduce((sum, e) => sum + (e.credit || 0), 0)
@@ -464,6 +464,9 @@ export default function DashboardPage() {
         return { ...e, runningPoolBalance }
       })
 
+      // Fallback priority: Matched customer name -> payment.customerName -> "Customer not synced"
+      const customerName = customer?.displayName || entries[0].metadata?.customerName || 'Customer not synced'
+
       return {
         jobId,
         date: entries[0].createdAt,
@@ -471,8 +474,8 @@ export default function DashboardPage() {
         totalAmount: totalDebits,
         totalCredits,
         isBalanced,
-        customerName: customer?.displayName || job?.parentCustomerId || 'Unknown Customer',
-        ruleType: rule?.ruleType || 'Unknown Rule'
+        customerName,
+        ruleType: rule?.ruleType || null
       }
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }, [ledgerEntries, jobs, customers])
@@ -1213,11 +1216,13 @@ export default function DashboardPage() {
                     <header className="bg-surface-2/60 p-6 px-8 flex items-center justify-between border-b border-border/60">
                       <div className="flex items-center gap-6">
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] font-900 text-text-3 uppercase tracking-widest">Transaction Metadata</span>
-                          <span className="text-[15px] font-900 text-text tracking-tight">Payment ${fmt(group.totalAmount)} — {group.customerName}</span>
-                          <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-800 text-accent uppercase tracking-wider bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{group.ruleType.replace('_', ' ')}</span>
-                             <span className="text-[10px] font-600 text-text-3 font-mono opacity-50">{group.jobId.slice(0, 12)}...</span>
+                          <span className="text-[9px] font-bold text-text-3 uppercase tracking-widest">Transaction Metadata</span>
+                          <span className="text-[15px] font-bold text-text tracking-tight">Payment ${fmt(group.totalAmount)} — {group.customerName}</span>
+                          <div className="flex flex-col gap-1 mt-1">
+                            <span className="text-[11px] font-700 text-accent uppercase tracking-wider">
+                              {group.ruleType ? `Rule: ${group.ruleType.replace('_', ' ')}` : 'Rule: Not set'}
+                            </span>
+                            <span className="text-[10px] font-600 text-text-3 font-mono opacity-50">Txn: {group.jobId}</span>
                           </div>
                         </div>
                       </div>
@@ -1246,7 +1251,7 @@ export default function DashboardPage() {
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                           <tr className="border-b border-border/40">
-                            <th className="p-4 pl-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] w-[350px]">Classification / Entity</th>
+                            <th className="p-4 pl-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] w-[350px]">Account / Location</th>
                             <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Debit (+)</th>
                             <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Credit (─)</th>
                             <th className="p-4 pr-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[180px]">Remaining Allocation</th>
@@ -1261,21 +1266,21 @@ export default function DashboardPage() {
                                   <div className={`flex items-center gap-2.5 ${!isPool ? 'ml-6' : ''}`}>
                                     {!isPool && <span className="text-text-3 opacity-30 text-[14px]">↳</span>}
                                     <div className={`w-1.5 h-1.5 rounded-full ${isPool ? 'bg-accent' : 'bg-[#10b981]'}`} />
-                                    <span className={`font-mono text-[12px] uppercase tracking-tight ${isPool ? 'font-900 text-text' : 'font-700 text-text-2'}`}>
+                                    <span className={`font-mono text-[12px] uppercase tracking-tight ${isPool ? 'font-bold text-text' : 'font-medium text-text-2'}`}>
                                       {entry.account}
                                     </span>
                                   </div>
                                 </td>
-                                <td className="p-4 text-right font-mono text-[13px] font-900 text-text/80 tabular-nums">
+                                <td className="p-4 text-right font-mono text-[13px] font-bold text-text/80 tabular-nums">
                                   {entry.debit > 0 ? `$${fmt(entry.debit)}` : '—'}
                                 </td>
-                                <td className="p-4 text-right font-mono text-[13px] font-900 text-[#10b981] tabular-nums">
+                                <td className="p-4 text-right font-mono text-[13px] font-bold text-[#10b981] tabular-nums">
                                   {entry.credit > 0 ? `$${fmt(entry.credit)}` : '—'}
                                 </td>
-                                <td className="p-4 pr-8 text-right font-mono text-[13px] font-900 text-text/60 tabular-nums">
+                                <td className="p-4 pr-8 text-right font-mono text-[13px] font-bold text-text/60 tabular-nums">
                                   ${fmt(Math.abs(entry.runningPoolBalance))}
-                                  {entry.runningPoolBalance > 0 && <span className="text-[9px] ml-1.5 p-[1px_4px] bg-accent/10 rounded uppercase font-900">Held</span>}
-                                  {Math.abs(entry.runningPoolBalance) < 0.01 && <span className="text-[9px] ml-1.5 p-[1px_4px] bg-[#10b98115] text-[#10b981] rounded uppercase font-900">Split</span>}
+                                  {entry.runningPoolBalance > 0.01 && <span className="text-[9px] ml-1.5 p-[1px_4px] bg-accent/10 rounded uppercase font-bold">Allocating</span>}
+                                  {Math.abs(entry.runningPoolBalance) <= 0.01 && <span className="text-[9px] ml-1.5 p-[1px_4px] bg-[#10b98115] text-[#10b981] rounded uppercase font-bold">Completed</span>}
                                 </td>
                               </tr>
                             )
