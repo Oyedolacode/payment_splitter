@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { ThemeProvider } from '../components/ThemeProvider'
+import { ThemeProvider } from '../components/common/ThemeProvider'
 
 export const metadata: Metadata = {
   title: 'PaySplit — Automated Payment Splitting for QBO',

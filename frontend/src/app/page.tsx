@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Fragment } from 'react'
-import { ThemeToggle } from '../components/ThemeToggle'
+import { ThemeToggle } from '../components/common/ThemeToggle'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { randomBytes } from 'crypto'
-import { getAuthorizationUrl, exchangeCodeForTokens } from '../services/qboAuth'
+import { getAuthorizationUrl, exchangeCodeForTokens } from '../services/qbo/qboAuth'
 import { encrypt } from '../lib/encryption'
 import { prisma } from '../lib/prisma'
 import { config } from '../lib/config'
@@ -187,7 +187,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: { firmId: string } }>('/qbo/customers', async (request, reply) => {
     const { firmId } = request.query
     const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
-    const { fetchAllCustomers } = await import('../services/qboClient')
+    const { fetchAllCustomers } = await import('../services/qbo/qboClient')
     const customers = await fetchAllCustomers(firmId, firm.qboRealmId!)
     return customers
   })

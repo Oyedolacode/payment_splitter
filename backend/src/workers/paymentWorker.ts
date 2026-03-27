@@ -1,12 +1,12 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
-import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations, fetchAllCustomers } from '../services/qboClient'
-import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/splitCalculator'
-import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/email'
+import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations, fetchAllCustomers } from '../services/qbo/qboClient'
+import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/split/splitCalculator'
+import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/jobs/email'
 import { JobStatus } from '@prisma/client'
 import { logActivity } from '../lib/activityLogger'
-import { checkIdempotency, createLedgerTransaction } from '../services/ledger'
+import { checkIdempotency, createLedgerTransaction } from '../services/ledger/ledger'
 
 export const QUEUE_NAME = 'payment-processing'
 

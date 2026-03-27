@@ -108,7 +108,7 @@ export async function jobsRoutes(fastify: FastifyInstance) {
 
       try {
         const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
-        const { fetchRecentPayments } = await import('../services/qboClient')
+        const { fetchRecentPayments } = await import('../services/qbo/qboClient')
         
         const payments = await fetchRecentPayments(firmId, firm.qboRealmId!)
         let triggeredCount = 0
@@ -322,8 +322,8 @@ export async function jobsRoutes(fastify: FastifyInstance) {
       const firm = await prisma.firm.findUniqueOrThrow({ where: { id: firmId } })
       const rule = await prisma.splitRule.findUniqueOrThrow({ where: { id: ruleId } })
 
-      const { fetchOpenInvoices } = await import('../services/qboClient')
-      const { calculateSplit, assertSplitInvariant } = await import('../services/splitCalculator')
+      const { fetchOpenInvoices } = await import('../services/qbo/qboClient')
+      const { calculateSplit, assertSplitInvariant } = await import('../services/split/splitCalculator')
 
       const ruleConfig = rule.ruleConfig as any
       const ids = ruleConfig.weights

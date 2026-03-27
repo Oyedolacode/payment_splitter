@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
-import { fetchAllCustomers, fetchAllLocations } from '../services/qboClient'
+import { fetchAllCustomers, fetchAllLocations } from '../services/qbo/qboClient'
 
 export async function qboRoutes(fastify: FastifyInstance) {
     // GET /api/qbo/customers?firmId=xxx
@@ -63,7 +63,7 @@ export async function qboRoutes(fastify: FastifyInstance) {
             if (!firm) return reply.status(404).send({ error: 'Firm not found' })
             if (!firm.qboRealmId) return reply.status(400).send({ error: 'Firm not connected to QBO' })
 
-            const { fetchSubCustomers } = await import('../services/qboClient')
+            const { fetchSubCustomers } = await import('../services/qbo/qboClient')
             console.log(`[QBO Sub-Customers] Fetching for firm ${firmId}, parent ${parentCustomerId}`)
             
             const subs = await fetchSubCustomers(firmId, firm.qboRealmId, parentCustomerId)

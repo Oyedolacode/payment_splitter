@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { calculateSplit, assertSplitInvariant } from '../services/splitCalculator'
-import type { QBOInvoice } from '../services/qboClient'
+import { calculateSplit, assertSplitInvariant } from './splitCalculator'
+import type { QBOInvoice } from '../qbo/qboClient'
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 

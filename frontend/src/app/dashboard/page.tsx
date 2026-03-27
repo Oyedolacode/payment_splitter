@@ -1,7 +1,15 @@
-'use client'
-
 import { useEffect, useState, useCallback, useMemo, useRef, Fragment } from 'react'
-import { ThemeToggle } from '../../components/ThemeToggle'
+import { ThemeToggle } from '../../components/common/ThemeToggle'
+import { StatusBadge } from '../../components/common/StatusBadge'
+import { Toast } from '../../components/common/Toast'
+import { 
+  LogoIcon, Chevron, CheckIcon, XIcon, InfoIcon, 
+  AlertIcon, ZapIcon, LayersIcon, ScaleIcon, 
+  ShieldIcon, BarChartIcon, SettingsIcon, PlusIcon, SparklesIcon, DollarIcon, ActivityIcon, LockIcon 
+} from '../../components/common/Icons'
+import { fmt, deriveStatus } from '../../lib/formatters'
+import { timeAgo } from '../../lib/utils'
+import { STATUS_META } from '../../constants/status'
 import { useRouter } from 'next/navigation'
 
 declare var process: {
@@ -79,215 +87,11 @@ const isPlanAllowed = (minPlan: keyof typeof PLAN_RANK, currentPlan: keyof typeo
   return PLAN_RANK[currentPlan] >= PLAN_RANK[minPlan]
 }
 
-const STATUS_META: Record<JobStatus, { label: string; color: string }> = {
-  COMPLETE: { label: 'Complete', color: '#10b981' },
-  PROCESSING: { label: 'Processing', color: '#2d31fa' },
-  QUEUED: { label: 'Queued', color: '#71717a' },
-  FAILED: { label: 'Failed', color: '#ef4444' },
-  ROLLED_BACK: { label: 'Rolled Back', color: '#f59e0b' },
-  REVIEW_REQUIRED: { label: 'Action Needed', color: '#8b5cf6' },
-  ANOMALY_PAUSED: { label: 'Paused', color: '#ec4899' },
-  STALLED: { label: 'Stalled', color: '#6366f1' },
-}
+// ── Main Dashboard ──────────────────────────────────────────────────────────
 
-// ── Components ──────────────────────────────────────────────────────────────
 
-function StatusBadge({ status, errorMessage }: { status: JobStatus; errorMessage?: string }) {
-  let meta = STATUS_META[status] || STATUS_META.QUEUED
-  
-  // Custom override for rule-related failures
-  if (status === 'FAILED' && errorMessage?.includes('No active split rule')) {
-    meta = { label: 'Requires Action', color: '#f59e0b' }
-  }
 
-  return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 border border-border">
-      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: meta.color }} />
-      <span className="text-[10px] font-800 uppercase tracking-wider text-text-2">{meta.label}</span>
-    </div>
-  )
-}
 
-function LogoIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="9" height="9" rx="3" fill="currentColor" />
-      <rect x="12" y="1" width="9" height="9" rx="3" fill="currentColor" fillOpacity="0.3" />
-      <rect x="1" y="12" width="9" height="9" rx="3" fill="currentColor" fillOpacity="0.3" />
-      <rect x="12" y="12" width="9" height="9" rx="3" fill="#10B981" />
-    </svg>
-  )
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  )
-}
-
-interface ToastProps {
-  toast: Toast
-  onClose: () => void
-  key?: any
-}
-
-function Toast({ toast, onClose }: ToastProps) {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 5000)
-    return () => clearTimeout(timer)
-  }, [onClose])
-
-  const icons = {
-    success: <CheckIcon className="w-4 h-4" />,
-    error: <XIcon className="w-4 h-4" />,
-    info: <InfoIcon className="w-4 h-4" />,
-    warning: <AlertIcon className="w-4 h-4" />,
-  }
-
-  const colors = {
-    success: 'bg-[#10b98110] border-[#10b98130] text-[#10b981]',
-    error: 'bg-[#ef444410] border-[#ef444430] text-[#ef4444]',
-    info: 'bg-[#2d31fa10] border-[#2d31fa30] text-[#2d31fa]',
-    warning: 'bg-[#f59e0b10] border-[#f59e0b30] text-[#f59e0b]',
-  }
-
-  return (
-    <div className={`p-4 pr-12 rounded-2xl border shadow-xl animate-slideIn relative pointer-events-auto min-w-[300px] backdrop-blur-md ${colors[toast.type]}`}>
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5">{icons[toast.type]}</span>
-        <p className="text-[13px] font-700 leading-tight">{toast.message}</p>
-      </div>
-      <button onClick={onClose} className="absolute top-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
-        <XIcon className="w-4 h-4" />
-      </button>
-    </div>
-  )
-}
-
-// ── Icons ─────────────────────────────────────────────────────────────────
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )
-}
-
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  )
-}
-
-function InfoIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  )
-}
-
-function AlertIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  )
-}
-
-function ZapIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  )
-}
-
-function LayersIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
-    </svg>
-  )
-}
-
-function ScaleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6l3 12h12l3-12" /><path d="M6 18l-3 4" /><path d="M18 18l3 4" /><path d="M12 2v20" /><path d="M7 2h10" />
-    </svg>
-  )
-}
-
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  )
-}
-
-function BarChartIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" />
-    </svg>
-  )
-}
-
-function SettingsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  )
-}
-
-function PlusIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  )
-}
-
-function SparklesIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  )
-}
-
-function DollarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
-  )
-}
-
-function ActivityIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  )
-}
-
-function LockIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  )
-}
 
 // ── Main Dashboard ──────────────────────────────────────────────────────────
 
@@ -617,14 +421,7 @@ export default function DashboardPage() {
     }
   }
 
-  const fmt = (amt: string | number) => Number(amt).toLocaleString(undefined, { minimumFractionDigits: 2 })
-  const timeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000)
-    if (seconds < 60) return 'Just now'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-    return new Date(date).toLocaleDateString()
-  }
+
 
   const getRuleDetails = (rule: Rule) => {
     const { ruleType, ruleConfig } = rule
