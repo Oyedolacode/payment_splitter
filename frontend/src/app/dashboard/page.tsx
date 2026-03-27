@@ -46,6 +46,7 @@ interface ReconciliationJob {
   errorMessage?: string
   createdAt: string
   updatedAt: string
+  parentCustomerId: string
   rule?: Rule
   auditEntries: AuditEntry[]
 }
