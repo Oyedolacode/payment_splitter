@@ -10,6 +10,7 @@ export type ActivityType =
     | 'SKIPPED'
     | 'LEDGER_COMMITTED'
     | 'STALLED'
+    | 'RULE_ADJUSTED'
 
 export type ActorType = 'SYSTEM' | 'USER' | 'WEBHOOK'
 export type Severity = 'INFO' | 'WARNING' | 'ERROR'
