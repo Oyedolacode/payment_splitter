@@ -808,38 +808,96 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {(jobs.some(j => ['FAILED', 'ROLLED_BACK'].includes(j.status)) || jobs.some(j => j.status === 'STALLED')) && (
-                <div className="p-4 bg-surface-2 border border-border rounded-[24px] flex items-center justify-between gap-4 max-[768px]:flex-col">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#ef444410] border border-[#ef444420] flex items-center justify-center text-[#ef4444]">
-                      <AlertIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-[13px] font-800 text-text">System Recovery Needed</h4>
-                      <p className="text-[11px] text-text-3 font-600 uppercase tracking-wider">
-                        {jobs.filter(j => ['FAILED', 'ROLLED_BACK'].includes(j.status)).length} failed and {jobs.filter(j => j.status === 'STALLED').length} stalled jobs
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 max-[768px]:w-full">
-                    {jobs.some(j => j.status === 'STALLED') && (
-                      <button
-                        onClick={handleRetryStalled}
-                        className="p-[10px_20px] bg-indigo-500 text-white rounded-xl text-[11px] font-800 uppercase tracking-widest hover:opacity-90 shadow-lg shadow-indigo-500/20 max-[768px]:flex-1"
-                      >
-                        Retry Stalled
-                      </button>
+              {(jobs.some(j => ['FAILED', 'ROLLED_BACK'].includes(j.status)) || jobs.some(j => j.status === 'STALLED')) && (() => {
+                // Find customers with rule-missing failures
+                const missingRuleCustomers = Array.from(
+                  new Set(
+                    jobs
+                      .filter(j => j.status === 'FAILED' && j.errorMessage?.includes('No active split rule'))
+                      .map(j => {
+                        const match = j.errorMessage?.match(/customer\s+(\S+)/)
+                        return match ? match[1] : null
+                      })
+                      .filter(Boolean)
+                  )
+                )
+                const otherFailedCount = jobs.filter(j => ['FAILED', 'ROLLED_BACK'].includes(j.status) && !j.errorMessage?.includes('No active split rule')).length
+                const stalledCount = jobs.filter(j => j.status === 'STALLED').length
+
+                return (
+                  <div className="flex flex-col gap-3">
+                    {/* Missing Rule Alert — per customer */}
+                    {missingRuleCustomers.length > 0 && (
+                      <div className="p-5 bg-[#f59e0b08] border border-[#f59e0b25] rounded-[20px]">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-9 h-9 rounded-full bg-[#f59e0b15] flex items-center justify-center text-[#f59e0b]">
+                            <AlertIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-[13px] font-800 text-text">Customers Missing Allocation Rules</h4>
+                            <p className="text-[11px] text-text-3 font-600">These customers have payments that cannot be processed until a split rule is created.</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {missingRuleCustomers.map((cid) => {
+                            const customerName = customers.find((c: any) => c.id === cid)?.displayName
+                            return (
+                              <button
+                                key={cid}
+                                onClick={() => {
+                                  setEditingRule(null)
+                                  setRulePrefillId(cid as string)
+                                  setShowRuleModal(true)
+                                  addToast(`Setting up rule for ${customerName || `customer ${cid}`}...`, 'info')
+                                }}
+                                className="flex items-center gap-2 p-[8px_14px] bg-[#f59e0b15] border border-[#f59e0b30] rounded-xl text-[12px] font-800 text-[#f59e0b] hover:bg-[#f59e0b25] transition-all"
+                              >
+                                <span>+</span>
+                                <span>{customerName ? `${customerName} (${cid})` : `Customer ${cid}`}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
                     )}
-                    <button
-                      onClick={handleRetryAll}
-                      className="p-[10px_20px] bg-accent text-white rounded-xl text-[11px] font-800 uppercase tracking-widest hover:opacity-90 shadow-lg shadow-accent/20 max-[768px]:flex-1"
-                    >
-                      Retry All Failed
-                    </button>
+
+                    {/* General Recovery Banner */}
+                    {(otherFailedCount > 0 || stalledCount > 0) && (
+                      <div className="p-4 bg-surface-2 border border-border rounded-[20px] flex items-center justify-between gap-4 max-[768px]:flex-col">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#ef444410] border border-[#ef444420] flex items-center justify-center text-[#ef4444]">
+                            <AlertIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-[13px] font-800 text-text">System Recovery Needed</h4>
+                            <p className="text-[11px] text-text-3 font-600 uppercase tracking-wider">
+                              {otherFailedCount} failed and {stalledCount} stalled jobs
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 max-[768px]:w-full">
+                          {stalledCount > 0 && (
+                            <button
+                              onClick={handleRetryStalled}
+                              className="p-[10px_20px] bg-indigo-500 text-white rounded-xl text-[11px] font-800 uppercase tracking-widest hover:opacity-90 shadow-lg shadow-indigo-500/20 max-[768px]:flex-1"
+                            >
+                              Retry Stalled
+                            </button>
+                          )}
+                          <button
+                            onClick={handleRetryAll}
+                            className="p-[10px_20px] bg-accent text-white rounded-xl text-[11px] font-800 uppercase tracking-widest hover:opacity-90 shadow-lg shadow-accent/20 max-[768px]:flex-1"
+                          >
+                            Retry All Failed
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )
+              })()}
             </div>
+
             <div className="grid grid-cols-1 gap-4">
               {!qboConnected ? (
                 <div className="p-20 bg-surface border border-border rounded-[24px] text-center border-dashed">
