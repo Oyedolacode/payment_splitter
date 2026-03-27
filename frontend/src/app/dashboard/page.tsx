@@ -437,26 +437,44 @@ export default function DashboardPage() {
       groups[key].push(entry)
     })
     
-    // Convert to array and sort jobs by most recent entry date
     return Object.entries(groups).map(([jobId, entries]) => {
-      // Sort entries within group (Debits usually come first in accounting)
-      const sortedEntries = [...entries].sort((a, b) => (b.debit || 0) - (a.debit || 0))
+      const job = jobs.find(j => j.id === jobId)
+      const rule = job?.rule
+      const customer = customers.find(c => c.id === job?.parentCustomerId)
       
-      // Calculate running balance
-      let currentBalance = 0
+      const totalDebits = entries.reduce((sum, e) => sum + (e.debit || 0), 0)
+      const totalCredits = entries.reduce((sum, e) => sum + (e.credit || 0), 0)
+      const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01
+
+      // Sort: Incoming pool first, then allocations
+      const sortedEntries = [...entries].sort((a, b) => {
+        if (a.account?.includes('POOL')) return -1
+        if (b.account?.includes('POOL')) return 1
+        return 0
+      })
+      
+      let runningPoolBalance = 0
       const entriesWithBalance = sortedEntries.map(e => {
-        currentBalance += (e.debit || 0) - (e.credit || 0)
-        return { ...e, runningBalance: currentBalance }
+        if (e.account?.includes('POOL')) {
+          runningPoolBalance = e.debit || 0
+        } else {
+          runningPoolBalance -= (e.credit || 0)
+        }
+        return { ...e, runningPoolBalance }
       })
 
       return {
         jobId,
         date: entries[0].createdAt,
         entries: entriesWithBalance,
-        totalAmount: entries.reduce((sum, e) => sum + (e.debit || 0), 0)
+        totalAmount: totalDebits,
+        totalCredits,
+        isBalanced,
+        customerName: customer?.displayName || job?.parentCustomerId || 'Unknown Customer',
+        ruleType: rule?.ruleType || 'Unknown Rule'
       }
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [ledgerEntries])
+  }, [ledgerEntries, jobs, customers])
 
   const handleManualSync = async () => {
     setSyncing(true)
@@ -1043,11 +1061,45 @@ export default function DashboardPage() {
                             </div>
                           ) : (
                               job.status === 'COMPLETE' && (
-                                <div className="p-4 bg-[#10b98110] border border-[#10b98120] rounded-xl flex items-center gap-3">
-                                  <span className="text-[#10b981]">
-                                    <CheckIcon className="w-4 h-4" />
-                                  </span>
-                                  <span className="text-[12px] font-700 text-[#10b981]">All funds successfully allocated in QuickBooks Online.</span>
+                                <div className="flex flex-col gap-4 w-full">
+                                  <div className="p-4 bg-[#10b98108] border border-[#10b98115] rounded-xl flex items-center gap-3">
+                                    <span className="text-[#10b981]">
+                                      <CheckIcon className="w-4 h-4" />
+                                    </span>
+                                    <span className="text-[12px] font-700 text-[#10b981]">All funds successfully allocated in QuickBooks Online.</span>
+                                  </div>
+                                  
+                                  <div className="p-6 bg-surface-2 rounded-2xl border border-border flex flex-col gap-4">
+                                    <div className="flex flex-col gap-1">
+                                      <span className="text-[10px] font-900 text-text-3 uppercase tracking-widest">Transaction Summary</span>
+                                      <div className="flex items-baseline gap-2">
+                                        <span className="text-[14px] font-700 text-text">Payment Total:</span>
+                                        <span className="text-[18px] font-900 text-text">${fmt(job.totalAmount)}</span>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="h-[1px] bg-border/60" />
+                                    
+                                    <div className="flex flex-col gap-3">
+                                      <span className="text-[10px] font-900 text-text-3 uppercase tracking-widest">Split Distribution</span>
+                                      <div className="flex flex-col gap-2">
+                                        {job.auditEntries.map((ae, i) => {
+                                          const name = customers.find(c => c.id === ae.subLocationId)?.displayName 
+                                                    || locations.find(l => l.id === ae.subLocationId)?.name 
+                                                    || ae.subLocationId
+                                          return (
+                                            <div key={i} className="flex items-center justify-between text-[13px]">
+                                              <div className="flex items-center gap-2 text-text-2 font-600">
+                                                <span>{name}</span>
+                                                <span className="text-text-3 opacity-40">→</span>
+                                              </div>
+                                              <span className="font-800 text-[#10b981]">${fmt(ae.amountApplied)}</span>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               )
                             )}
@@ -1068,14 +1120,24 @@ export default function DashboardPage() {
                 <h1 className="font-display text-[28px] max-[1024px]:text-[24px] font-800 tracking-tight text-text mb-2">Financial Ledger</h1>
                 <p className="text-text-3 text-[14px]">The internal source of truth. Every debit and credit recorded before QBO sync.</p>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <div className={`p-[8px_16px] border rounded-xl text-[12px] font-800 uppercase tracking-wider flex items-center gap-2 transition-all ${ledgerMetadata?.integrity?.balanced ? 'bg-[#10b98108] border-[#10b98120] text-[#10b981]' : 'bg-[#ef444408] border-[#ef444420] text-[#ef4444]'}`}>
-                  <ShieldIcon className="w-3.5 h-3.5" />
-                  <span>Ledger Integrity: {ledgerMetadata?.integrity?.balanced ? 'Verified' : 'Imbalanced'}</span>
+              <div className="flex flex-col items-end gap-3">
+                <div className="flex items-center gap-4 mr-1">
+                  <div className="flex items-center gap-1.5 grayscale opacity-50">
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    <span className="text-[9px] font-800 uppercase tracking-widest">Debit</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 grayscale opacity-50">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                    <span className="text-[9px] font-800 uppercase tracking-widest">Credit</span>
+                  </div>
+                </div>
+                <div className={`p-[10px_20px] border rounded-xl text-[12.5px] font-800 uppercase tracking-wider flex items-center gap-2.5 transition-all shadow-sm ${ledgerMetadata?.integrity?.balanced ? 'bg-[#10b98108] border-[#10b98120] text-[#10b981]' : 'bg-[#ef444408] border-[#ef444420] text-[#ef4444]'}`}>
+                  <ShieldIcon className="w-4 h-4" />
+                  <span>Ledger Status: {ledgerMetadata?.integrity?.balanced ? 'Verified Integrity' : 'Imbalanced - Action Required'}</span>
                 </div>
                 {ledgerMetadata?.integrity?.lastCheck && (
-                  <span className="text-[10px] text-text-3 font-700 uppercase tracking-widest">
-                    Last Check: {timeAgo(ledgerMetadata.integrity.lastCheck)}
+                  <span className="text-[10px] text-text-3 font-700 uppercase tracking-widest mr-1">
+                    System Audit Cycle: {timeAgo(ledgerMetadata.integrity.lastCheck)}
                   </span>
                 )}
               </div>
@@ -1147,29 +1209,35 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-6">
                 {groupedLedger.map(group => (
                   <div key={group.jobId} className="bg-surface border border-border rounded-[24px] overflow-hidden shadow-sm transition-all hover:border-accent/30 group">
-                    <header className="bg-surface-2/60 p-5 px-8 flex items-center justify-between border-b border-border/60">
-                      <div className="flex items-center gap-4">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-[1px]">Transaction ID</span>
-                          <span className="font-mono text-[13px] font-bold text-text underline decoration-accent/20 underline-offset-4">{group.jobId.slice(0, 8)}...</span>
-                        </div>
-                        <div className="h-8 w-[1px] bg-border/60" />
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-[1px]">Entry Date</span>
-                          <span className="text-[13px] font-700 text-text-2">{new Date(group.date).toLocaleDateString()}</span>
+                    <header className="bg-surface-2/60 p-6 px-8 flex items-center justify-between border-b border-border/60">
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-900 text-text-3 uppercase tracking-widest">Transaction Metadata</span>
+                          <span className="text-[15px] font-900 text-text tracking-tight">Payment ${fmt(group.totalAmount)} — {group.customerName}</span>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[10px] font-800 text-accent uppercase tracking-wider bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{group.ruleType.replace('_', ' ')}</span>
+                             <span className="text-[10px] font-600 text-text-3 font-mono opacity-50">{group.jobId.slice(0, 12)}...</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                         <div className="flex flex-col items-end">
-                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-[1px]">Total Transaction</span>
-                          <span className="text-[15px] font-900 text-text tracking-tight">${fmt(group.totalAmount)}</span>
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] font-800 text-text-3 uppercase tracking-widest">Double-Entry Check</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[12px] font-700 text-text-3">D ${fmt(group.totalAmount)} = C ${fmt(group.totalCredits)}</span>
+                            {group.isBalanced ? (
+                              <span className="text-[#10b981] text-[12px]">✓</span>
+                            ) : (
+                              <span className="text-[#ef4444] text-[11px] font-800 animate-pulse">⚠ Mismatch</span>
+                            )}
+                          </div>
                         </div>
                         <button
                            onClick={() => { setSelected(selected === group.jobId ? null : group.jobId); setTab('reconciliation'); }}
-                           className="p-2.5 bg-surface border border-border rounded-xl text-text-3 hover:text-accent hover:border-accent/20 transition-all"
-                           title="View Split Details"
+                           className="p-3 bg-surface border border-border rounded-xl text-text-3 hover:text-accent hover:border-accent/20 transition-all shadow-sm group-hover:bg-accent/5"
+                           title="View in Reconciliation"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                         </button>
                       </div>
                     </header>
@@ -1177,33 +1245,40 @@ export default function DashboardPage() {
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                           <tr className="border-b border-border/40">
-                            <th className="p-4 pl-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] w-[300px]">Account / Allocation Target</th>
-                            <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Debit</th>
-                            <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Credit</th>
-                            <th className="p-4 pr-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Balance</th>
+                            <th className="p-4 pl-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] w-[350px]">Classification / Entity</th>
+                            <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Debit (+)</th>
+                            <th className="p-4 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[150px]">Credit (─)</th>
+                            <th className="p-4 pr-8 text-[11px] font-800 text-text-3 uppercase tracking-[1px] text-right w-[180px]">Remaining Allocation</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {group.entries.map((entry, idx) => (
-                            <tr key={entry.id} className="border-b border-border/40 last:border-0 hover:bg-surface-2/30 transition-colors">
-                              <td className="p-4 pl-8">
-                                <div className="flex items-center gap-2.5">
-                                  <div className={`w-1.5 h-1.5 rounded-full ${entry.debit > 0 ? 'bg-accent' : 'bg-[#10b981]'}`} />
-                                  <span className="font-mono text-[12px] font-700 text-text uppercase tracking-tight">{entry.account}</span>
-                                </div>
-                              </td>
-                              <td className="p-4 text-right font-mono text-[13px] font-800 text-red-500/80">
-                                {entry.debit > 0 ? `-$${fmt(entry.debit)}` : '—'}
-                              </td>
-                              <td className="p-4 text-right font-mono text-[13px] font-800 text-[#10b981]">
-                                {entry.credit > 0 ? `+$${fmt(entry.credit)}` : '—'}
-                              </td>
-                              <td className="p-4 pr-8 text-right font-mono text-[13px] font-800 text-text/80 tabular-nums">
-                                ${fmt(Math.abs(entry.runningBalance))}
-                                <span className="text-[10px] ml-1 opacity-40">{entry.runningBalance >= 0 ? 'DR' : 'CR'}</span>
-                              </td>
-                            </tr>
-                          ))}
+                          {group.entries.map((entry, idx) => {
+                            const isPool = entry.account?.includes('POOL')
+                            return (
+                              <tr key={entry.id} className={`border-b border-border/40 last:border-0 hover:bg-surface-2/30 transition-colors ${isPool ? 'bg-accent/[0.02]' : ''}`}>
+                                <td className="p-4 pl-8">
+                                  <div className={`flex items-center gap-2.5 ${!isPool ? 'ml-6' : ''}`}>
+                                    {!isPool && <span className="text-text-3 opacity-30 text-[14px]">↳</span>}
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isPool ? 'bg-accent' : 'bg-[#10b981]'}`} />
+                                    <span className={`font-mono text-[12px] uppercase tracking-tight ${isPool ? 'font-900 text-text' : 'font-700 text-text-2'}`}>
+                                      {entry.account}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-right font-mono text-[13px] font-900 text-text/80 tabular-nums">
+                                  {entry.debit > 0 ? `$${fmt(entry.debit)}` : '—'}
+                                </td>
+                                <td className="p-4 text-right font-mono text-[13px] font-900 text-[#10b981] tabular-nums">
+                                  {entry.credit > 0 ? `$${fmt(entry.credit)}` : '—'}
+                                </td>
+                                <td className="p-4 pr-8 text-right font-mono text-[13px] font-900 text-text/60 tabular-nums">
+                                  ${fmt(Math.abs(entry.runningPoolBalance))}
+                                  {entry.runningPoolBalance > 0 && <span className="text-[9px] ml-1.5 p-[1px_4px] bg-accent/10 rounded uppercase font-900">Held</span>}
+                                  {Math.abs(entry.runningPoolBalance) < 0.01 && <span className="text-[9px] ml-1.5 p-[1px_4px] bg-[#10b98115] text-[#10b981] rounded uppercase font-900">Split</span>}
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1316,8 +1391,8 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </div>
-
-                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
                       <div className="text-[12px] font-600 text-text-2 leading-relaxed italic">&quot;{getRuleDetails(rule)}&quot;</div>
                       {(() => {
                         const locIds = rule.ruleType === 'proportional' 
