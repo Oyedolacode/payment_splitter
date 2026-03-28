@@ -142,7 +142,7 @@ export async function getOperationalAlerts(firmIds: string[]): Promise<Operation
     } else if (message.includes('No active split rule')) {
       type = 'MISSING_RULE'
       severity = 'CRITICAL'
-      message = 'Missing allocation rules for this customer'
+      // Keep original message as it contains the parentCustomerId for the frontend to parse
     } else if (message.includes('invariant violated') || message.includes('sum to')) {
       severity = 'CRITICAL'
       message = 'Allocation mismatch detected — total split does not equal payment total'

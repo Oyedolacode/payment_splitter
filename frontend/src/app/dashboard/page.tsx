@@ -150,6 +150,15 @@ function DashboardContent() {
   })
   const [workerHealth, setWorkerHealth] = useState<any>(null)
 
+  const resolveName = useCallback((id?: string, fallback?: string) => {
+    if (!id) return fallback || 'Unknown Entity'
+    const customer = customers.find(c => c.id === id)
+    if (customer?.displayName) return customer.displayName
+    const location = locations.find(l => l.id === id)
+    if (location?.name) return location.name
+    return fallback || `Customer ${id}`
+  }, [customers, locations])
+
   const addToast = useCallback((message: string, type: Toast['type'] = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
     setToasts(prev => [...prev, { id, message, type }])
@@ -255,8 +264,28 @@ function DashboardContent() {
         fetchDashboardData(idParam)
       }
       addToast('QuickBooks Online successfully connected!', 'success')
-      // Clean up URL
-      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    // Phase 3: Deep Linking & Quick Fixes
+    const cid = params.get('customerId')
+    const jid = params.get('jobId')
+    const targetTab = params.get('tab') as Tab
+
+    if (cid) {
+        setTab('rules')
+        setRulePrefillId(cid)
+        setShowRuleModal(true)
+        addToast(`Pre-filling rule configuration for customer ${cid}`, 'info')
+    } else if (jid) {
+        setTab('reconciliation')
+        setSelected(jid)
+    } else if (targetTab) {
+        setTab(targetTab)
+    }
+
+    // Clean up known URL parameters to keep the navigation clean
+    if (connectedParam || cid || jid || targetTab) {
+        window.history.replaceState({}, '', window.location.pathname)
     }
 
     const interval = setInterval(() => {
@@ -302,8 +331,8 @@ function DashboardContent() {
         return { ...e, runningPoolBalance }
       })
 
-      // Fallback priority: Matched customer name -> payment.customerName -> "Customer not synced"
-      const customerName = customer?.displayName || entries[0].metadata?.customerName || 'Customer not synced'
+      // Fallback priority: resolveName helper handles customer/location/ID fallback
+      const customerName = resolveName(job?.parentCustomerId || entries[0].metadata?.parentCustomerId, entries[0].metadata?.customerName || 'Unknown Customer')
 
       return {
         jobId,
@@ -483,19 +512,13 @@ function DashboardContent() {
     const { ruleType, ruleConfig } = rule
     if (ruleType === 'proportional' && ruleConfig.weights) {
       return Object.entries(ruleConfig.weights).map(([locId, weight]) => {
-        const name = customers.find((c: any) => c.id === locId)?.displayName 
-                  || locations.find((l: any) => l.id === locId)?.name 
-                  || locId
+        const name = resolveName(locId)
         return `${name}: ${weight}%`
       }).join(', ')
     }
     const ids = (ruleConfig as any).locationIds || (ruleConfig as any).order || []
     if (ids.length > 0) {
-      return ids.map((id: string) => 
-        customers.find((c: any) => c.id === id)?.displayName 
-        || locations.find((l: any) => l.id === id)?.name 
-        || id
-      ).join(' → ')
+      return ids.map((id: string) => resolveName(id)).join(' → ')
     }
     return 'Custom strategy'
   }
@@ -533,17 +556,44 @@ function DashboardContent() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 max-[1024px]:gap-2 shrink-0">
-          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1200px]:hidden">
-            {(['overview', 'reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`p-[6px_14px] rounded-lg text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
-              >
-                {t === 'overview' ? 'Ops Center' : t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+        <div className="flex items-center gap-6 max-[1024px]:gap-2 shrink-0">
+          <div className="flex items-center gap-1 bg-surface-2 p-1.5 rounded-2xl border border-border max-[1200px]:hidden">
+            {/* Operations Pillar */}
+            <div className="flex items-center gap-1 pr-2 border-r border-border mr-1">
+                {(['overview'] as Tab[]).map((t) => (
+                    <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`p-[6px_14px] rounded-xl text-[11px] font-900 transition-all whitespace-nowrap uppercase tracking-wider ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
+                    >
+                        Ops Center
+                    </button>
+                ))}
+            </div>
+            {/* Financials Pillar */}
+            <div className="flex items-center gap-1 pr-2 border-r border-border mr-1">
+                {(['ledger', 'reconciliation', 'audit'] as Tab[]).map((t) => (
+                    <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`p-[6px_14px] rounded-xl text-[11px] font-900 transition-all whitespace-nowrap uppercase tracking-wider ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
+                    >
+                        {t === 'reconciliation' ? 'Payment Traffic' : t}
+                    </button>
+                ))}
+            </div>
+            {/* Setup Pillar */}
+            <div className="flex items-center gap-1">
+                {(['rules', 'settings'] as Tab[]).map((t) => (
+                    <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`p-[6px_14px] rounded-xl text-[11px] font-900 transition-all whitespace-nowrap uppercase tracking-wider ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
+                    >
+                        {t}
+                    </button>
+                ))}
+            </div>
           </div>
 
           <button
@@ -559,15 +609,15 @@ function DashboardContent() {
       </nav>
 
       {/* Mobile Sub-Nav */}
-      <div className="fixed top-16 left-0 right-0 h-12 bg-surface border-b border-border z-[90] min-[1201px]:hidden flex items-center px-4 overflow-x-auto no-scrollbar scroll-smooth">
+      <div className="fixed top-16 left-0 right-0 h-14 bg-surface border-b border-border z-[90] min-[1201px]:hidden flex items-center px-4 overflow-x-auto no-scrollbar scroll-smooth">
         <div className="flex items-center gap-2 pr-4 min-w-max">
-          {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+          {(['reconciliation', 'ledger', 'audit', 'rules', 'settings'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`p-[6px_16px] rounded-xl text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-sm' : 'text-text-3 bg-surface-2 hover:bg-surface-3'}`}
+              className={`p-[8px_18px] rounded-xl text-[11px] font-900 uppercase tracking-widest transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-sm' : 'text-text-3 bg-surface-2 hover:bg-surface-3'}`}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'reconciliation' ? 'Payment Traffic' : t}
             </button>
           ))}
         </div>
@@ -611,7 +661,7 @@ function DashboardContent() {
           <div className="animate-fadeIn">
             <header className="flex items-center justify-between mb-8 max-[768px]:flex-col max-[768px]:items-start max-[768px]:gap-4">
               <div>
-                <h1 className="font-display text-[28px] max-[1024px]:text-[24px] font-800 tracking-tight text-text mb-2">Payment Reconciliation</h1>
+                <h1 className="font-display text-[28px] max-[1024px]:text-[24px] font-800 tracking-tight text-text mb-2">Payment Traffic</h1>
                 <p className="text-text-3 text-[14px]">Monitor and manage automated payment splits from QuickBooks.</p>
               </div>
               <div className="flex items-center gap-3 w-full max-[768px]:justify-between">
@@ -812,6 +862,13 @@ function DashboardContent() {
                         </div>
                         <div className="h-8 w-[1px] bg-border/60 max-[768px]:hidden" />
                         <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Client Context</span>
+                          <span className="text-[13px] font-800 text-text truncate max-w-[120px]" title={resolveName(job.parentCustomerId)}>
+                            {resolveName(job.parentCustomerId)}
+                          </span>
+                        </div>
+                        <div className="h-8 w-[1px] bg-border/60 max-[768px]:hidden" />
+                        <div className="flex flex-col gap-1">
                           <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Total Amount</span>
                           <span className="text-[15px] font-800 text-text tracking-tight">${fmt(job.totalAmount)}</span>
                         </div>
@@ -847,7 +904,7 @@ function DashboardContent() {
                                   <span className="text-[13px] font-700 text-text">{job.rule.ruleType.replace('_', ' ')} strategy</span>
                                 </div>
                               </div>
-                              <div className="text-[12px] font-600 text-text-3">Target: {job.rule.parentCustomerId}</div>
+                                <div className="text-[12px] font-600 text-text-3">Target: {resolveName(job.rule.parentCustomerId)}</div>
                             </div>
                           )}
                           {job.auditEntries.length > 0 ? (
@@ -858,7 +915,7 @@ function DashboardContent() {
                                   <div key={i} className="p-4 bg-surface rounded-xl border border-border flex items-center justify-between transition-all hover:bg-surface-2">
                                     <div className="flex flex-col gap-0.5">
                                       <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Location</span>
-                                      <span className="text-[13px] font-700 text-text">{ae.subLocationId}</span>
+                                        <span className="text-[13px] font-700 text-text">{resolveName(ae.subLocationId)}</span>
                                     </div>
                                     <div className="flex flex-col items-end gap-0.5">
                                       <span className="text-[11px] font-800 text-text-3 uppercase tracking-wider">Amount</span>
@@ -941,9 +998,7 @@ function DashboardContent() {
                                       <span className="text-[10px] font-900 text-text-3 uppercase tracking-widest">Split Distribution</span>
                                       <div className="flex flex-col gap-2">
                                         {job.auditEntries.map((ae, i) => {
-                                          const name = customers.find(c => c.id === ae.subLocationId)?.displayName 
-                                                    || locations.find(l => l.id === ae.subLocationId)?.name 
-                                                    || ae.subLocationId
+                                          const name = resolveName(ae.subLocationId)
                                           return (
                                             <div key={i} className="flex items-center justify-between text-[13px]">
                                               <div className="flex items-center gap-2 text-text-2 font-600">

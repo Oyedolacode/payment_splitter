@@ -95,7 +95,7 @@ export default function OverviewPage() {
                 <span className="text-[11px] font-bold text-accent uppercase tracking-widest">Financial Ops Layer</span>
             </div>
             <h1 className="font-display text-[42px] max-[768px]:text-[32px] font-800 tracking-tight text-text leading-tight">Entity Overview</h1>
-            <p className="text-text-3 text-[15px] max-w-[500px] font-medium">Real-time health monitoring and automated reconciliation metrics across your entire fleet.</p>
+            <p className="text-text-3 text-[15px] max-w-[500px] font-medium">Real-time health monitoring and automated payment traffic metrics across your entire fleet.</p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-1.5">

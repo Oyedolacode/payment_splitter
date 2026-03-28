@@ -111,7 +111,7 @@ export function ClientTable({ firms }: { firms: FirmStats[] }) {
                         : 'bg-surface-3 border-border hover:bg-accent hover:text-white'
                     }`}
                   >
-                    {firm.health === 'CRITICAL' || firm.failedJobs > 0 ? 'Fix Issue' : 'View Details'}
+                    {firm.health === 'CRITICAL' || firm.failedJobs > 0 ? 'Fix Traffic Issue' : 'View Traffic'}
                     <Chevron className="w-3 h-3 rotate-[-90deg]" />
                   </button>
                 </td>

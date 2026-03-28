@@ -43,6 +43,20 @@ export function AlertsPanel({ alerts }: { alerts: OperationalAlert[] }) {
         const first = items[0]
         const typeLabel = type.replace('_', ' ')
         
+        // Secondary grouping by firm + message
+        const subGroups: Record<string, { alert: OperationalAlert, count: number }> = {}
+        items.forEach(item => {
+            const subKey = `${item.firmId}-${item.message}`
+            if (!subGroups[subKey]) {
+                subGroups[subKey] = { alert: item, count: 0 }
+            }
+            subGroups[subKey].count++
+        })
+        
+        const groupedItems = Object.values(subGroups).sort((a, b) => 
+            new Date(b.alert.createdAt).getTime() - new Date(a.alert.createdAt).getTime()
+        )
+        
         return (
           <div key={type} className="flex flex-col gap-3">
             {/* Group Header */}
@@ -63,7 +77,7 @@ export function AlertsPanel({ alerts }: { alerts: OperationalAlert[] }) {
 
             {/* Entity Alerts */}
             <div className="flex flex-col gap-2">
-                {items.map((alert) => (
+                {groupedItems.map(({ alert, count }) => (
                     <div 
                         key={alert.id} 
                         className={`group flex items-start gap-4 p-4 rounded-[24px] border transition-all hover:translate-x-1 ${
@@ -74,16 +88,43 @@ export function AlertsPanel({ alerts }: { alerts: OperationalAlert[] }) {
                     >
                         <div className="flex flex-col flex-1 gap-0.5">
                             <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold text-text tracking-tight">{alert.firmName}</span>
+                                <span className="text-[10px] font-bold text-text tracking-tight">
+                                    {alert.firmName}
+                                    {count > 1 && (
+                                        <span className="ml-2 px-1.5 py-0.5 bg-accent/10 text-accent rounded-md text-[9px] font-black uppercase tracking-tighter">
+                                            {count} occurrences
+                                        </span>
+                                    )}
+                                </span>
                                 <span className="text-[9px] font-extrabold text-text-3 opacity-60 uppercase">{timeAgo(alert.createdAt)}</span>
                             </div>
                             <p className="text-[12px] font-700 text-text leading-snug group-hover:text-accent transition-colors">
                                 {alert.message}
                             </p>
                         </div>
-                        <button className="text-text-3 hover:text-text p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Chevron className="w-3 h-3 rotate-[-90deg]" />
-                        </button>
+                        <div className="flex flex-col gap-2 shrink-0">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    let url = `/dashboard?tab=reconciliation&jobId=${alert.id}`
+                                    
+                                    if (alert.type === 'MISSING_RULE') {
+                                        const match = alert.message.match(/customer\s+([^\s(]+)/)
+                                        const cid = match ? match[1] : ''
+                                        if (cid) url = `/dashboard?tab=rules&customerId=${cid}`
+                                    }
+                                    
+                                    window.location.href = url
+                                }}
+                                className="flex items-center gap-2 p-[8px_16px] bg-accent text-white rounded-xl text-[11px] font-900 uppercase tracking-wider hover:opacity-90 shadow-md shadow-accent/10 transition-all"
+                            >
+                                Fix Issue
+                                <Chevron className="w-3 h-3 rotate-[-90deg]" />
+                            </button>
+                            <button className="text-[10px] font-bold text-text-3 hover:text-text px-2 py-1 transition-colors">
+                                Dismiss
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
