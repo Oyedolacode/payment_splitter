@@ -21,7 +21,7 @@ export function CashSummaryCards({ stats }: { stats: SummaryStats }) {
           <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
             <DollarIcon className="w-5 h-5" />
           </div>
-          <span className="text-[10px] font-bold text-text-3 uppercase tracking-widest bg-surface-2 px-3 py-1 rounded-full border border-border">Gross Incoming</span>
+          <span className="text-[10px] font-bold text-text-3 uppercase tracking-widest bg-surface-2 px-3 py-1 rounded-full border border-border">Total Processed</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[28px] font-display font-800 text-text leading-tight tracking-tight">
@@ -37,7 +37,7 @@ export function CashSummaryCards({ stats }: { stats: SummaryStats }) {
           <div className="w-10 h-10 bg-[#10b98110] rounded-2xl flex items-center justify-center text-[#10b981] group-hover:scale-110 transition-transform">
             <ZapIcon className="w-5 h-5" />
           </div>
-          <span className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest bg-[#10b98108] px-3 py-1 rounded-full border border-[#10b98120]">Allocated</span>
+          <span className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest bg-[#10b98108] px-3 py-1 rounded-full border border-[#10b98120]">Synced to Ledger</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[28px] font-display font-800 text-text leading-tight tracking-tight">
@@ -53,7 +53,7 @@ export function CashSummaryCards({ stats }: { stats: SummaryStats }) {
           <div className="w-10 h-10 bg-[#f59e0b10] rounded-2xl flex items-center justify-center text-[#f59e0b] group-hover:scale-110 transition-transform">
             <ActivityIcon className="w-5 h-5" />
           </div>
-          <span className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-widest bg-[#f59e0b08] px-3 py-1 rounded-full border border-[#f59e0b20]">Unallocated</span>
+          <span className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-widest bg-[#f59e0b08] px-3 py-1 rounded-full border border-[#f59e0b20]">Pending Allocation</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[28px] font-display font-800 text-text leading-tight tracking-tight">

@@ -35,9 +35,9 @@ export function ClientTable({ firms }: { firms: FirmStats[] }) {
             <tr className="bg-surface-2/50 border-b border-border">
               <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">Client Name</th>
               <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">OP Health</th>
+              <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">Needs Action</th>
               <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">Cash Volume</th>
               <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">Success Rate</th>
-              <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">Last Activity</th>
               <th className="px-6 py-5 text-[10px] font-bold text-text-3 uppercase tracking-widest">Action</th>
             </tr>
           </thead>
@@ -51,7 +51,29 @@ export function ClientTable({ firms }: { firms: FirmStats[] }) {
                   </div>
                 </td>
                 <td className="px-6 py-5">
-                  <HealthBadge status={firm.health} />
+                  <HealthBadge status={firm.health} percentage={firm.successRate} />
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex flex-col gap-1">
+                    {firm.failedJobs > 0 && (
+                        <div className="flex items-center gap-1.5 text-[#ef4444] text-[11px] font-800">
+                            <span className="w-2 h-2 bg-[#ef4444] rounded-full animate-pulse" />
+                            {firm.failedJobs} failed jobs
+                        </div>
+                    )}
+                    {firm.remaining > (firm.totalIncoming * 0.01) && (
+                        <div className="flex items-center gap-1.5 text-[#f59e0b] text-[11px] font-800">
+                            <span className="w-2 h-2 bg-[#f59e0b] rounded-full" />
+                            Unallocated funds
+                        </div>
+                    )}
+                    {firm.failedJobs === 0 && Number(firm.remaining) <= (firm.totalIncoming * 0.01) && (
+                        <div className="flex items-center gap-1.5 text-[#10b981] text-[11px] font-800 opacity-60">
+                            <CheckIcon className="w-3 h-3" />
+                            No action required
+                        </div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-5">
                   <div className="flex flex-col">
@@ -78,19 +100,19 @@ export function ClientTable({ firms }: { firms: FirmStats[] }) {
                   </div>
                 </td>
                 <td className="px-6 py-5">
-                  <span className="text-[12px] text-text-3 font-medium">
-                    {firm.lastSync ? timeAgo(firm.lastSync) : 'Never'}
-                  </span>
-                </td>
-                <td className="px-6 py-5">
                   <button 
                     onClick={() => {
                         localStorage.setItem('ps_firm_id', firm.id)
-                        window.location.href = '/dashboard?tab=reconciliation'
+                        window.location.href = firm.health === 'CRITICAL' || firm.failedJobs > 0 ? '/dashboard?tab=reconciliation' : '/dashboard?tab=ledger'
                     }}
-                    className="p-2 bg-surface-3 hover:bg-accent hover:text-white rounded-xl border border-border transition-all"
+                    className={`flex items-center gap-2 p-[6px_14px] rounded-xl border transition-all text-[11px] font-800 ${
+                        firm.health === 'CRITICAL' || firm.failedJobs > 0 
+                        ? 'bg-[#ef444410] border-[#ef444420] text-[#ef4444] hover:bg-[#ef444420]' 
+                        : 'bg-surface-3 border-border hover:bg-accent hover:text-white'
+                    }`}
                   >
-                    <Chevron className="w-4 h-4 rotate-[-90deg]" />
+                    {firm.health === 'CRITICAL' || firm.failedJobs > 0 ? 'Fix Issue' : 'View Details'}
+                    <Chevron className="w-3 h-3 rotate-[-90deg]" />
                   </button>
                 </td>
               </tr>
@@ -102,16 +124,17 @@ export function ClientTable({ firms }: { firms: FirmStats[] }) {
   )
 }
 
-function HealthBadge({ status }: { status: 'HEALTHY' | 'ATTENTION' | 'CRITICAL' }) {
+function HealthBadge({ status, percentage }: { status: 'HEALTHY' | 'ATTENTION' | 'CRITICAL', percentage: number }) {
   const config = {
     HEALTHY: { label: 'Healthy', color: 'bg-[#10b98115] text-[#10b981] border-[#10b98125]' },
-    ATTENTION: { label: 'Needs Attention', color: 'bg-[#f59e0b15] text-[#f59e0b] border-[#f59e0b25]' },
-    CRITICAL: { label: 'Critical Failure', color: 'bg-[#ef444415] text-[#ef4444] border-[#ef444425]' }
+    ATTENTION: { label: 'Attention', color: 'bg-[#f59e0b15] text-[#f59e0b] border-[#f59e0b25]' },
+    CRITICAL: { label: 'Critical', color: 'bg-[#ef444415] text-[#ef4444] border-[#ef444425]' }
   }
 
   return (
-    <div className={`px-3 py-1 rounded-full border text-[10px] font-800 uppercase tracking-widest ${config[status].color}`}>
+    <div className={`px-3 py-1 rounded-full border text-[10px] font-800 uppercase tracking-widest inline-flex items-center gap-1.5 ${config[status].color}`}>
       {config[status].label}
+      <span className="opacity-50">({Math.round(percentage)}%)</span>
     </div>
   )
 }

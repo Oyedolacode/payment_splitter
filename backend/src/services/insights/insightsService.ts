@@ -134,14 +134,18 @@ export async function getOperationalAlerts(firmIds: string[]): Promise<Operation
     if (job.status === JobStatus.STALLED) {
       type = 'STALLED'
       severity = 'WARNING'
-      message = 'Job has stalled and may need a retry.'
+      message = 'Job execution suspended — potential network or timeout issue'
     } else if (job.status === JobStatus.REVIEW_REQUIRED) {
       type = 'HIGH_VALUE'
       severity = 'INFO'
-      message = job.errorMessage || 'Review required (possibly high value).'
+      message = 'Pending review — high value payment detected'
     } else if (message.includes('No active split rule')) {
       type = 'MISSING_RULE'
       severity = 'CRITICAL'
+      message = 'Missing allocation rules for this customer'
+    } else if (message.includes('invariant violated') || message.includes('sum to')) {
+      severity = 'CRITICAL'
+      message = 'Allocation mismatch detected — total split does not equal payment total'
     }
 
     return {

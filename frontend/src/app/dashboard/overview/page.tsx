@@ -14,6 +14,7 @@ export default function OverviewPage() {
   const [alerts, setAlerts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [secondsAgo, setSecondsAgo] = useState(0)
 
   const fetchData = useCallback(async () => {
     try {
@@ -26,6 +27,7 @@ export default function OverviewPage() {
       if (alRes.ok) setAlerts(await alRes.json())
       
       setLastUpdated(new Date())
+      setSecondsAgo(0)
     } catch (err) {
       console.error('Failed to fetch overview data', err)
     } finally {
@@ -35,8 +37,15 @@ export default function OverviewPage() {
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 45000) // 45 seconds refresh
-    return () => clearInterval(interval)
+    const pollInterval = setInterval(fetchData, 45000) // 45 seconds refresh
+    const timerInterval = setInterval(() => {
+        setSecondsAgo(prev => prev + 1)
+    }, 1000)
+    
+    return () => {
+        clearInterval(pollInterval)
+        clearInterval(timerInterval)
+    }
   }, [fetchData])
 
   if (loading) {
@@ -88,10 +97,16 @@ export default function OverviewPage() {
             <h1 className="font-display text-[42px] max-[768px]:text-[32px] font-800 tracking-tight text-text leading-tight">Entity Overview</h1>
             <p className="text-text-3 text-[15px] max-w-[500px] font-medium">Real-time health monitoring and automated reconciliation metrics across your entire fleet.</p>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <span className="text-[10px] font-bold text-text-3 uppercase tracking-widest">Last Updated</span>
-            <div className="flex items-center gap-2 bg-surface-2 px-4 py-2 rounded-2xl border border-border">
-                <span className="text-[12px] font-800 text-text-2 tracking-tight">{lastUpdated.toLocaleTimeString()}</span>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
+                <span className="text-[10px] font-black text-accent uppercase tracking-[0.15em]">Auto-refreshing</span>
+            </div>
+            <div className="flex items-center gap-3 bg-surface-2 px-4 py-2.5 rounded-[20px] border border-border shadow-sm">
+                <span className="text-[10px] font-bold text-text-3 uppercase tracking-widest border-r border-border pr-3">Last Updated</span>
+                <span className="text-[13px] font-800 text-text tracking-tight">
+                    {secondsAgo < 5 ? 'Just now' : `${secondsAgo} seconds ago`}
+                </span>
             </div>
           </div>
         </header>
