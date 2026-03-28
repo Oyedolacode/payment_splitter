@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma'
+import { prisma } from '../../lib/prisma'
 
 /**
  * Record a double-entry financial transaction in the internal ledger.
@@ -13,7 +13,7 @@ export async function createLedgerTransaction(
   metadata: any = {}
 ) {
   // We use a transaction to ensure double-entry accounting integrity
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     // 1. Debit the Incoming Payment Pool (the "Source" of funds)
     const debitEntry = await tx.ledgerEntry.create({
       data: {

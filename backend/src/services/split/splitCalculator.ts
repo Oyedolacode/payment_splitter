@@ -1,4 +1,4 @@
-import { QBOInvoice } from './qboClient'
+import { QBOInvoice } from '../qbo/qboClient'
 
 // ── Rule config types ─────────────────────────────────────────────────────────
 

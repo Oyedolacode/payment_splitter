@@ -1,7 +1,7 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
-import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations, fetchAllCustomers } from '../services/qbo/qboClient'
+import { fetchPayment, fetchOpenInvoices, postBatch, deletePayment, QBOBatchItemRequest, createJournalEntry, fetchAllLocations, fetchAllCustomers, qboRequest } from '../services/qbo/qboClient'
 import { calculateSplit, assertSplitInvariant, RuleConfig, Allocation } from '../services/split/splitCalculator'
 import { sendJobCompleteEmail, sendJobFailedEmail } from '../services/jobs/email'
 import { JobStatus } from '@prisma/client'
@@ -121,11 +121,6 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
       if (!rule) {
         console.log(`[RULE-LOOKUP] No direct rule for customer "${parentCustomerId}". Checking QBO parent hierarchy...`)
         try {
-          // List all rules to see what's actually stored
-          const allRules = await prisma.splitRule.findMany({ where: { firmId, isActive: true } })
-          console.log(`[RULE-LOOKUP] All active rules for firm: ${JSON.stringify(allRules.map(r => ({ id: r.id, parentCustomerId: r.parentCustomerId })))}`)
-          
-          const { qboRequest } = await import('../services/qboClient')
           const customerData = await qboRequest<{ Customer: any }>(
             firmId,
             firm.qboRealmId!,
@@ -133,33 +128,25 @@ async function processPayment(job: Job<PaymentJobData>): Promise<void> {
           )
 
           const qboCustomer = customerData?.Customer
-          console.log(`[RULE-LOOKUP] QBO Customer fetched: Id="${qboCustomer?.Id}" DisplayName="${qboCustomer?.DisplayName}" ParentRef="${JSON.stringify(qboCustomer?.ParentRef)}"`)
+          console.log(`[RULE-LOOKUP] QBO Customer fetched: Id="${qboCustomer?.Id}" ParentRef="${JSON.stringify(qboCustomer?.ParentRef)}"`)
 
           if (qboCustomer?.ParentRef?.value) {
             const actualParentId = qboCustomer.ParentRef.value
-            console.log(`[RULE-LOOKUP] Customer ${parentCustomerId} is a sub-customer of ${actualParentId}. Looking up parent rule...`)
             rule = await prisma.splitRule.findFirst({
               where: { firmId, parentCustomerId: actualParentId, isActive: true }
             })
             console.log(`[RULE-LOOKUP] Parent rule lookup result: ${rule ? `FOUND rule.id=${rule.id}` : 'NOT FOUND'}`)
-          } else {
-            console.warn(`[RULE-LOOKUP] Customer ${parentCustomerId} has NO parent in QBO — checking for default rule...`)
           }
         } catch (err: any) {
-          console.error(`[RULE-LOOKUP] Error during parent lookup for customer ${parentCustomerId}:`, err.message)
+          console.error(`[RULE-LOOKUP] Error during parent lookup:`, err.message)
         }
 
-        // [Phase 7c] Default Rule Fallback — catches all remaining unmapped customers
+        // [Phase 7c] Default Rule Fallback
         if (!rule) {
           console.log(`[RULE-LOOKUP] Attempting default rule fallback...`)
           rule = await prisma.splitRule.findFirst({
             where: { firmId, isActive: true, isDefault: true }
           })
-          if (rule) {
-            console.log(`[RULE-LOOKUP] ✅ DEFAULT RULE APPLIED: rule.id=${rule.id} for customer ${parentCustomerId}`)
-          } else {
-            console.warn(`[RULE-LOOKUP] ❌ No default rule found. Job cannot be processed.`)
-          }
         }
       }
 

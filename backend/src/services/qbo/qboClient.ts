@@ -1,5 +1,5 @@
 import { getValidAccessToken } from './qboAuth'
-import { config } from '../lib/config'
+import { config } from '../../lib/config'
 
 const QBO_BASE =
   config.QBO_ENVIRONMENT === 'sandbox'

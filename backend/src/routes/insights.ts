@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from 'fastify'
+import { prisma } from '../lib/prisma'
 import * as insightsService from '../services/insights/insightsService'
 
 export async function insightsRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
@@ -8,24 +9,20 @@ export async function insightsRoutes(fastify: FastifyInstance, options: FastifyP
   const getCurrentUser = (request: FastifyRequest) => {
     // For now, we mock a user that has access to ALL firms in the DB
     // since we don't have a User-to-Firm relationship yet.
-    // The spec says: Assume a temporary model: currentUser.firmIds
     return {
       id: 'mock-user-id',
-      firmIds: [], // Empty means "no access" unless we fetch all as a fallback
+      firmIds: [] as string[], 
     }
   }
 
   // GET /api/insights/dashboard
   fastify.get('/dashboard', async (request: any, reply) => {
     try {
-      // 1. Get all accessible firms for this user
-      // If firmIds is empty, we'll fetch ALL firms to satisfy the "Multi-Client" requirement
-      // during this development phase, or just provide an empty state.
       let { firmIds } = getCurrentUser(request)
       
       if (firmIds.length === 0) {
         // Mock fallback: Get all firm IDs currently in DB
-        const allFirms = await fastify.prisma.firm.findMany({ select: { id: true } })
+        const allFirms = await prisma.firm.findMany({ select: { id: true } })
         firmIds = allFirms.map((f: any) => f.id)
       }
 
@@ -46,7 +43,7 @@ export async function insightsRoutes(fastify: FastifyInstance, options: FastifyP
     try {
       let { firmIds } = getCurrentUser(request)
       if (firmIds.length === 0) {
-        const allFirms = await fastify.prisma.firm.findMany({ select: { id: true } })
+        const allFirms = await prisma.firm.findMany({ select: { id: true } })
         firmIds = allFirms.map((f: any) => f.id)
       }
 
@@ -66,7 +63,7 @@ export async function insightsRoutes(fastify: FastifyInstance, options: FastifyP
     try {
       let { firmIds } = getCurrentUser(request)
       if (firmIds.length === 0) {
-        const allFirms = await fastify.prisma.firm.findMany({ select: { id: true } })
+        const allFirms = await prisma.firm.findMany({ select: { id: true } })
         firmIds = allFirms.map((f: any) => f.id)
       }
 

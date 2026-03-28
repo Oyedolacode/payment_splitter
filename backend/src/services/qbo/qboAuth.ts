@@ -1,6 +1,6 @@
-import { config } from '../lib/config'
-import { encrypt, decrypt } from '../lib/encryption'
-import { prisma } from '../lib/prisma'
+import { config } from '../../lib/config'
+import { encrypt, decrypt } from '../../lib/encryption'
+import { prisma } from '../../lib/prisma'
 
 const QBO_BASE =
   config.QBO_ENVIRONMENT === 'sandbox'
