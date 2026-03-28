@@ -13,6 +13,7 @@ import { rulesRoutes } from './routes/rules'
 import { jobsRoutes } from './routes/jobs'
 import { qboRoutes } from './routes/qbo'
 import { stripeRoutes } from './routes/stripe'
+import { insightsRoutes } from './routes/insights'
 import { startWorker } from './workers/paymentWorker'
 
 const server = Fastify({
@@ -46,6 +47,7 @@ async function bootstrap() {
   await server.register(jobsRoutes, { prefix: '/api/jobs' });
   await server.register(qboRoutes, { prefix: '/api/qbo' });
   await server.register(stripeRoutes, { prefix: '/api/stripe' });
+  await server.register(insightsRoutes, { prefix: '/api/insights' });
 
   // ── Health check ──────────────────────────────────────────────────────────
   server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));

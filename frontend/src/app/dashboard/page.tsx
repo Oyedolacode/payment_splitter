@@ -36,7 +36,7 @@ interface Rule {
   createdAt: string
 }
 
-type Tab = 'reconciliation' | 'ledger' | 'rules' | 'settings' | 'audit' | 'remittance' | 'ap' | 'trust'
+type Tab = 'overview' | 'reconciliation' | 'ledger' | 'rules' | 'settings' | 'audit' | 'remittance' | 'ap' | 'trust'
 
 type JobStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'ROLLED_BACK' | 'REVIEW_REQUIRED' | 'ANOMALY_PAUSED' | 'STALLED'
 
@@ -162,6 +162,10 @@ function DashboardContent() {
   // Sync state changes to URL
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
+    if (tab === 'overview') {
+      router.push('/dashboard/overview')
+      return
+    }
     if (tab !== 'reconciliation') {
       params.set('tab', tab)
     } else {
@@ -531,13 +535,13 @@ function DashboardContent() {
 
         <div className="flex items-center gap-4 max-[1024px]:gap-2 shrink-0">
           <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border max-[1200px]:hidden">
-            {(['reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
+            {(['overview', 'reconciliation', 'ledger', 'rules', 'audit', 'settings'] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={`p-[6px_14px] rounded-lg text-[11.5px] font-800 transition-all whitespace-nowrap ${tab === t ? 'bg-accent text-white shadow-[0_4px_12px_rgba(45,49,250,0.3)] border border-accent' : 'text-text-3 hover:text-text hover:bg-surface-3'}`}
               >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {t === 'overview' ? 'Ops Center' : t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
             ))}
           </div>
